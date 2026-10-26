@@ -419,7 +419,7 @@
                     </button>
                 </div>
             </div>
-            <p class="text-[11px] text-slate-500">นักเรียนจะต้องคลิกลิงก์นี้เพื่อเข้าสู่ระบบ และบังคับลงทะเบียนก่อนใช้งาน</p>
+            <p class="text-[11px] text-slate-500">ครูจะต้องคลิกลิงก์นี้เพื่อเข้าสู่ระบบ และบังคับลงทะเบียนก่อนใช้งาน</p>
         </div>
     </div>
 
@@ -433,20 +433,19 @@
             </div>
             <div class="bg-purple-50 p-3 rounded-2xl border border-purple-200 text-xs text-purple-900">
                 <p id="regContextInfo" class="font-bold">classroom by kru.yui</p>
-                <p class="text-[10px] text-purple-700 mt-0.5">กรุณากรอกข้อมูลและแนบไฟล์รูปภาพประจำตัว (.png, .jpg, .tiff เท่านั้น)</p>
+                <p class="text-[10px] text-purple-700 mt-0.5">กรุณากรอกข้อมูล</p>
             </div>
             <form onsubmit="handleStudentRegister(event)" class="space-y-3 text-xs">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">รหัสเข้าสู่ระบบ</label>
-                    <input type="text" id="regId" required class="w-full border rounded-xl p-2.5 font-bold" id="admin">
+                    <input type="text" id="regId" required class="w-full border rounded-xl p-2.5 font-bold" placeholder="admin">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">รหัสผ่าน</label>
-                    <input type="text" id="regId" required class="w-full border rounded-xl p-2.5 font-bold" password="5044">
+                    <input type="text" id="regName" required class="w-full border rounded-xl p-2.5 font-bold" placeholder="5044">
                 </div>
-                <div>
                 <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold text-xs bouncy-btn shadow-md">
-                    ยืนยันการลงทะเบียนเข้าห้องเรียน
+                    ยืนยันการเข้าห้องเรียน
                 </button>
             </form>
         </div>
@@ -1704,7 +1703,7 @@
                 
                 // Hide student profile click registration card in teacher mode
                 document.getElementById('userProfileNavCard').style.pointerEvents = 'none';
-                document.getElementById('navUserName').innerText = "คุณครูผู้สอน";
+                document.getElementById('navUserName').innerText = "คุณครูอังคณา";
                 document.getElementById('navUserMeta').innerText = "Administrator Mode";
                 
                 if (summaryTabLabel) summaryTabLabel.innerText = "ตัดเกรด & สรุปผล";
