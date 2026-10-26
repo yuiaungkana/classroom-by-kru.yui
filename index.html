@@ -105,21 +105,12 @@
                             <option value="ม.1/3" class="text-slate-800">ม.1/3</option>
                         </select>
                     </div>
-                    <!-- Share Classroom Button -->
+                    <!-- Share Classroom Button (Teacher Only - strictly hidden from students) -->
                     <button id="shareClassroomBtn" onclick="openShareModal()" class="teacher-only hidden ml-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 px-3 py-1 rounded-xl text-xs font-bold transition items-center gap-1 shadow-sm bouncy-btn">
                         <i class="fa-solid fa-share-nodes"></i> แชร์ห้องเรียน
                     </button>
-                        <div id="userProfileNavCard" class="flex items-center space-x-2 pl-2 border-l border-white/25 cursor-pointer" onclick="openRegisterModal()" title="คลิกเพื่อลงทะเบียน/เปลี่ยนโปรไฟล์นักเรียน">
-                            <img id="navUserAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=DefaultStudent" alt="Avatar" class="w-9 h-9 rounded-2xl bg-purple-300 p-0.5 border border-white/40 shadow-sm object-cover">
-                            <div class="hidden sm:block text-left">
-                                <p id="navUserName" class="text-xs font-bold text-white leading-tight">ยังไม่ลงทะเบียน</p>
-                                <p id="navUserMeta" class="text-[9px] text-purple-200">เข้าสู่ระบบจากลิงก์ห้องเรียน</p>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-             </div>
-        
+                </div>
+
                 <!-- User Profile & Teacher Toggle Switch -->
                 <div class="flex items-center space-x-3">
                     <!-- Mode Switcher -->
@@ -130,7 +121,20 @@
                             <div class="w-9 h-5 bg-purple-950/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-400"></div>
                         </label>
                     </div>
-        
+
+                    <!-- User Avatar & Identity (Click to Register/Switch - strictly for teacher mode) -->
+                    <div id="userProfileNavCard" class="flex items-center space-x-2 pl-2 border-l border-white/25 cursor-pointer" onclick="openRegisterModal()" title="คลิกเพื่อลงทะเบียน/เปลี่ยนโปรไฟล์นักเรียน">
+                        <img id="navUserAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=DefaultStudent" alt="Avatar" class="w-9 h-9 rounded-2xl bg-purple-300 p-0.5 border border-white/40 shadow-sm object-cover">
+                        <div class="hidden sm:block text-left">
+                            <p id="navUserName" class="text-xs font-bold text-white leading-tight">ยังไม่ลงทะเบียน</p>
+                            <p id="navUserMeta" class="text-[9px] text-purple-200">เข้าสู่ระบบจากลิงก์ห้องเรียน</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
     <!-- NAVIGATION TAB BAR -->
     <nav class="bg-white border-b border-slate-200/80 sticky top-16 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -154,7 +158,7 @@
     <!-- MAIN CONTENT AREA -->
     <div class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        <!-- Banner for Teacher Controls -->
+        <!-- Banner for Teacher Controls (Strictly Teacher Only) -->
         <div id="teacherBanner" class="hidden animate-popIn bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 p-4 rounded-3xl shadow-lg text-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 border-2 border-yellow-200 mb-6">
             <div class="flex items-center space-x-3">
                 <div class="p-3 bg-white/40 rounded-2xl">
@@ -178,7 +182,7 @@
             </div>
         </div>
 
-        <!-- TAB 1: Lessons & Slides -->
+        <!-- TAB 1: บทเรียนและสไลด์การสอน (Lessons & Slides) -->
         <section id="sec-lessons" class="tab-content block space-y-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
                 <div>
@@ -199,7 +203,7 @@
             <div id="lessonsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
-        <!-- TAB 2: Assignments & Projects -->
+        <!-- TAB 2: ชิ้นงานและภารกิจ (Assignments & Projects) -->
         <section id="sec-assignments" class="tab-content hidden space-y-6">
             <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -217,7 +221,7 @@
             <div id="assignmentsContainer" class="space-y-4"></div>
         </section>
 
-        <!-- TAB 3: Quizzes -->
+        <!-- TAB 3: แบบทดสอบ (Quizzes) -->
         <section id="sec-quizzes" class="tab-content hidden space-y-6">
             <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -235,9 +239,9 @@
             <div id="quizzesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </section>
 
-        <!-- TAB 4: Summary & Grading -->
+        <!-- TAB 4: ตัดเกรด & สรุปผล (Summary & Status) -->
         <section id="sec-summary" class="tab-content hidden space-y-6">
-            <!-- Teacher View Summary -->
+            <!-- Teacher View Summary (Strictly Teacher Only) -->
             <div id="teacherSummaryView" class="teacher-only hidden space-y-6">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
@@ -336,7 +340,7 @@
                 </div>
             </div>
 
-            <!-- Student View Summary -->
+            <!-- Student View Summary (Status Only: ตรงเวลา, ช้า, ค้าง) -->
             <div id="studentSummaryView" class="block space-y-6">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
@@ -392,7 +396,7 @@
 
     <!-- MODALS SECTION -->
 
-    <!-- Modal: Share Classroom -->
+    <!-- Modal: Share Classroom (Teacher Only - strictly restricted) -->
     <div id="shareModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-6 space-y-5">
             <div class="flex justify-between items-center border-b pb-3">
@@ -419,7 +423,7 @@
         </div>
     </div>
 
-    <!-- Modal: Mandatory Student Registration -->
+    <!-- Modal: Mandatory Student Registration & Profile (Strictly via shared classroom link) -->
     <div id="registerModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4 text-sm">
             <div class="flex justify-between items-center border-b pb-3">
@@ -457,7 +461,7 @@
         </div>
     </div>
 
-    <!-- Modal: Manage Terms -->
+    <!-- Modal: Manage Terms (Teacher) -->
     <div id="termsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -472,7 +476,7 @@
         </div>
     </div>
 
-    <!-- Modal: Add/Edit Lesson -->
+    <!-- Modal: Add/Edit Lesson (Teacher) -->
     <div id="lessonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -502,7 +506,7 @@
         </div>
     </div>
 
-    <!-- Modal: Add/Edit Assignment -->
+    <!-- Modal: Add/Edit Assignment (Teacher) -->
     <div id="assignmentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -561,7 +565,7 @@
         </div>
     </div>
 
-    <!-- Modal: Create/Edit Quiz -->
+    <!-- Modal: Create/Edit Quiz (Teacher) -->
     <div id="createQuizModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="bg-gradient-to-r from-purple-700 to-indigo-600 px-6 py-4 flex justify-between items-center text-white">
@@ -600,14 +604,16 @@
         </div>
     </div>
 
-    <!-- Modal: Take Quiz -->
+    <!-- Modal: Take Quiz (Student) -->
     <div id="takeQuizModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex justify-between items-center text-white">
                 <h3 class="font-bold text-base" id="takeQuizTitle">ทำแบบทดสอบ</h3>
                 <button onclick="closeModal('takeQuizModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4 text-sm" id="takeQuizContent"></div>
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4 text-sm" id="takeQuizContent">
+                <!-- Dynamic questions container -->
+            </div>
             <div class="p-4 bg-slate-50 border-t flex justify-between items-center text-xs">
                 <div class="flex items-center space-x-2">
                     <img id="quizTakerAvatar" src="" class="w-8 h-8 rounded-lg object-cover bg-purple-200">
@@ -618,7 +624,7 @@
         </div>
     </div>
 
-    <!-- Modal: Grade & Review Submission -->
+    <!-- Modal: Grade & Review Submission (Teacher) -->
     <div id="gradeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4 text-sm">
             <div class="flex justify-between items-center border-b pb-3">
@@ -745,7 +751,7 @@
         window.onload = function() {
             loadData();
             
-            // Check URL query parameters for shared classroom access
+            // Check URL query parameters for shared classroom access (e.g. ?code=ROOM-11-9921&subject=...&class=...)
             const urlParams = new URLSearchParams(window.location.search);
             const sharedCode = urlParams.get('code');
             if (sharedCode) {
@@ -763,49 +769,17 @@
 
             // Automated Saturday 09:00 Reminder Simulator Check
             checkWeeklyReminder();
-            setInterval(checkWeeklyReminder, 60000);
+            setInterval(checkWeeklyReminder, 60000); // Check every minute
         };
 
-        function toggleTeacherMode(enabled) {
-            isTeacherMode = enabled;
-            const badge = document.getElementById('roleBadge');
-            const teacherBanner = document.getElementById('teacherBanner');
-            const teacherElems = document.querySelectorAll('.teacher-only');
-            const studentSummaryView = document.getElementById('studentSummaryView');
-            const teacherSummaryView = document.getElementById('teacherSummaryView');
-            const summaryTabLabel = document.getElementById('summaryTabLabel');
-
-            if (isTeacherMode) {
-                badge.innerText = 'คุณครู Admin';
-                badge.className = 'text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-400 text-slate-900 transition-all';
-                teacherBanner.classList.remove('hidden');
-                teacherElems.forEach(el => el.classList.remove('hidden'));
-                studentSummaryView.classList.add('hidden');
-                teacherSummaryView.classList.remove('hidden');
-                summaryTabLabel.innerText = "ตัดเกรด & สรุปผล";
-            } else {
-                badge.innerText = 'นักเรียน';
-                badge.className = 'text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-800 text-purple-200 transition-all';
-                teacherBanner.classList.add('hidden');
-                teacherElems.forEach(el => el.classList.add('hidden'));
-                studentSummaryView.classList.remove('hidden');
-                teacherSummaryView.classList.add('hidden');
-                summaryTabLabel.innerText = "สรุปสถานะการส่งงาน";
-                checkStudentAuthSession();
-            }
-
-            renderLessons();
-            renderAssignments();
-            renderQuizzes();
-            renderSummaryData();
-        }
-
+        // Automated Saturday 09:00 Reminder
         function checkWeeklyReminder() {
             const now = new Date();
-            const dayOfWeek = now.getDay();
+            const dayOfWeek = now.getDay(); // 6 = Saturday
             const hour = now.getHours();
             const minute = now.getMinutes();
 
+            // Trigger on Saturday at 09:00 AM or simulate once per session if requested
             if ((dayOfWeek === 6 && hour === 9 && minute === 0) || window.forceSaturdayReminder) {
                 showToast("⏰ แจ้งเตือนอัตโนมัติ: ถึงเวลาทวงงานและควิซประจำวันเสาร์ 09:00 น. แล้ว!", "info");
                 window.forceSaturdayReminder = false;
@@ -824,7 +798,7 @@
         }
 
         function openRegisterModal() {
-            if (isTeacherMode) return;
+            if (isTeacherMode) return; // Teachers don't need student registration
             if (currentStudent) {
                 document.getElementById('regNo').value = currentStudent.no;
                 document.getElementById('regId').value = currentStudent.id;
@@ -856,6 +830,7 @@
                     return;
                 }
 
+                // Read file as Data URL
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     finalAvatar = evt.target.result;
@@ -871,6 +846,7 @@
         function saveStudentSessionAndData(no, id, name, avatar) {
             currentStudent = { no, id, name, avatar };
 
+            // Upsert in appData.students
             const existingIdx = appData.students.findIndex(s => s.id === id);
             if (existingIdx !== -1) {
                 appData.students[existingIdx].no = no;
@@ -933,6 +909,7 @@
             });
         }
 
+        // SHARE CLASSROOM (STRICTLY TEACHER ONLY)
         function openShareModal() {
             if (!isTeacherMode) {
                 showToast("เฉพาะคุณครูเท่านั้นที่มีสิทธิ์แชร์ห้องเรียน", "info");
@@ -975,7 +952,7 @@
             }, 3000);
         }
 
-        // ================= TERMS MANAGEMENT =================
+        // ================= TERMS MANAGEMENT (TEACHER) =================
         function openManageTermsModal() {
             if (!isTeacherMode) return;
             renderTermsListInModal();
@@ -1481,11 +1458,13 @@
                 }
             });
 
+            // Update student quiz score in table
             const std = appData.students.find(s => s.id === currentStudent.id);
             if (std) {
                 std.quizScore = Math.min(50, Math.round((earnedScore / (totalMaxScore || 1)) * 50));
             }
 
+            // Record quiz submission
             const existing = appData.quizSubmissions.find(qs => qs.quizId === currentQuizTakingId && qs.studentId === currentStudent.id);
             if (!existing) {
                 appData.quizSubmissions.push({ id: Date.now(), quizId: currentQuizTakingId, studentId: currentStudent.id, timestamp: new Date().toLocaleString('th-TH'), status: 'ontime' });
@@ -1508,6 +1487,7 @@
 
             let ontime = 0, late = 0, pending = 0;
 
+            // Assignments status
             appData.assignments.forEach(item => {
                 const sub = appData.submissions.find(s => s.assignmentId === item.id && s.studentId === selfStdId);
                 let statusBadge = `<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-bold">ค้างส่ง</span>`;
@@ -1537,6 +1517,7 @@
                 tableBody.appendChild(tr);
             });
 
+            // Quizzes status
             appData.quizzes.forEach(quiz => {
                 const qSub = appData.quizSubmissions.find(qs => qs.quizId === quiz.id && qs.studentId === selfStdId);
                 let statusBadge = `<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-bold">ยังไม่ทำ</span>`;
@@ -1675,8 +1656,8 @@
                             no: idx + 1,
                             name: parts[1].trim(),
                             avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${sId}`,
-                            assignmentScore: parseInt(parts[2]) || 0,
-                            quizScore: parseInt(parts[3]) || 0
+                            assignmentScore: parseInt(parts[2]) || 35,
+                            quizScore: parseInt(parts[3]) || 35
                         });
                     }
                 });
@@ -1684,91 +1665,143 @@
                     appData.students = newStudents;
                     saveData();
                     renderSummaryData();
-                    showToast(`นำเข้าข้อมูลนักเรียนจำนวน ${newStudents.length} คน สำเร็จ!`);
+                    renderStudentStatusView();
+                    showToast(`นำเข้าข้อมูลนักเรียน ${newStudents.length} คนสำเร็จและบันทึกอัตโนมัติ!`, "success");
                 } else {
-                    showToast("รูปแบบไฟล์ CSV ไม่ถูกต้อง (รูปแบบ: ID,Name,AssignmentScore,QuizScore)", "info");
+                    showToast("รูปแบบไฟล์ CSV ไม่ถูกต้อง (ควรเป็น รหัส,ชื่อ-นามสกุล,คะแนนงาน,คะแนนสอบ)", "info");
                 }
             };
             reader.readAsText(file);
         }
 
         function exportScoresCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "Student ID,No,Name,Assignment Score,Quiz Score,Total Score,Grade\n";
-
-            appData.students.forEach(std => {
-                const total = std.assignmentScore + std.quizScore;
+            let csvContent = "data:text/csv;charset=utf-8,ID,Name,AssignmentScore,QuizScore,Total,Grade\n";
+            appData.students.forEach(s => {
+                const total = s.assignmentScore + s.quizScore;
                 const g = calculateGrade(total).grade;
-                csvContent += `"${std.id}",${std.no},"${std.name}",${std.assignmentScore},${std.quizScore},${total},"${g}"\n`;
+                csvContent += `${s.id},"${s.name}",${s.assignmentScore},${s.quizScore},${total},${g}\n`;
             });
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Playful_LMS_Grades_${currentClassroom.replace('/', '_')}.csv`);
+            link.setAttribute("download", `lms_scores_${currentClassroom}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast("ส่งออกไฟล์คะแนน CSV เรียบร้อยแล้ว!");
+            showToast("ส่งออกไฟล์คะแนน CSV เรียบร้อย!");
         }
 
-        // ================= CHART ANALYTICS =================
-        function renderCharts() {
-            const labels = appData.students.map(s => s.name);
-            const scores = appData.students.map(s => s.assignmentScore + s.quizScore);
+        // TEACHER TOGGLE (STRICT ISOLATION & ROLE ENFORCEMENT)
+        function toggleTeacherMode(enabled) {
+            isTeacherMode = enabled;
+            const badge = document.getElementById('roleBadge');
+            const banner = document.getElementById('teacherBanner');
+            const teacherToggleInput = document.getElementById('teacherToggle');
+            if (teacherToggleInput) teacherToggleInput.checked = enabled;
 
-            const ctxScore = document.getElementById('scoreChart')?.getContext('2d');
-            if (ctxScore) {
-                if (scoreChartInstance) scoreChartInstance.destroy();
-                scoreChartInstance = new Chart(ctxScore, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'คะแนนรวม (100 คะแนน)',
-                            data: scores,
-                            backgroundColor: 'rgba(147, 51, 234, 0.7)',
-                            borderColor: 'rgba(147, 51, 234, 1)',
-                            borderWidth: 1,
-                            borderRadius: 8
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: { y: { beginAtZero: true, max: 100 } }
-                    }
-                });
+            const summaryTabLabel = document.getElementById('summaryTabLabel');
+
+            if (enabled) {
+                badge.innerText = "คุณครู (Admin)";
+                badge.className = "text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-400 text-slate-900";
+                banner.classList.remove('hidden');
+                
+                // Show teacher-only elements strictly
+                document.querySelectorAll('.teacher-only').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('teacherSummaryView').classList.remove('hidden');
+                document.getElementById('studentSummaryView').classList.add('hidden');
+                
+                // Hide student profile click registration card in teacher mode
+                document.getElementById('userProfileNavCard').style.pointerEvents = 'none';
+                document.getElementById('navUserName').innerText = "คุณครูผู้สอน";
+                document.getElementById('navUserMeta').innerText = "Administrator Mode";
+                
+                if (summaryTabLabel) summaryTabLabel.innerText = "ตัดเกรด & สรุปผล";
+
+                // Close registration modal if open
+                document.getElementById('registerModal').classList.add('hidden');
+            } else {
+                badge.innerText = "นักเรียน";
+                badge.className = "text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-800 text-purple-200";
+                banner.classList.add('hidden');
+                
+                // Strictly hide all teacher-only elements so students NEVER see teacher views
+                document.querySelectorAll('.teacher-only').forEach(el => el.classList.add('hidden'));
+                document.getElementById('teacherSummaryView').classList.add('hidden');
+                document.getElementById('studentSummaryView').classList.remove('hidden');
+                
+                document.getElementById('userProfileNavCard').style.pointerEvents = 'auto';
+                if (summaryTabLabel) summaryTabLabel.innerText = "สรุปสถานะการส่งงาน";
+
+                // Check student authentication/registration session
+                checkStudentAuthSession();
             }
 
-            const gradeCounts = { A: 0, 'B+': 0, B: 0, 'C+': 0, C: 0, 'D+': 0, D: 0, F: 0 };
+            renderLessons();
+            renderAssignments();
+            renderQuizzes();
+            renderSummaryData();
+            if (!enabled && currentStudent) renderStudentStatusView();
+            showToast(enabled ? "สลับเข้าสู่โหมดคุณครู (สิทธิ์เต็ม)" : "สลับเข้าสู่มุมมองนักเรียน (จำกัดสิทธิ์ ปลอดภัย)", "info");
+        }
+
+        function renderCharts() {
+            const ctx1 = document.getElementById('scoreChart');
+            const ctx2 = document.getElementById('gradeDistributionChart');
+            if (!ctx1 || !ctx2) return;
+
+            const labels = appData.students.map(s => s.name);
+            const assignmentScores = appData.students.map(s => s.assignmentScore);
+            const quizScores = appData.students.map(s => s.quizScore);
+
+            if (scoreChartInstance) scoreChartInstance.destroy();
+            scoreChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'คะแนนงาน (50)', data: assignmentScores, backgroundColor: '#8b5cf6', borderRadius: 8 },
+                        { label: 'คะแนนสอบ (50)', data: quizScores, backgroundColor: '#10b981', borderRadius: 8 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, max: 100 }
+                    }
+                }
+            });
+
+            const gradeCounts = { 'A': 0, 'B+': 0, 'B': 0, 'C+': 0, 'C': 0, 'D+': 0, 'D': 0, 'F': 0 };
             appData.students.forEach(s => {
                 const total = s.assignmentScore + s.quizScore;
                 const g = calculateGrade(total).grade;
                 if (gradeCounts[g] !== undefined) gradeCounts[g]++;
             });
 
-            const ctxGrade = document.getElementById('gradeDistributionChart')?.getContext('2d');
-            if (ctxGrade) {
-                if (gradeDistributionChartInstance) gradeDistributionChartInstance.destroy();
-                gradeDistributionChartInstance = new Chart(ctxGrade, {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(gradeCounts),
-                        datasets: [{
-                            data: Object.values(gradeCounts),
-                            backgroundColor: [
-                                '#10b981', '#14b8a6', '#06b6d4', '#3b82f6',
-                                '#6366f1', '#f59e0b', '#f97316', '#ef4444'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false
+            if (gradeDistributionChartInstance) gradeDistributionChartInstance.destroy();
+            gradeDistributionChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(gradeCounts),
+                    datasets: [{
+                        data: Object.values(gradeCounts),
+                        backgroundColor: [
+                            '#10b981', '#14b8a6', '#06b6d4', '#3b82f6',
+                            '#6366f1', '#f59e0b', '#f97316', '#f43f5e'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
                     }
-                });
-            }
+                }
+            });
         }
     </script>
 </body>
