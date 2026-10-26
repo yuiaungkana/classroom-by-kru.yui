@@ -1,1561 +1,1780 @@
 # classroom-by-kru.yui
 การจัดการเรียนรู้
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" class="h-full bg-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classroom Learning Portal - Chunky & Bouncy Edition</title>
-    <!-- Tailwind CSS -->
+    <title>Playful LMS - ระบบการเรียนรู้อัจฉริยะแบบสมบูรณ์</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Mali & Kanit -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for Grade Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- QRCode.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        mali: ['Mali', 'cursive', 'sans-serif'],
-                        kanit: ['Kanit', 'sans-serif'],
+                        sans: ['Prompt', 'sans-serif'],
                     },
-                    colors: {
-                        brand: {
-                            pink: '#FF85A1',
-                            purple: '#A06EE1',
-                            blue: '#4D96FF',
-                            yellow: '#FFD93D',
-                            green: '#6BCB77',
-                            bg: '#F7F9FC'
+                    keyframes: {
+                        popIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
                         }
                     },
-                    boxShadow: {
-                        'chunky-sm': '0 4px 0 0 rgba(0, 0, 0, 0.15)',
-                        'chunky': '0 6px 0 0 rgba(0, 0, 0, 0.15)',
-                        'chunky-lg': '0 8px 0 0 rgba(0, 0, 0, 0.15)',
-                        'chunky-purple': '0 6px 0 0 #7A42C5',
-                        'chunky-blue': '0 6px 0 0 #2B69D8',
-                        'chunky-green': '0 6px 0 0 #3FA14B',
-                        'chunky-yellow': '0 6px 0 0 #D4AC0D',
+                    animation: {
+                        popIn: 'popIn 0.2s ease-out forwards',
                     }
                 }
             }
         }
     </script>
-
     <style>
-        body {
-            font-family: 'Kanit', sans-serif;
-            background-color: #F4F7FE;
-        }
-        h1, h2, h3, h4, .font-cute {
-            font-family: 'Mali', cursive, sans-serif;
-        }
-
-        /* Bouncy Animations & Interactions */
-        .btn-bounce {
-            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-        }
-        .btn-bounce:hover {
-            transform: translateY(-3px) scale(1.02);
-        }
-        .btn-bounce:active {
-            transform: translateY(2px) scale(0.98);
-            box-shadow: 0 2px 0 0 rgba(0,0,0,0.15) !important;
-        }
-
-        .card-pop {
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .card-pop:hover {
-            transform: translateY(-4px) scale(1.01);
-        }
-
         .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #EBF1FF;
-            border-radius: 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #A06EE1;
-            border-radius: 10px;
+            background: #cbd5e1;
+            border-radius: 8px;
         }
-
-        /* Print Media Queries for Reports */
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #print-area, #print-area * {
-                visibility: visible;
-            }
-            #print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            .no-print {
-                display: none !important;
-            }
+        .bouncy-btn {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .bouncy-btn:active {
+            transform: scale(0.96);
+        }
+        .bouncy-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.2s ease;
         }
     </style>
 </head>
-<body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-brand-pink selection:text-white">
+<body class="h-full text-slate-800 font-sans flex flex-col antialiased">
 
-    <!-- TOP HEADER NAVBAR -->
-    <header class="bg-white border-b-4 border-purple-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            
-            <!-- Logo & Title -->
-            <div class="flex items-center space-x-3">
-                <div class="bg-brand-purple text-white p-3 rounded-2xl shadow-chunky-purple flex items-center justify-center w-12 h-12 text-2xl font-bold animate-bounce">
-                    <i class="fa-solid fa-shapes"></i>
+    <!-- TOP NAVBAR -->
+    <header class="bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 gap-4">
+                
+                <!-- Brand Logo & Name -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('lessons')">
+                    <div class="w-10 h-10 rounded-2xl bg-yellow-400 flex items-center justify-center text-purple-900 font-black text-xl shadow-inner">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-lg tracking-wide leading-tight">PLAYFUL LMS</h1>
+                        <p id="navContextSubtitle" class="text-[10px] text-purple-200 font-medium">ห้องเรียนดิจิทัลอัตโนมัติ</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="font-bold text-xl sm:text-2xl text-slate-800 leading-tight">Classroom Hub 🎈</h1>
-                    <p class="text-xs text-purple-600 font-semibold">ระบบบริหารการเรียนการสอนสไตล์น่ารักสดใส</p>
-                </div>
-            </div>
 
-            <!-- Role & Quick Actions -->
-            <div class="flex items-center space-x-3">
-                <div id="role-badge" class="hidden sm:flex items-center bg-purple-100 text-purple-700 font-semibold px-4 py-2 rounded-2xl text-xs border-2 border-purple-300">
-                    <i class="fa-solid fa-user-graduate mr-2 text-brand-purple text-sm"></i>
-                    <span>มุมมอง: นักเรียน</span>
+                <!-- Classroom & Subject Selector -->
+                <div class="hidden lg:flex items-center space-x-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20">
+                    <div class="flex items-center space-x-2 text-xs">
+                        <i class="fa-solid fa-calendar-days text-pink-300"></i>
+                        <span class="font-medium text-purple-100">ภาคเรียน:</span>
+                        <select id="termSelect" onchange="changeContext()" class="bg-white/20 text-white rounded-xl px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-300 cursor-pointer font-medium border-0 text-xs">
+                            <!-- Dynamic options -->
+                        </select>
+                    </div>
+                    <div class="h-4 w-px bg-white/30"></div>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <i class="fa-solid fa-book-bookmark text-yellow-300"></i>
+                        <span class="font-medium text-purple-100">วิชา:</span>
+                        <select id="subjectSelect" onchange="changeContext()" class="bg-white/20 text-white rounded-xl px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-300 cursor-pointer font-medium border-0 text-xs">
+                            <option value="วิทยาการคำนวณ" class="text-slate-800">วิทยาการคำนวณ</option>
+                            <option value="เทคโนโลยีดิจิทัล" class="text-slate-800">เทคโนโลยีดิจิทัล</option>
+                            <option value="การเขียนโปรแกรม" class="text-slate-800">การเขียนโปรแกรม</option>
+                        </select>
+                    </div>
+                    <div class="h-4 w-px bg-white/30"></div>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <i class="fa-solid fa-door-open text-emerald-300"></i>
+                        <span class="font-medium text-purple-100">ห้อง:</span>
+                        <select id="classSelect" onchange="changeContext()" class="bg-white/20 text-white rounded-xl px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-300 cursor-pointer font-medium border-0 text-xs">
+                            <option value="ม.1/1" class="text-slate-800">ม.1/1</option>
+                            <option value="ม.1/2" class="text-slate-800">ม.1/2</option>
+                            <option value="ม.1/3" class="text-slate-800">ม.1/3</option>
+                        </select>
+                    </div>
+                    <!-- Share Classroom Button -->
+                    <button id="shareClassroomBtn" onclick="openShareModal()" class="teacher-only hidden ml-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 px-3 py-1 rounded-xl text-xs font-bold transition items-center gap-1 shadow-sm bouncy-btn">
+                        <i class="fa-solid fa-share-nodes"></i> แชร์ห้องเรียน
+                    </button>
                 </div>
-                <button id="btn-toggle-role" class="btn-bounce bg-brand-yellow hover:bg-yellow-300 text-slate-800 font-bold text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-chunky-yellow border-2 border-yellow-400 flex items-center space-x-2">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                    <span id="role-btn-text">สลับเป็น คุณครู 👩‍🏫</span>
-                </button>
+
+                <!-- User Profile & Teacher Toggle Switch -->
+                <div class="flex items-center space-x-3">
+                    <!-- Mode Switcher -->
+                    <div class="flex items-center bg-purple-900/50 p-1 rounded-2xl border border-purple-400/30">
+                        <span id="roleBadge" class="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-800 text-purple-200 transition-all">นักเรียน</span>
+                        <label class="relative inline-flex items-center cursor-pointer ml-1.5 mr-1">
+                            <input type="checkbox" id="teacherToggle" onchange="toggleTeacherMode(this.checked)" class="sr-only peer">
+                            <div class="w-9 h-5 bg-purple-950/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-400"></div>
+                        </label>
+                    </div>
+
+                    <!-- User Avatar & Identity -->
+                    <div id="userProfileNavCard" class="flex items-center space-x-2 pl-2 border-l border-white/25 cursor-pointer" onclick="openRegisterModal()" title="คลิกเพื่อลงทะเบียน/เปลี่ยนโปรไฟล์นักเรียน">
+                        <img id="navUserAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=DefaultStudent" alt="Avatar" class="w-9 h-9 rounded-2xl bg-purple-300 p-0.5 border border-white/40 shadow-sm object-cover">
+                        <div class="hidden sm:block text-left">
+                            <p id="navUserName" class="text-xs font-bold text-white leading-tight">ยังไม่ลงทะเบียน</p>
+                            <p id="navUserMeta" class="text-[9px] text-purple-200">เข้าสู่ระบบจากลิงก์ห้องเรียน</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- MAIN WRAPPER -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
+    <!-- NAVIGATION TAB BAR -->
+    <nav class="bg-white border-b border-slate-200/80 sticky top-16 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-1 sm:space-x-4 overflow-x-auto custom-scrollbar py-2">
+                <button onclick="switchTab('lessons')" id="tab-btn-lessons" class="tab-btn active text-xs sm:text-sm font-bold px-4 py-2 rounded-2xl transition flex items-center gap-2 whitespace-nowrap bg-purple-100 text-purple-700">
+                    <i class="fa-solid fa-book-open"></i> บทเรียน & สไลด์
+                </button>
+                <button onclick="switchTab('assignments')" id="tab-btn-assignments" class="tab-btn text-xs sm:text-sm font-bold px-4 py-2 rounded-2xl transition flex items-center gap-2 whitespace-nowrap text-slate-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-list-check"></i> ชิ้นงาน & ภารกิจ
+                </button>
+                <button onclick="switchTab('quizzes')" id="tab-btn-quizzes" class="tab-btn text-xs sm:text-sm font-bold px-4 py-2 rounded-2xl transition flex items-center gap-2 whitespace-nowrap text-slate-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-puzzle-piece"></i> ควิซสอบ
+                </button>
+                <button onclick="switchTab('summary')" id="tab-btn-summary" class="tab-btn text-xs sm:text-sm font-bold px-4 py-2 rounded-2xl transition flex items-center gap-2 whitespace-nowrap text-slate-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-chart-line"></i> <span id="summaryTabLabel">สรุปสถานะการส่งงาน</span>
+                </button>
+            </div>
+        </div>
+    </nav>
 
-        <!-- CLASS & SUBJECT SELECTOR BAR (Teacher & Student Global Filter) -->
-        <div class="bg-white p-4 rounded-3xl border-4 border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-            <div class="flex flex-wrap items-center gap-3">
-                <!-- Subject Selection -->
-                <div class="flex items-center space-x-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase flex items-center"><i class="fa-solid fa-book text-brand-blue mr-1.5"></i> วิชา:</span>
-                    <select id="select-subject" onchange="onSubjectOrClassChange()" class="bg-blue-50 border-2 border-blue-200 text-slate-800 text-sm font-semibold rounded-2xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                        <!-- Dynamic Subjects -->
-                    </select>
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Banner for Teacher Controls -->
+        <div id="teacherBanner" class="hidden animate-popIn bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 p-4 rounded-3xl shadow-lg text-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 border-2 border-yellow-200 mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="p-3 bg-white/40 rounded-2xl">
+                    <i class="fa-solid fa-graduation-cap text-2xl text-slate-900"></i>
                 </div>
+                <div>
+                    <h3 class="font-extrabold text-base">โหมดควบคุมของคุณครู (Teacher Admin Mode) Active!</h3>
+                    <p class="text-xs text-slate-800">บันทึกอัตโนมัติ | จัดการภาคเรียน บทเรียน ชิ้นงาน สร้างข้อสอบ ตรวจงาน และตัดเกรด</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center space-x-2 w-full sm:w-auto justify-end gap-2">
+                <button onclick="openShareModal()" class="bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-2 rounded-2xl text-xs font-bold transition shadow-md bouncy-btn flex items-center">
+                    <i class="fa-solid fa-share-nodes mr-1 text-pink-300"></i> แชร์ห้องเรียน
+                </button>
+                <button onclick="openManageTermsModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-2xl text-xs font-bold transition shadow-md bouncy-btn flex items-center">
+                    <i class="fa-solid fa-calendar-gear mr-1 text-pink-300"></i> จัดการภาคเรียน
+                </button>
+                <button onclick="openAddLessonModal()" class="bg-white hover:bg-slate-100 text-slate-900 px-3 py-2 rounded-2xl text-xs font-bold transition shadow-md bouncy-btn flex items-center">
+                    <i class="fa-solid fa-plus mr-1 text-pink-500"></i> เพิ่มบทเรียน
+                </button>
+            </div>
+        </div>
 
-                <!-- Classroom Selection -->
-                <div class="flex items-center space-x-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase flex items-center"><i class="fa-solid fa-school text-brand-purple mr-1.5"></i> ห้องเรียน:</span>
-                    <select id="select-classroom" onchange="onSubjectOrClassChange()" class="bg-purple-50 border-2 border-purple-200 text-slate-800 text-sm font-semibold rounded-2xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-purple">
-                        <!-- Dynamic Classrooms -->
-                    </select>
+        <!-- TAB 1: Lessons & Slides -->
+        <section id="sec-lessons" class="tab-content block space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb text-yellow-400 text-2xl"></i> บทเรียน & สไลด์
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">ศึกษา อ่านเนื้อหาบทเรียน และดาวน์โหลดหรือเปิดดูสไลด์ประกอบการสอน</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <input type="text" id="lessonSearch" onkeyup="filterLessons()" placeholder="ค้นหาบทเรียน..." class="pl-10 pr-4 py-2 text-sm bg-slate-100 border-0 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all w-60">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    </div>
                 </div>
             </div>
 
-            <!-- Action Buttons for Teacher & Sharing -->
-            <div class="flex items-center space-x-2 justify-end">
-                <button onclick="openShareModal()" class="btn-bounce bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-xs px-3.5 py-2.5 rounded-2xl border-2 border-emerald-300 flex items-center space-x-1.5 shadow-sm">
-                    <i class="fa-solid fa-qrcode"></i>
-                    <span>แชร์ห้องเรียน 📲</span>
-                </button>
+            <!-- Lessons Grid -->
+            <div id="lessonsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
 
-                <div class="teacher-only hidden flex items-center space-x-2">
-                    <button onclick="openModal('modal-manage-subject-class')" class="btn-bounce bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-2xl border-2 border-purple-700 shadow-chunky-purple flex items-center space-x-1.5">
-                        <i class="fa-solid fa-gear"></i>
-                        <span>จัดการวิชา / ห้องเรียน</span>
+        <!-- TAB 2: Assignments & Projects -->
+        <section id="sec-assignments" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-orange-400 text-2xl"></i> ชิ้นงาน & ภารกิจการเรียนรู้
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">ส่งงาน แนบลิงก์ไฟล์หรือรูปภาพ แก้ไข และจัดการงาน (ครูสามารถเพิ่ม/แก้ไข/ลบและตรวจให้คะแนนได้)</p>
+                </div>
+                <button onclick="openAddAssignmentModal()" class="teacher-only hidden bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md bouncy-btn">
+                    <i class="fa-solid fa-plus mr-1"></i> เพิ่มภารกิจใหม่
+                </button>
+            </div>
+
+            <!-- Assignments List -->
+            <div id="assignmentsContainer" class="space-y-4"></div>
+        </section>
+
+        <!-- TAB 3: Quizzes -->
+        <section id="sec-quizzes" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-puzzle-piece text-emerald-400 text-2xl"></i> ควิซสอบ (ปรนัย & อัตนัย)
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">ทำแบบทดสอบในระบบ แนบลิงก์รูปภาพหรือไฟล์ประกอบ (ครูสามารถสร้าง/แก้ไข/ลบข้อสอบได้)</p>
+                </div>
+                <button onclick="openCreateQuizModal()" class="teacher-only hidden bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md bouncy-btn">
+                    <i class="fa-solid fa-plus mr-1"></i> สร้างแบบทดสอบใหม่
+                </button>
+            </div>
+
+            <!-- Quiz List Container -->
+            <div id="quizzesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+
+        <!-- TAB 4: Summary & Grading -->
+        <section id="sec-summary" class="tab-content hidden space-y-6">
+            <!-- Teacher View Summary -->
+            <div id="teacherSummaryView" class="teacher-only hidden space-y-6">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-award text-pink-500 text-2xl"></i> ตัดเกรด & สรุปผลคะแนน (มุมครู)
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-1">นำเข้าข้อมูลนักเรียน (CSV/TXT) ตรวจงาน และตัดเกรดอัตโนมัติ</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="triggerImportCSV()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-2xl font-bold transition shadow-sm bouncy-btn flex items-center gap-1">
+                                <i class="fa-solid fa-file-import"></i> นำเข้าข้อมูลนักเรียน (CSV)
+                            </button>
+                            <input type="file" id="csvFileInput" class="hidden" accept=".csv, .txt" onchange="handleImportCSV(event)">
+                            <button onclick="exportScoresCSV()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-2xl font-bold transition shadow-sm bouncy-btn flex items-center gap-1">
+                                <i class="fa-solid fa-file-csv"></i> ส่งออก (CSV)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grade Breakdown Pills -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-3 border-t border-slate-100">
+                        <div class="bg-emerald-50 border border-emerald-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-emerald-700 text-sm">A (4.0)</span><p class="text-[10px] text-emerald-600">80 - 100%</p></div>
+                        <div class="bg-teal-50 border border-teal-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-teal-700 text-sm">B+ (3.5)</span><p class="text-[10px] text-teal-600">75 - 79%</p></div>
+                        <div class="bg-cyan-50 border border-cyan-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-cyan-700 text-sm">B (3.0)</span><p class="text-[10px] text-cyan-600">70 - 74%</p></div>
+                        <div class="bg-blue-50 border border-blue-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-blue-700 text-sm">C+ (2.5)</span><p class="text-[10px] text-blue-600">65 - 69%</p></div>
+                        <div class="bg-indigo-50 border border-indigo-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-indigo-700 text-sm">C (2.0)</span><p class="text-[10px] text-indigo-600">60 - 64%</p></div>
+                        <div class="bg-amber-50 border border-amber-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-amber-700 text-sm">D+ (1.5)</span><p class="text-[10px] text-amber-600">55 - 59%</p></div>
+                        <div class="bg-orange-50 border border-orange-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-orange-700 text-sm">D (1.0)</span><p class="text-[10px] text-orange-600">50 - 54%</p></div>
+                        <div class="bg-rose-50 border border-rose-200 p-2 rounded-2xl text-center"><span class="font-extrabold text-rose-700 text-sm">F (0)</span><p class="text-[10px] text-rose-600">0 - 49%</p></div>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 bouncy-hover">
+                        <div class="flex items-center justify-between">
+                            <div><p class="text-xs text-slate-500 font-medium">นักเรียนในห้อง</p><h3 id="statTotalStudents" class="text-3xl font-extrabold text-slate-800 mt-1">0</h3></div>
+                            <div class="p-3.5 bg-purple-100 rounded-2xl text-purple-600"><i class="fa-solid fa-users text-2xl"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 bouncy-hover">
+                        <div class="flex items-center justify-between">
+                            <div><p class="text-xs text-slate-500 font-medium">คะแนนเฉลี่ย</p><h3 id="statAvgScore" class="text-3xl font-extrabold text-emerald-600 mt-1">0 / 100</h3></div>
+                            <div class="p-3.5 bg-emerald-100 rounded-2xl text-emerald-600"><i class="fa-solid fa-star text-2xl"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 bouncy-hover">
+                        <div class="flex items-center justify-between">
+                            <div><p class="text-xs text-slate-500 font-medium">อัตราผ่านเกณฑ์</p><h3 id="statPassRate" class="text-3xl font-extrabold text-blue-600 mt-1">0%</h3></div>
+                            <div class="p-3.5 bg-blue-100 rounded-2xl text-blue-600"><i class="fa-solid fa-circle-check text-2xl"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 bouncy-hover">
+                        <div class="flex items-center justify-between">
+                            <div><p class="text-xs text-slate-500 font-medium">นักเรียนเกรด A</p><h3 id="statTopGradeCount" class="text-3xl font-extrabold text-pink-500 mt-1">0 คน</h3></div>
+                            <div class="p-3.5 bg-pink-100 rounded-2xl text-pink-500"><i class="fa-solid fa-crown text-2xl"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4">กราฟคะแนนรายบุคคล</h3>
+                        <div class="h-64"><canvas id="scoreChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4">การกระจายตัวของเกรด</h3>
+                        <div class="h-64 flex items-center justify-center"><canvas id="gradeDistributionChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Teacher Student Score Table -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 class="font-bold text-slate-800 text-base">ตารางสรุปคะแนนและตรวจงานนักเรียน</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100/70 text-slate-600 border-b border-slate-200/60 text-xs font-bold">
+                                    <th class="p-4">เลขที่</th>
+                                    <th class="p-4">รหัส</th>
+                                    <th class="p-4">ชื่อ-นามสกุล</th>
+                                    <th class="p-4 text-center">คะแนนงาน (50)</th>
+                                    <th class="p-4 text-center">คะแนนสอบ (50)</th>
+                                    <th class="p-4 text-center">รวม (100)</th>
+                                    <th class="p-4 text-center">เกรด</th>
+                                    <th class="p-4 text-center">ตรวจงาน/จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentScoreTableBody" class="divide-y divide-slate-100 text-xs font-medium"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student View Summary -->
+            <div id="studentSummaryView" class="block space-y-6">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-teal-500 text-2xl"></i> สรุปสถานะการส่งงาน & ควิซสอบของคุณ
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">ตรวจสอบสถานะงานและควิซ (แสดงเฉพาะสถานะ: ตรงเวลา / ช้า / ค้าง)</p>
+                    </div>
+                    <button onclick="openRegisterModal()" class="text-xs bg-purple-100 text-purple-700 px-4 py-2 rounded-2xl font-bold bouncy-btn">
+                        <i class="fa-solid fa-user-pen"></i> แก้ไขข้อมูลส่วนตัว / เปลี่ยนโปรไฟล์
                     </button>
-                    <button onclick="openModal('modal-import-students')" class="btn-bounce bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-2xl border-2 border-blue-700 shadow-chunky-blue flex items-center space-x-1.5">
-                        <i class="fa-solid fa-file-import"></i>
-                        <span>นำเข้านักเรียน (Sheet)</span>
+                </div>
+
+                <!-- Status Badges Summary -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-3xl flex items-center justify-between">
+                        <div><p class="text-xs font-bold text-emerald-600">ส่งตรงเวลา</p><h3 id="statOntimeCount" class="text-3xl font-black text-emerald-800 mt-1">0</h3></div>
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-3xl"></i>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-5 rounded-3xl flex items-center justify-between">
+                        <div><p class="text-xs font-bold text-amber-600">ส่งช้า</p><h3 id="statLateCount" class="text-3xl font-black text-amber-800 mt-1">0</h3></div>
+                        <i class="fa-solid fa-clock text-amber-400 text-3xl"></i>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 p-5 rounded-3xl flex items-center justify-between">
+                        <div><p class="text-xs font-bold text-rose-600">ค้างส่ง / ยังไม่ทำ</p><h3 id="statPendingCount" class="text-3xl font-black text-rose-800 mt-1">0</h3></div>
+                        <i class="fa-solid fa-circle-exclamation text-rose-400 text-3xl"></i>
+                    </div>
+                </div>
+
+                <!-- Student Status Table -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 font-bold text-slate-800 text-sm">
+                        รายการภารกิจและแบบทดสอบทั้งหมดของคุณ
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100/70 text-slate-600 border-b border-slate-200/60 text-xs font-bold">
+                                    <th class="p-4">ประเภท</th>
+                                    <th class="p-4">หัวข้อ / ชื่อรายการ</th>
+                                    <th class="p-4 text-center">สถานะ</th>
+                                    <th class="p-4 text-center">วันที่ทำรายการ</th>
+                                    <th class="p-4 text-center">การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentStatusTableBody" class="divide-y divide-slate-100 text-xs font-medium"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- MODALS SECTION -->
+
+    <!-- Modal: Share Classroom -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-6 space-y-5">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i class="fa-solid fa-share-nodes text-yellow-500"></i> แชร์ห้องเรียน (มุมครู)</h3>
+                <button onclick="closeModal('shareModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <span class="text-xs text-slate-500 font-bold">รหัสเข้าห้องเรียน (Class Code)</span>
+                <div class="text-3xl font-black text-purple-700 tracking-wider select-all" id="shareClassCode">ROOM-11-9921</div>
+            </div>
+            <div class="flex justify-center my-2">
+                <img id="shareQrCodeImg" src="" alt="QR Code" class="w-44 h-44 rounded-2xl border-4 border-purple-100 shadow-md">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-600 text-left">ลิงก์เข้าห้องเรียนสำหรับนักเรียน</label>
+                <div class="flex gap-2">
+                    <input type="text" id="shareClassLink" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700">
+                    <button onclick="copyShareLink()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold bouncy-btn whitespace-nowrap">
+                        <i class="fa-solid fa-copy"></i> คัดลอก
                     </button>
                 </div>
             </div>
+            <p class="text-[11px] text-slate-500">นักเรียนจะต้องคลิกลิงก์นี้เพื่อเข้าสู่ระบบ และบังคับลงทะเบียนก่อนใช้งาน</p>
         </div>
+    </div>
 
-        <!-- NAVIGATION TABS -->
-        <nav class="flex space-x-3 border-b-4 border-slate-200 pb-2 overflow-x-auto custom-scrollbar">
-            <button onclick="switchTab('slides')" id="tab-slides" class="tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-brand-purple text-white shadow-chunky-purple border-2 border-purple-600">
-                <i class="fa-solid fa-file-powerpoint text-amber-300"></i>
-                <span>1. สไลด์และบทเรียน</span>
-            </button>
-            <button onclick="switchTab('quizzes')" id="tab-quizzes" class="tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border-2 border-slate-200">
-                <i class="fa-solid fa-puzzle-piece text-brand-blue"></i>
-                <span>2. แบบฝึกหัด & ทดสอบ</span>
-            </button>
-            <button onclick="switchTab('assignments')" id="tab-assignments" class="tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border-2 border-slate-200">
-                <i class="fa-solid fa-box-archive text-brand-green"></i>
-                <span>3. การบ้าน & ส่งงาน</span>
-            </button>
-            <button id="tab-btn-summary" onclick="switchTab('summary')" class="tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border-2 border-slate-200">
-                <i class="fa-solid fa-chart-pie text-brand-pink"></i>
-                <span id="tab-summary-text">4. ผลการเรียน & สถิติ</span>
-            </button>
-            <button id="tab-btn-leaderboard" onclick="switchTab('leaderboard')" class="tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border-2 border-slate-200">
-                <i class="fa-solid fa-trophy text-amber-500"></i>
-                <span>5. ลำดับคะแนน (Leaderboard)</span>
-            </button>
-        </nav>
-
-        <!-- ==================== TAB 1: SLIDES & LESSONS ==================== -->
-        <section id="view-slides" class="tab-content space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border-4 border-purple-100 shadow-sm">
+    <!-- Modal: Mandatory Student Registration -->
+    <div id="registerModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4 text-sm">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-user-graduate text-purple-600"></i> ลงทะเบียนเข้าสู่ห้องเรียนดิจิทัล
+                </h3>
+            </div>
+            <div class="bg-purple-50 p-3 rounded-2xl border border-purple-200 text-xs text-purple-900">
+                <p id="regContextInfo" class="font-bold">วิชา: วิทยาการคำนวณ | ห้อง: ม.1/1 (ภาคเรียน 1/2569)</p>
+                <p class="text-[10px] text-purple-700 mt-0.5">กรุณากรอกข้อมูลและแนบไฟล์รูปภาพประจำตัว (.png, .jpg, .tiff เท่านั้น)</p>
+            </div>
+            <form onsubmit="handleStudentRegister(event)" class="space-y-3 text-xs">
                 <div>
-                    <h2 class="text-xl font-bold text-slate-800">📚 สไลด์และเนื้อหาการเรียน</h2>
-                    <p class="text-xs text-slate-500 font-medium">ดาวน์โหลดหรือเปิดดูสื่อการเรียนการสอนประจำวิชา</p>
+                    <label class="block font-bold text-slate-700 mb-1">เลขที่</label>
+                    <input type="number" id="regNo" required min="1" class="w-full border rounded-xl p-2.5 font-bold" placeholder="เช่น 1">
                 </div>
-                <button onclick="openModal('slide-modal')" class="teacher-only hidden btn-bounce bg-brand-purple hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-purple-700 shadow-chunky-purple flex items-center space-x-2">
-                    <i class="fa-solid fa-plus-circle"></i>
-                    <span>เพิ่มสไลด์ใหม่</span>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">รหัสนักเรียน</label>
+                    <input type="text" id="regId" required class="w-full border rounded-xl p-2.5 font-bold" placeholder="เช่น STD001">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อ - สกุล</label>
+                    <input type="text" id="regName" required class="w-full border rounded-xl p-2.5 font-bold" placeholder="เช่น เด็กชายรักเรียน เพียรศึกษา">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">แนบไฟล์รูปภาพประจำตัว (.png, .jpg, .tiff เท่านั้น)</label>
+                    <input type="file" id="regAvatarFile" accept=".png, .jpg, .jpeg, .tiff, .tif" class="w-full border rounded-xl p-2 text-xs bg-slate-50 file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200 cursor-pointer">
+                    <p class="text-[10px] text-slate-400 mt-1">หรือหากไม่มีไฟล์รูปภาพ สามารถวาง URL รูปภาพแทนได้ด้านล่าง</p>
+                    <input type="url" id="regAvatarUrl" placeholder="https://..." class="w-full border rounded-xl p-2 mt-1 text-[11px]">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold text-xs bouncy-btn shadow-md">
+                    ยืนยันการลงทะเบียนเข้าห้องเรียน
                 </button>
-            </div>
-
-            <div id="slides-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamic Slides Cards -->
-            </div>
-        </section>
-
-        <!-- ==================== TAB 2: QUIZZES ==================== -->
-        <section id="view-quizzes" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border-4 border-blue-100 shadow-sm">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-800">🧩 แบบทดสอบและแบบฝึกหัด</h2>
-                    <p class="text-xs text-slate-500 font-medium">ทำแบบทดสอบเพื่อวัดความรู้และสะสมคะแนน</p>
-                </div>
-                <button onclick="openModal('quiz-modal')" class="teacher-only hidden btn-bounce bg-brand-blue hover:bg-blue-600 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-blue-700 shadow-chunky-blue flex items-center space-x-2">
-                    <i class="fa-solid fa-plus-circle"></i>
-                    <span>สร้างแบบทดสอบใหม่</span>
-                </button>
-            </div>
-
-            <div id="quizzes-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Dynamic Quiz Cards -->
-            </div>
-        </section>
-
-        <!-- ==================== TAB 3: ASSIGNMENTS ==================== -->
-        <section id="view-assignments" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border-4 border-green-100 shadow-sm">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-800">🎁 ชิ้นงานและการบ้านที่ได้รับมอบหมาย</h2>
-                    <p class="text-xs text-slate-500 font-medium">ตรวจสอบกำหนดส่งงาน และอัปโหลดไฟล์ชิ้นงาน</p>
-                </div>
-                <button onclick="openModal('assignment-modal')" class="teacher-only hidden btn-bounce bg-brand-green hover:bg-green-600 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-green-700 shadow-chunky-green flex items-center space-x-2">
-                    <i class="fa-solid fa-plus-circle"></i>
-                    <span>มอบหมายชิ้นงาน</span>
-                </button>
-            </div>
-
-            <div id="assignments-container" class="space-y-4">
-                <!-- Dynamic Assignment Cards -->
-            </div>
-        </section>
-
-        <!-- ==================== TAB 4: SUMMARY & SCORES (TEACHER & STUDENT DASHBOARD) ==================== -->
-        <section id="view-summary" class="tab-content hidden space-y-6">
-
-            <!-- TEACHER VIEW: Full Stats, Grade Distribution & Score Matrix -->
-            <div id="teacher-summary-panel" class="teacher-only space-y-6">
-                
-                <!-- Action Header -->
-                <div class="bg-white p-5 rounded-3xl border-4 border-purple-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800">📊 สรุปผลการเรียน เกรดเฉลี่ย & สถิติรวม</h2>
-                        <p class="text-xs text-slate-500 font-medium">คำนวณเกรดอัตโนมัติตามระเบียบใหม่ 8 ระดับ (A - F)</p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button onclick="openModal('modal-add-student')" class="btn-bounce bg-brand-purple hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-purple-700 shadow-chunky-purple flex items-center space-x-1.5">
-                            <i class="fa-solid fa-user-plus"></i>
-                            <span>เพิ่มนักเรียน</span>
-                        </button>
-                        <button onclick="exportToCSV()" class="btn-bounce bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-emerald-700 shadow-chunky-green flex items-center space-x-1.5">
-                            <i class="fa-solid fa-file-excel"></i>
-                            <span>ส่งออก Excel/CSV</span>
-                        </button>
-                        <button onclick="printSummaryReport()" class="btn-bounce bg-slate-700 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-slate-900 shadow-chunky flex items-center space-x-1.5">
-                            <i class="fa-solid fa-print"></i>
-                            <span>พิมพ์ / PDF</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Metrics Overview Cards -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-3xl border-4 border-indigo-100 shadow-sm flex items-center space-x-4 card-pop">
-                        <div class="p-4 bg-indigo-100 text-indigo-600 rounded-2xl text-2xl font-bold">
-                            <i class="fa-solid fa-users"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase">นักเรียนทั้งหมด</p>
-                            <h4 id="stat-teacher-total-students" class="text-2xl font-bold text-slate-800">0 คน</h4>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-3xl border-4 border-emerald-100 shadow-sm flex items-center space-x-4 card-pop">
-                        <div class="p-4 bg-emerald-100 text-emerald-600 rounded-2xl text-2xl font-bold">
-                            <i class="fa-solid fa-calculator"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase">คะแนนเฉลี่ยรวม</p>
-                            <h4 id="stat-teacher-avg-score" class="text-2xl font-bold text-slate-800">0.0 / 100</h4>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-3xl border-4 border-amber-100 shadow-sm flex items-center space-x-4 card-pop">
-                        <div class="p-4 bg-amber-100 text-amber-600 rounded-2xl text-2xl font-bold">
-                            <i class="fa-solid fa-award"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase">เกรดเฉลี่ย (GPA)</p>
-                            <h4 id="stat-teacher-gpa" class="text-2xl font-bold text-slate-800">0.00</h4>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-3xl border-4 border-rose-100 shadow-sm flex items-center space-x-4 card-pop">
-                        <div class="p-4 bg-rose-100 text-rose-600 rounded-2xl text-2xl font-bold">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase">อัตราสอบผ่าน (>=50)</p>
-                            <h4 id="stat-teacher-pass-rate" class="text-2xl font-bold text-slate-800">0%</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Grade Breakdown Criteria Banner -->
-                <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-5 rounded-3xl shadow-md space-y-3 border-4 border-purple-400">
-                    <h3 class="font-bold text-base flex items-center"><i class="fa-solid fa-circle-info mr-2"></i> เกณฑ์การตัดเกรดใหม่ 8 ระดับ (ตามระเบียบกระทรวงศึกษาธิการ)</h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 text-center text-xs">
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">A (4.0)</span><br>80 - 100<br><span class="text-[10px] opacity-90">ดีเยี่ยม</span></div>
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">B+ (3.5)</span><br>75 - 79<br><span class="text-[10px] opacity-90">ดีมาก</span></div>
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">B (3.0)</span><br>70 - 74<br><span class="text-[10px] opacity-90">ดี</span></div>
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">C+ (2.5)</span><br>65 - 69<br><span class="text-[10px] opacity-90">ค่อนข้างดี</span></div>
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">C (2.0)</span><br>60 - 64<br><span class="text-[10px] opacity-90">ปานกลาง</span></div>
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">D+ (1.5)</span><br>55 - 59<br><span class="text-[10px] opacity-90">พอใช้</span></div>
-                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm"><span class="font-bold text-sm">D (1.0)</span><br>50 - 54<br><span class="text-[10px] opacity-90">ผ่านเกณฑ์</span></div>
-                        <div class="bg-rose-500/40 p-2 rounded-xl backdrop-blur-sm border border-rose-300"><span class="font-bold text-sm">F (0)</span><br>0 - 49<br><span class="text-[10px] opacity-90">ตก</span></div>
-                    </div>
-                </div>
-
-                <!-- Charts & Score Table Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Grade Distribution Bar Chart -->
-                    <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-sm lg:col-span-1 flex flex-col justify-between">
-                        <h3 class="font-bold text-slate-800 text-sm mb-2 flex items-center">
-                            <i class="fa-solid fa-chart-column text-brand-purple mr-2"></i> สถิติการกระจายของเกรด
-                        </h3>
-                        <div class="relative h-64 flex justify-center items-center">
-                            <canvas id="gradeDistributionChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Complete Student Master Score Table -->
-                    <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-sm lg:col-span-2 overflow-hidden flex flex-col">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-slate-800 text-sm flex items-center">
-                                <i class="fa-solid fa-table text-brand-blue mr-2"></i> ตารางคะแนนและตัดเกรดนักเรียน
-                            </h3>
-                            <span class="text-xs text-slate-400 font-medium">* คลิกแก้ไขเพื่อปรับเปลี่ยนคะแนนรายบุคคล</span>
-                        </div>
-                        
-                        <div class="overflow-x-auto custom-scrollbar flex-grow">
-                            <table class="w-full text-left text-xs sm:text-sm text-slate-600">
-                                <thead class="bg-purple-50 text-slate-700 font-bold uppercase border-b-2 border-purple-200">
-                                    <tr>
-                                        <th class="px-3 py-3">รหัส/ชื่อนักเรียน</th>
-                                        <th class="px-2 py-3 text-center">ทดสอบ (30)</th>
-                                        <th class="px-2 py-3 text-center">ชิ้นงาน (40)</th>
-                                        <th class="px-2 py-3 text-center">จิตพิสัย (30)</th>
-                                        <th class="px-2 py-3 text-center font-bold">รวม (100)</th>
-                                        <th class="px-2 py-3 text-center font-bold">เกรด (GPA)</th>
-                                        <th class="px-3 py-3 text-center">การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="teacher-score-tbody" class="divide-y divide-slate-100 font-medium">
-                                    <!-- Dynamic Teacher Score Table -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STUDENT VIEW: Learning Status & Work Tracker ONLY (No Grade/Rank) -->
-            <div id="student-summary-panel" class="student-only space-y-6">
-                <div class="bg-white p-6 rounded-3xl border-4 border-blue-200 shadow-sm">
-                    <div class="flex items-center space-x-3 mb-4">
-                        <div class="p-3 bg-blue-100 text-brand-blue rounded-2xl text-2xl font-bold">
-                            <i class="fa-solid fa-list-check"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-slate-800">📌 ติดตามสถานะการเรียนรู้และการส่งงาน</h2>
-                            <p class="text-xs text-slate-500 font-medium">ตรวจสอบความคืบหน้าในการทำแบบฝึกหัดและการส่งการบ้านของคุณ</p>
-                        </div>
-                    </div>
-
-                    <!-- Select Student Name Filter for Student View -->
-                    <div class="bg-blue-50/80 p-4 rounded-2xl border-2 border-blue-100 flex items-center space-x-3 mb-6">
-                        <label class="text-xs font-bold text-slate-600 whitespace-nowrap"><i class="fa-solid fa-user text-brand-blue mr-1"></i> เลือกชื่อของคุณ:</label>
-                        <select id="select-student-view-name" onchange="renderStudentDashboard()" class="w-full sm:w-72 bg-white border-2 border-blue-200 text-sm font-semibold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                            <!-- Dynamic Student Names -->
-                        </select>
-                    </div>
-
-                    <!-- Progress Status Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Homework Submission Status -->
-                        <div class="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 space-y-3">
-                            <h3 class="font-bold text-slate-800 text-sm flex items-center">
-                                <i class="fa-solid fa-box-archive text-brand-green mr-2"></i> สถานะการส่งชิ้นงาน / การบ้าน
-                            </h3>
-                            <div id="student-assignment-status-list" class="space-y-2 text-xs">
-                                <!-- Dynamic Assignment Status -->
-                            </div>
-                        </div>
-
-                        <!-- Quiz Completion Status -->
-                        <div class="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 space-y-3">
-                            <h3 class="font-bold text-slate-800 text-sm flex items-center">
-                                <i class="fa-solid fa-puzzle-piece text-brand-blue mr-2"></i> สถานะการทำแบบทดสอบ
-                            </h3>
-                            <div id="student-quiz-status-list" class="space-y-2 text-xs">
-                                <!-- Dynamic Quiz Status -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </section>
-
-        <!-- ==================== TAB 5: LEADERBOARD ==================== -->
-        <section id="view-leaderboard" class="tab-content hidden space-y-6">
-            <div class="bg-white p-6 rounded-3xl border-4 border-yellow-200 shadow-sm text-center max-w-3xl mx-auto space-y-4">
-                <div class="inline-block p-4 bg-yellow-100 text-amber-600 rounded-3xl text-4xl shadow-chunky-yellow mb-2 animate-bounce">
-                    <i class="fa-solid fa-trophy"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-slate-800">🏆 ตารางลำดับคะแนน (Leaderboard)</h2>
-                <p class="text-xs text-slate-500 font-medium">อันดับคะแนนและแบดจ์เกรดประจำวิชาและห้องเรียนที่เลือก</p>
-
-                <div class="overflow-x-auto custom-scrollbar pt-4">
-                    <table class="w-full text-left text-xs sm:text-sm text-slate-600">
-                        <thead class="bg-amber-100 text-amber-900 font-bold uppercase border-b-2 border-amber-300">
-                            <tr>
-                                <th class="px-4 py-3 text-center">อันดับ</th>
-                                <th class="px-4 py-3">ชื่อ-นามสกุล</th>
-                                <th class="px-4 py-3 text-center">คะแนนรวม (100)</th>
-                                <th class="px-4 py-3 text-center">เกรดนิยม & Badge</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-tbody" class="divide-y divide-slate-100 font-medium">
-                            <!-- Dynamic Leaderboard -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-    </div>
-
-    <!-- ==================== MODALS ==================== -->
-
-    <!-- Modal 1: Share Classroom (QR Code, Link & Code) -->
-    <div id="modal-share" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-slate-800 shadow-2xl max-w-sm w-full overflow-hidden text-center p-6 space-y-4">
-            <h3 class="font-bold text-lg text-slate-800 flex items-center justify-center">
-                <i class="fa-solid fa-qrcode text-brand-purple mr-2"></i> เข้าสู่ห้องเรียน
-            </h3>
-
-            <!-- Class Code Display -->
-            <div class="bg-purple-50 p-3 rounded-2xl border-2 border-purple-200">
-                <p class="text-xs text-purple-600 font-bold uppercase">รหัสห้องเรียน (Class Code)</p>
-                <p id="share-class-code" class="text-2xl font-black text-brand-purple tracking-widest my-1">CLS-101</p>
-            </div>
-
-            <!-- QR Code Canvas Container -->
-            <div class="flex justify-center my-3 p-3 bg-white border-2 border-slate-200 rounded-2xl shadow-inner inline-block">
-                <div id="qrcode-container"></div>
-            </div>
-
-            <!-- Copy Link Button -->
-            <button onclick="copyClassLink()" class="w-full btn-bounce bg-brand-blue hover:bg-blue-600 text-white font-bold py-3 rounded-2xl border-2 border-blue-700 shadow-chunky-blue flex items-center justify-center space-x-2">
-                <i class="fa-solid fa-copy"></i>
-                <span>คัดลอกลิงก์ห้องเรียน</span>
-            </button>
-
-            <button onclick="closeModal('modal-share')" class="text-xs font-bold text-slate-400 hover:text-slate-600 pt-2">ปิดหน้าต่าง</button>
+            </form>
         </div>
     </div>
 
-    <!-- Modal 2: Manage Subjects & Classrooms -->
-    <div id="modal-manage-subject-class" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-purple-300 shadow-2xl max-w-lg w-full overflow-hidden">
-            <div class="bg-brand-purple px-6 py-4 text-white flex justify-between items-center">
-                <h3 class="font-bold text-base"><i class="fa-solid fa-sliders mr-2"></i> จัดการรายวิชาและห้องเรียน</h3>
-                <button onclick="closeModal('modal-manage-subject-class')" class="text-white hover:text-purple-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- Modal: Manage Terms -->
+    <div id="termsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i class="fa-solid fa-calendar-days text-purple-600"></i> จัดการภาคเรียน / ปีการศึกษา</h3>
+                <button onclick="closeModal('termsModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                
-                <!-- Add Subject Form -->
-                <div class="space-y-3 border-b-2 border-slate-100 pb-4">
-                    <h4 class="font-bold text-xs uppercase text-slate-500">+ เพิ่มรายวิชาใหม่</h4>
-                    <div class="flex space-x-2">
-                        <input type="text" id="new-subject-name" placeholder="ชื่อวิชา (เช่น วิทยาการคำนวณ)" class="flex-grow px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-purple">
-                        <button onclick="addSubject()" class="btn-bounce bg-brand-purple text-white font-bold px-4 py-2 rounded-xl text-xs shadow-chunky-purple">เพิ่ม</button>
-                    </div>
-                </div>
-
-                <!-- Add Classroom Form -->
-                <div class="space-y-3">
-                    <h4 class="font-bold text-xs uppercase text-slate-500">+ เพิ่มห้องเรียนใหม่ในวิชานี้</h4>
-                    <div class="flex space-x-2">
-                        <input type="text" id="new-class-name" placeholder="ชื่อห้องเรียน (เช่น ม.1/1)" class="flex-grow px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-purple">
-                        <button onclick="addClassroom()" class="btn-bounce bg-brand-blue text-white font-bold px-4 py-2 rounded-xl text-xs shadow-chunky-blue">เพิ่ม</button>
-                    </div>
-                </div>
-
-                <!-- Existing Items List -->
-                <div class="space-y-3 pt-2">
-                    <h4 class="font-bold text-xs uppercase text-slate-500">รายชื่อห้องเรียนในวิชาปัจจุบัน</h4>
-                    <div id="manage-class-list" class="space-y-2 text-xs">
-                        <!-- Dynamic List -->
-                    </div>
-                </div>
-            </div>
+            <form onsubmit="handleAddTerm(event)" class="flex gap-2">
+                <input type="text" id="newTermInput" placeholder="เช่น 1/2570" required class="flex-grow border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-purple-400">
+                <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold bouncy-btn"><i class="fa-solid fa-plus"></i> เพิ่ม</button>
+            </form>
+            <div id="termsList" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar"></div>
         </div>
     </div>
 
-    <!-- Modal 3: Import Students from Google Sheet / Text -->
-    <div id="modal-import-students" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-blue-300 shadow-2xl max-w-lg w-full overflow-hidden">
-            <div class="bg-brand-blue px-6 py-4 text-white flex justify-between items-center">
-                <h3 class="font-bold text-base"><i class="fa-solid fa-file-csv mr-2"></i> นำเข้านักเรียนจาก Sheet / ข้อความ</h3>
-                <button onclick="closeModal('modal-import-students')" class="text-white hover:text-blue-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- Modal: Add/Edit Lesson -->
+    <div id="lessonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base" id="lessonModalTitle">เพิ่ม / แก้ไขบทเรียน</h3>
+                <button onclick="closeModal('lessonModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <div class="p-6 space-y-4">
-                <p class="text-xs text-slate-500">วางรายชื่อนักเรียน (บรรทัดละ 1 คน หรือคัดลอกจาก Google Sheet/Excel):</p>
-                <textarea id="import-students-textarea" rows="6" placeholder="นายสมชาย ใจดี&#10;นางสาวณิชา รัตนกร&#10;นายธนกฤต สุขเสริฐ" class="w-full px-3 py-2 border-2 border-slate-200 rounded-2xl text-xs font-medium focus:outline-none focus:border-brand-blue custom-scrollbar"></textarea>
-                <div class="flex justify-end space-x-2">
-                    <button onclick="closeModal('modal-import-students')" class="px-4 py-2 text-slate-500 font-bold text-xs">ยกเลิก</button>
-                    <button onclick="processImportStudents()" class="btn-bounce bg-brand-blue text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-chunky-blue">นำเข้าข้อมูล</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal 4: Edit Student Score & Details -->
-    <div id="score-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-purple-300 shadow-2xl max-w-md w-full overflow-hidden">
-            <div class="bg-brand-purple px-6 py-4 text-white flex justify-between items-center">
-                <h3 class="font-bold text-base"><i class="fa-solid fa-user-pen mr-2"></i> แก้ไขคะแนนนักเรียน</h3>
-                <button onclick="closeModal('score-modal')" class="text-white hover:text-purple-200"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <form id="score-form" onsubmit="saveStudentScore(event)" class="p-6 space-y-4">
-                <input type="hidden" id="student-index">
+            <form onsubmit="handleSaveLesson(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="editLessonId">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชื่อ-นามสกุล นักเรียน</label>
-                    <input type="text" id="student-name" required class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-purple">
+                    <label class="block font-bold text-slate-700 mb-1">ชั่วโมงที่ / ลำดับ</label>
+                    <input type="number" id="lessonHour" required class="w-full border rounded-xl p-2.5" value="1">
                 </div>
-                <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อบทเรียน</label>
+                    <input type="text" id="lessonTitleInput" required class="w-full border rounded-xl p-2.5">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">รายละเอียดบทเรียน</label>
+                    <textarea id="lessonDescInput" rows="3" class="w-full border rounded-xl p-2.5"></textarea>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">แนบไฟล์สไลด์ / รูปภาพ (URL)</label>
+                    <input type="url" id="lessonFileUrl" placeholder="https://..." class="w-full border rounded-xl p-2.5">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-xl font-bold bouncy-btn">บันทึกบทเรียน</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add/Edit Assignment -->
+    <div id="assignmentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base" id="assignmentModalTitle">เพิ่ม / แก้ไขภารกิจ</h3>
+                <button onclick="closeModal('assignmentModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="handleSaveAssignment(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="editAssignmentId">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่องาน / ภารกิจ</label>
+                    <input type="text" id="assignmentTitle" required class="w-full border rounded-xl p-2.5">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">คำชี้แจง / รายละเอียด</label>
+                    <textarea id="assignmentDesc" rows="3" class="w-full border rounded-xl p-2.5"></textarea>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">คะแนนเต็ม</label>
+                    <input type="number" id="assignmentMaxScore" required class="w-full border rounded-xl p-2.5" value="10">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">แนบไฟล์/รูปภาพประกอบ (โจทย์จากครู)</label>
+                    <input type="url" id="assignmentFileUrl" placeholder="https://..." class="w-full border rounded-xl p-2.5">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-xl font-bold bouncy-btn">บันทึกภารกิจ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Student Submit Assignment -->
+    <div id="submitModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-paper-plane text-purple-600"></i> ส่งงานภารกิจ (นักเรียน)</h3>
+                <button onclick="closeModal('submitModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="handleAssignmentSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="submitAssignmentId">
+                <div class="bg-slate-50 p-3 rounded-xl border flex items-center space-x-3">
+                    <img id="submitModalAvatar" src="" class="w-10 h-10 rounded-xl object-cover bg-purple-200">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ทดสอบ (30)</label>
-                        <input type="number" id="score-test" max="30" min="0" required class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-purple">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชิ้นงาน (40)</label>
-                        <input type="number" id="score-work" max="40" min="0" required class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-purple">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">จิตพิสัย (30)</label>
-                        <input type="number" id="score-affective" max="30" min="0" required class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-purple">
+                        <p class="font-bold text-slate-800" id="submitModalName">-</p>
+                        <p class="text-[10px] text-slate-500" id="submitModalMeta">-</p>
                     </div>
                 </div>
-                <div class="pt-4 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('score-modal')" class="px-4 py-2 text-slate-400 font-bold text-xs">ยกเลิก</button>
-                    <button type="submit" class="btn-bounce bg-brand-purple text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-chunky-purple">บันทึกข้อมูล</button>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">แนบลิงก์ไฟล์งาน / รูปภาพงาน</label>
+                    <input type="url" id="submitFileUrl" required placeholder="https://..." class="w-full border rounded-xl p-2.5">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ข้อความถึงคุณครู (ถ้ามี)</label>
+                    <textarea id="submitNote" rows="2" placeholder="รายละเอียดเพิ่มเติม..." class="w-full border rounded-xl p-2.5"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-xl font-bold bouncy-btn">ยืนยันการส่งงาน</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Create/Edit Quiz -->
+    <div id="createQuizModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-gradient-to-r from-purple-700 to-indigo-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-base"><i class="fa-solid fa-puzzle-piece"></i> สร้าง / แก้ไขแบบทดสอบ</h3>
+                <button onclick="closeModal('createQuizModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="handleSaveQuiz(event)" class="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-grow text-sm">
+                <input type="hidden" id="quizEditId">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อแบบทดสอบ</label>
+                    <input type="text" id="quizTitleInput" required class="w-full border border-slate-300 rounded-2xl p-2.5">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">คำอธิบาย</label>
+                    <textarea id="quizDescInput" rows="2" class="w-full border border-slate-300 rounded-2xl p-2.5"></textarea>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">แนบไฟล์/รูปภาพประกอบข้อสอบ (URL)</label>
+                    <input type="url" id="quizAttachmentInput" placeholder="https://..." class="w-full border border-slate-300 rounded-2xl p-2.5">
+                </div>
+                <div class="border-t pt-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-slate-800">รายการคำถาม</h4>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="addQuestionField('mc', '', [], 0, 1)" class="text-xs bg-purple-100 text-purple-700 font-bold px-3 py-1.5 rounded-xl hover:bg-purple-200"><i class="fa-solid fa-plus"></i> ปรนัย</button>
+                            <button type="button" onclick="addQuestionField('sub', '', [], 0, 1)" class="text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded-xl hover:bg-pink-200"><i class="fa-solid fa-plus"></i> อัตนัย</button>
+                        </div>
+                    </div>
+                    <div id="quizQuestionsContainer" class="space-y-4"></div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t">
+                    <button type="button" onclick="closeModal('createQuizModal')" class="px-4 py-2 border rounded-2xl text-slate-600 text-xs">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 bg-purple-600 text-white rounded-2xl font-bold bouncy-btn text-xs">บันทึกข้อสอบ</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal 5: Add Student manually -->
-    <div id="modal-add-student" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-purple-300 shadow-2xl max-w-md w-full overflow-hidden">
-            <div class="bg-brand-purple px-6 py-4 text-white flex justify-between items-center">
-                <h3 class="font-bold text-base"><i class="fa-solid fa-user-plus mr-2"></i> เพิ่มนักเรียนใหม่</h3>
-                <button onclick="closeModal('modal-add-student')" class="text-white hover:text-purple-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- Modal: Take Quiz -->
+    <div id="takeQuizModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-base" id="takeQuizTitle">ทำแบบทดสอบ</h3>
+                <button onclick="closeModal('takeQuizModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form onsubmit="addSingleStudent(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชื่อ-นามสกุล นักเรียน</label>
-                    <input type="text" id="new-student-single-name" required placeholder="เช่น เด็กชายสมศักดิ์ ขยันเรียน" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-brand-purple">
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4 text-sm" id="takeQuizContent"></div>
+            <div class="p-4 bg-slate-50 border-t flex justify-between items-center text-xs">
+                <div class="flex items-center space-x-2">
+                    <img id="quizTakerAvatar" src="" class="w-8 h-8 rounded-lg object-cover bg-purple-200">
+                    <span class="font-bold text-slate-800" id="quizTakerNameDisplay">-</span>
                 </div>
-                <div class="flex justify-end space-x-2 pt-2">
-                    <button type="button" onclick="closeModal('modal-add-student')" class="px-4 py-2 text-slate-400 font-bold text-xs">ยกเลิก</button>
-                    <button type="submit" class="btn-bounce bg-brand-purple text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-chunky-purple">เพิ่มนักเรียน</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal 6: Student Report Card Modal Popup (Teacher View) -->
-    <div id="modal-student-report" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-purple-300 shadow-2xl max-w-md w-full overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5 text-white flex justify-between items-center">
-                <h3 class="font-bold text-lg flex items-center"><i class="fa-solid fa-id-card mr-2"></i> บัตรรายงานผลการเรียนรายบุคคล</h3>
-                <button onclick="closeModal('modal-student-report')" class="text-white hover:text-purple-200"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div id="report-card-content" class="p-6 space-y-4 text-center">
-                <!-- Dynamic Report Card Content -->
+                <button onclick="submitQuizAnswers()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs bouncy-btn">ส่งคำตอบควิซ</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal 7: Add/Edit Slide Modal -->
-    <div id="slide-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-purple-300 shadow-2xl max-w-lg w-full overflow-hidden">
-            <div class="bg-brand-purple px-6 py-4 text-white flex justify-between items-center">
-                <h3 id="slide-modal-title" class="font-bold text-base">เพิ่มสไลด์บทเรียนใหม่</h3>
-                <button onclick="closeModal('slide-modal')" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- Modal: Grade & Review Submission -->
+    <div id="gradeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-popIn">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4 text-sm">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800"><i class="fa-solid fa-check-to-slot text-purple-600"></i> ตรวจชิ้นงานนักเรียน</h3>
+                <button onclick="closeModal('gradeModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form onsubmit="saveSlide(event)" class="p-6 space-y-4">
-                <input type="hidden" id="slide-id">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชั่วโมงที่ / สัปดาห์ที่</label>
-                    <input type="text" id="slide-hour" required placeholder="เช่น ชั่วโมงที่ 1-2" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชื่อหัวข้อบทเรียน</label>
-                    <input type="text" id="slide-title" required placeholder="เช่น แนะนำวิทยาการคำนวณ" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">รายละเอียดสังเขป</label>
-                    <textarea id="slide-desc" rows="3" placeholder="สรุปเนื้อหาสำคัญ..." class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">แนบลิงก์สไลด์ (Google Slides, PDF, Canva)</label>
-                    <input type="url" id="slide-link" required placeholder="https://..." class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('slide-modal')" class="px-4 py-2 text-slate-400 font-bold text-xs">ยกเลิก</button>
-                    <button type="submit" class="btn-bounce bg-brand-purple text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-chunky-purple">บันทึกสไลด์</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal 8: Add/Edit Quiz Modal -->
-    <div id="quiz-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-blue-300 shadow-2xl max-w-lg w-full overflow-hidden">
-            <div class="bg-brand-blue px-6 py-4 text-white flex justify-between items-center">
-                <h3 id="quiz-modal-title" class="font-bold text-base">สร้างแบบทดสอบใหม่</h3>
-                <button onclick="closeModal('quiz-modal')" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <input type="hidden" id="gradeSubId">
+            <div class="space-y-2 text-xs">
+                <p><strong>นักเรียน:</strong> <span id="gradeStudentName">-</span></p>
+                <p><strong>ชิ้นงาน:</strong> <span id="gradeAssignmentTitle">-</span></p>
+                <p><strong>ลิงก์ผลงาน:</strong> <a id="gradeFileLink" href="#" target="_blank" class="text-purple-600 underline break-all">-</a></p>
+                <p><strong>ข้อความจากนักเรียน:</strong> <span id="gradeStudentNote" class="text-slate-600">-</span></p>
             </div>
-            <form onsubmit="saveQuiz(event)" class="p-6 space-y-4">
-                <input type="hidden" id="quiz-id">
+            <div class="border-t pt-3 space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชื่อชุดแบบทดสอบ</label>
-                    <input type="text" id="quiz-title" required placeholder="เช่น แบบทดสอบบทที่ 1" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
+                    <label class="block font-bold text-xs text-slate-700 mb-1">ให้คะแนนงานนี้ (เต็มตามกำหนด)</label>
+                    <input type="number" id="assignedScoreInput" class="w-full border rounded-xl p-2.5 text-xs font-bold" value="0">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">จำนวนข้อ</label>
-                        <input type="number" id="quiz-items" required placeholder="10" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">เวลาทำ (นาที)</label>
-                        <input type="number" id="quiz-time" required placeholder="15" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ลิงก์แบบทดสอบ (Google Forms, Quizizz)</label>
-                    <input type="url" id="quiz-link" required placeholder="https://..." class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('quiz-modal')" class="px-4 py-2 text-slate-400 font-bold text-xs">ยกเลิก</button>
-                    <button type="submit" class="btn-bounce bg-brand-blue text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-chunky-blue">บันทึกแบบทดสอบ</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal 9: Add/Edit Assignment Modal -->
-    <div id="assignment-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl border-4 border-green-300 shadow-2xl max-w-lg w-full overflow-hidden">
-            <div class="bg-brand-green px-6 py-4 text-white flex justify-between items-center">
-                <h3 id="assignment-modal-title" class="font-bold text-base">มอบหมายชิ้นงานใหม่</h3>
-                <button onclick="closeModal('assignment-modal')" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <button onclick="saveStudentAssignmentScore()" class="w-full bg-purple-600 text-white py-2.5 rounded-xl font-bold text-xs bouncy-btn">บันทึกคะแนนชิ้นงาน</button>
             </div>
-            <form onsubmit="saveAssignment(event)" class="p-6 space-y-4">
-                <input type="hidden" id="assignment-id">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">หัวข้อชิ้นงาน / การบ้าน</label>
-                    <input type="text" id="assignment-title" required placeholder="เช่น ออกแบบ UI แอปพลิเคชัน" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">กำหนดส่ง (Deadline)</label>
-                        <input type="date" id="assignment-due" required class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">คะแนนเต็ม</label>
-                        <input type="number" id="assignment-score" required placeholder="20" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">คำอธิบายงาน</label>
-                    <textarea id="assignment-desc" rows="3" placeholder="รายละเอียด..." class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">แนบลิงก์รับส่งงาน (Google Drive Folder)</label>
-                    <input type="url" id="assignment-link" required placeholder="https://..." class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('assignment-modal')" class="px-4 py-2 text-slate-400 font-bold text-xs">ยกเลิก</button>
-                    <button type="submit" class="btn-bounce bg-brand-green text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-chunky-green">บันทึกชิ้นงาน</button>
-                </div>
-            </form>
         </div>
     </div>
 
-    <!-- Hidden Printable Report Area -->
-    <div id="print-area" class="hidden p-8 font-kanit">
-        <div class="text-center space-y-2 border-b-2 border-slate-800 pb-4 mb-4">
-            <h1 class="text-2xl font-bold">รายงานสรุปผลการเรียนและเกรดเฉลี่ยประจำห้องเรียน</h1>
-            <p id="print-subject-class-info" class="text-sm text-slate-600">วิชา: - | ห้องเรียน: -</p>
-        </div>
-        <table class="w-full border-collapse border border-slate-400 text-xs">
-            <thead>
-                <tr class="bg-slate-100">
-                    <th class="border border-slate-300 p-2">ลำดับ</th>
-                    <th class="border border-slate-300 p-2 text-left">ชื่อ-นามสกุล</th>
-                    <th class="border border-slate-300 p-2">ทดสอบ (30)</th>
-                    <th class="border border-slate-300 p-2">ชิ้นงาน (40)</th>
-                    <th class="border border-slate-300 p-2">จิตพิสัย (30)</th>
-                    <th class="border border-slate-300 p-2">รวม (100)</th>
-                    <th class="border border-slate-300 p-2">เกรด</th>
-                    <th class="border border-slate-300 p-2">ความหมาย</th>
-                </tr>
-            </thead>
-            <tbody id="print-tbody">
-                <!-- Printable Content -->
-            </tbody>
-        </table>
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3 transition-all duration-300 transform translate-y-20 opacity-0 z-50">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage" class="text-xs font-semibold">บันทึกข้อมูลเรียบร้อย</span>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-slate-800 text-white font-bold px-5 py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4">
-        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-xl"></i>
-        <span id="toast-message" class="text-sm">การดำเนินการเสร็จสมบูรณ์</span>
-    </div>
-
-    <!-- MAIN JAVASCRIPT APP LOGIC -->
+    <!-- APPLICATION LOGIC ENGINE -->
     <script>
-        // Data Structure & Global State
+        // App State
         let isTeacherMode = false;
-        let gradeChartInstance = null;
-        let qrCodeInstance = null;
+        let activeTab = 'lessons';
+        let currentSubject = 'วิทยาการคำนวณ';
+        let currentClassroom = 'ม.1/1';
+        let currentTerm = '1/2569';
+        let currentQuizTakingId = null;
 
-        // Default Master Data Schema
-        let appData = {
-            subjects: [
+        // Logged-in Student Profile Session
+        let currentStudent = null;
+
+        // Default Data Set
+        const defaultAppData = {
+            terms: ['1/2569', '2/2569'],
+            students: [
+                { id: "STD001", no: 1, name: "กิตติพงษ์ ใจดี", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=STD001", assignmentScore: 42, quizScore: 45 },
+                { id: "STD002", no: 2, name: "ณิชารีย์ สุขเสริฐ", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=STD002", assignmentScore: 48, quizScore: 42 },
+                { id: "STD003", no: 3, name: "ธนกฤต มั่นคง", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=STD003", assignmentScore: 35, quizScore: 30 },
+                { id: "STD004", no: 4, name: "ปรียานุช วงศ์สว่าง", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=STD004", assignmentScore: 40, quizScore: 36 },
+                { id: "STD005", no: 5, name: "พงศธร รัตนอุบล", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=STD005", assignmentScore: 28, quizScore: 20 }
+            ],
+            lessons: [
+                { id: 1, hour: 1, title: "ชั่วโมงที่ 1: ปฐมนิเทศและอัลกอริทึมเบื้องต้น", description: "ทำความเข้าใจกับการคิดเชิงคำนวณ ลำดับขั้นตอนการทำงาน การแก้ปัญหาอย่างเป็นระบบ", fileUrl: "https://www.w3.org/W3C/DesignIssues/Overview.html" },
+                { id: 2, hour: 2, title: "ชั่วโมงที่ 2: โครงสร้างการตัดสินใจ (If-Else)", description: "การสร้างเงื่อนไขในโปรแกรม และการทำนายผลลัพธ์จากอัลกอริทึม", fileUrl: "https://www.w3.org/W3C/DesignIssues/Overview.html" }
+            ],
+            assignments: [
+                { id: 101, title: "ภารกิจที่ 1: เขียนผังงาน (Flowchart)", description: "ให้นักเรียนวาดผังงานจำลองการแก้ปัญหาการต้มบะหมี่สำเร็จรูป", maxScore: 10, fileUrl: "https://example.com/sheet1.pdf" }
+            ],
+            submissions: [
+                { id: 1, assignmentId: 101, studentId: "STD001", studentName: "กิตติพงษ์ ใจดี", fileUrl: "https://example.com/work1", note: "ส่งแล้วครับ", timestamp: "2026-10-25 10:00", status: "ontime", score: 9 }
+            ],
+            quizzes: [
                 {
-                    id: "SUB-1",
-                    name: "วิทยาการคำนวณ (Computing Science)",
-                    classrooms: [
-                        {
-                            id: "CLS-101",
-                            name: "ม.1/1",
-                            code: "CS101-M11",
-                            slides: [
-                                { id: 101, hour: "ชั่วโมงที่ 1-2", title: "แนวคิดเชิงคำนวณ (Computational Thinking)", desc: "ทำความเข้าใจการแตกปัญหา การหารูปแบบ และอัลกอริทึม", link: "https://docs.google.com/presentation" },
-                                { id: 102, hour: "ชั่วโมงที่ 3-4", title: "การเขียนผังงาน (Flowchart)", desc: "สัญลักษณ์และโครงสร้างควบคุมแบบทางเลือก", link: "https://docs.google.com/presentation" }
-                            ],
-                            quizzes: [
-                                { id: 201, title: "แบบทดสอบย่อยเรื่อง แนวคิดเชิงคำนวณ", items: 10, time: 15, link: "https://forms.google.com" }
-                            ],
-                            assignments: [
-                                { id: 301, title: "ชิ้นงานที่ 1: ผังงานการแก้ปัญหาประจำวัน", due: "2026-11-15", score: 20, desc: "ให้นักเรียนสรุปขั้นตอน Flowchart ใส่ Google Slides", link: "https://drive.google.com" }
-                            ],
-                            students: [
-                                { id: 1, name: "นายกิตติศักดิ์ ใจดี", test: 28, work: 38, affective: 29, submissions: { 301: true }, quizzesDone: { 201: true } },
-                                { id: 2, name: "นางสาวณิชา รัตนกร", test: 26, work: 35, affective: 28, submissions: { 301: true }, quizzesDone: { 201: true } },
-                                { id: 3, name: "นายธนกฤต สุขเสริฐ", test: 22, work: 30, affective: 25, submissions: { 301: false }, quizzesDone: { 201: true } },
-                                { id: 4, name: "นางสาวปรียาภรณ์ มีมาก", test: 18, work: 24, affective: 22, submissions: { 301: false }, quizzesDone: { 201: false } }
-                            ]
-                        },
-                        {
-                            id: "CLS-102",
-                            name: "ม.1/2",
-                            code: "CS101-M12",
-                            slides: [],
-                            quizzes: [],
-                            assignments: [],
-                            students: [
-                                { id: 5, name: "นายวรวุฒิ สมบูรณ์", test: 24, work: 32, affective: 26, submissions: {}, quizzesDone: {} }
-                            ]
-                        }
+                    id: 201,
+                    title: "ควิซวัดความรู้ ชั่วโมงที่ 1-2",
+                    description: "แบบทดสอบประเมินผลย่อย เรื่อง การคิดเชิงคำนวณและเงื่อนไข",
+                    attachmentUrl: "",
+                    questions: [
+                        { type: "mc", q: "ข้อใดไม่ใช่ องค์ประกอบหลักของ Computational Thinking?", choices: ["Decomposition", "Pattern Recognition", "Graphic Design", "Algorithm"], ans: 2, score: 5 },
+                        { type: "sub", q: "จงอธิบายความสำคัญของการคิดเชิงคำนวณสั้นๆ", score: 5 }
                     ]
                 }
+            ],
+            quizSubmissions: [
+                { id: 1, quizId: 201, studentId: "STD001", timestamp: "2026-10-25 10:30", status: "ontime" }
             ]
         };
 
-        let currentSubjectId = "SUB-1";
-        let currentClassroomCode = "CLS-101";
+        let appData = defaultAppData;
 
-        // Grade Calculation Helper (Official 8-Grade System)
-        function calculateGradeDetails(score) {
-            score = Number(score) || 0;
-            if (score >= 80) return { grade: "A", gpa: 4.0, desc: "ดีเยี่ยม", color: "bg-emerald-500 text-white", badge: "🌟 A" };
-            if (score >= 75) return { grade: "B+", gpa: 3.5, desc: "ดีมาก", color: "bg-teal-500 text-white", badge: "✨ B+" };
-            if (score >= 70) return { grade: "B", gpa: 3.0, desc: "ดี", color: "bg-blue-500 text-white", badge: "👍 B" };
-            if (score >= 65) return { grade: "C+", gpa: 2.5, desc: "ค่อนข้างดี", color: "bg-indigo-500 text-white", badge: "👌 C+" };
-            if (score >= 60) return { grade: "C", gpa: 2.0, desc: "ปานกลาง", color: "bg-purple-500 text-white", badge: "🙂 C" };
-            if (score >= 55) return { grade: "D+", gpa: 1.5, desc: "พอใช้", color: "bg-amber-500 text-white", badge: "⚠️ D+" };
-            if (score >= 50) return { grade: "D", gpa: 1.0, desc: "ผ่านเกณฑ์ขั้นต่ำ", color: "bg-orange-500 text-white", badge: "🔹 D" };
-            return { grade: "F", gpa: 0.0, desc: "ต่ำกว่าเกณฑ์ (ตก)", color: "bg-rose-500 text-white", badge: "❌ F" };
+        // Auto Save to LocalStorage instantly on every state change
+        function saveData() {
+            localStorage.setItem('PLAYFUL_LMS_DATA_APP', JSON.stringify(appData));
+            if (currentStudent) {
+                localStorage.setItem('PLAYFUL_LMS_CURRENT_STUDENT', JSON.stringify(currentStudent));
+            }
         }
 
-        // Initialize App
+        function loadData() {
+            const stored = localStorage.getItem('PLAYFUL_LMS_DATA_APP');
+            if (stored) {
+                try {
+                    appData = JSON.parse(stored);
+                } catch (e) {
+                    appData = defaultAppData;
+                }
+            }
+
+            const storedStudent = localStorage.getItem('PLAYFUL_LMS_CURRENT_STUDENT');
+            if (storedStudent) {
+                try {
+                    currentStudent = JSON.parse(storedStudent);
+                } catch (e) {
+                    currentStudent = null;
+                }
+            }
+        }
+
+        function calculateGrade(score) {
+            if (score >= 80) return { grade: 'A', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+            if (score >= 75) return { grade: 'B+', bg: 'bg-teal-100 text-teal-800 border-teal-300' };
+            if (score >= 70) return { grade: 'B', bg: 'bg-cyan-100 text-cyan-800 border-cyan-300' };
+            if (score >= 65) return { grade: 'C+', bg: 'bg-blue-100 text-blue-800 border-blue-300' };
+            if (score >= 60) return { grade: 'C', bg: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+            if (score >= 55) return { grade: 'D+', bg: 'bg-amber-100 text-amber-800 border-amber-300' };
+            if (score >= 50) return { grade: 'D', bg: 'bg-orange-100 text-orange-800 border-orange-300' };
+            return { grade: 'F', bg: 'bg-rose-100 text-rose-800 border-rose-300' };
+        }
+
+        let scoreChartInstance = null;
+        let gradeDistributionChartInstance = null;
+
         window.onload = function() {
-            renderSubjectAndClassroomSelectors();
-            renderAllViews();
-            setupRoleToggle();
+            loadData();
+            
+            // Check URL query parameters for shared classroom access
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedCode = urlParams.get('code');
+            if (sharedCode) {
+                showToast(`เข้าสู่ห้องเรียนผ่านลิงก์แชร์ (${sharedCode}) สำเร็จ!`, "success");
+            }
+
+            renderTermsDropdown();
+            renderLessons();
+            renderAssignments();
+            renderQuizzes();
+            renderSummaryData();
+
+            // Apply default student role view
+            toggleTeacherMode(false);
+
+            // Automated Saturday 09:00 Reminder Simulator Check
+            checkWeeklyReminder();
+            setInterval(checkWeeklyReminder, 60000);
         };
 
-        // Render Selector Dropdowns
-        function renderSubjectAndClassroomSelectors() {
-            const subjectSelect = document.getElementById('select-subject');
-            const classSelect = document.getElementById('select-classroom');
+        function toggleTeacherMode(enabled) {
+            isTeacherMode = enabled;
+            const badge = document.getElementById('roleBadge');
+            const teacherBanner = document.getElementById('teacherBanner');
+            const teacherElems = document.querySelectorAll('.teacher-only');
+            const studentSummaryView = document.getElementById('studentSummaryView');
+            const teacherSummaryView = document.getElementById('teacherSummaryView');
+            const summaryTabLabel = document.getElementById('summaryTabLabel');
 
-            subjectSelect.innerHTML = '';
-            appData.subjects.forEach(sub => {
-                const opt = document.createElement('option');
-                opt.value = sub.id;
-                opt.textContent = sub.name;
-                if (sub.id === currentSubjectId) opt.selected = true;
-                subjectSelect.appendChild(opt);
-            });
-
-            const curSubject = appData.subjects.find(s => s.id === currentSubjectId) || appData.subjects[0];
-            classSelect.innerHTML = '';
-            curSubject.classrooms.forEach(cls => {
-                const opt = document.createElement('option');
-                opt.value = cls.id;
-                opt.textContent = cls.name;
-                if (cls.id === currentClassroomCode) opt.selected = true;
-                classSelect.appendChild(opt);
-            });
-        }
-
-        function onSubjectOrClassChange() {
-            currentSubjectId = document.getElementById('select-subject').value;
-            const curSubject = appData.subjects.find(s => s.id === currentSubjectId);
-            
-            const classSelect = document.getElementById('select-classroom');
-            if (classSelect.value && curSubject.classrooms.some(c => c.id === classSelect.value)) {
-                currentClassroomCode = classSelect.value;
+            if (isTeacherMode) {
+                badge.innerText = 'คุณครู Admin';
+                badge.className = 'text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-400 text-slate-900 transition-all';
+                teacherBanner.classList.remove('hidden');
+                teacherElems.forEach(el => el.classList.remove('hidden'));
+                studentSummaryView.classList.add('hidden');
+                teacherSummaryView.classList.remove('hidden');
+                summaryTabLabel.innerText = "ตัดเกรด & สรุปผล";
             } else {
-                currentClassroomCode = curSubject.classrooms[0]?.id || "";
+                badge.innerText = 'นักเรียน';
+                badge.className = 'text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-800 text-purple-200 transition-all';
+                teacherBanner.classList.add('hidden');
+                teacherElems.forEach(el => el.classList.add('hidden'));
+                studentSummaryView.classList.remove('hidden');
+                teacherSummaryView.classList.add('hidden');
+                summaryTabLabel.innerText = "สรุปสถานะการส่งงาน";
+                checkStudentAuthSession();
             }
 
-            renderSubjectAndClassroomSelectors();
-            renderAllViews();
-        }
-
-        function getCurrentClassroom() {
-            const sub = appData.subjects.find(s => s.id === currentSubjectId);
-            if (!sub) return null;
-            return sub.classrooms.find(c => c.id === currentClassroomCode) || sub.classrooms[0];
-        }
-
-        // Master View Rendering Trigger
-        function renderAllViews() {
-            renderSlides();
-            renderQuizzes();
+            renderLessons();
             renderAssignments();
-            renderTeacherScoreTable();
-            renderStudentDashboard();
-            renderLeaderboard();
+            renderQuizzes();
+            renderSummaryData();
         }
 
-        // Role Switcher Toggle
-        function setupRoleToggle() {
-            document.getElementById('btn-toggle-role').addEventListener('click', () => {
-                isTeacherMode = !isTeacherMode;
-                const roleBadge = document.getElementById('role-badge');
-                const roleBtnText = document.getElementById('role-btn-text');
-                const teacherElements = document.querySelectorAll('.teacher-only');
-                const studentElements = document.querySelectorAll('.student-only');
-                const tabSummaryText = document.getElementById('tab-summary-text');
+        function checkWeeklyReminder() {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
 
-                if (isTeacherMode) {
-                    roleBadge.innerHTML = `<i class="fa-solid fa-user-shield mr-2 text-amber-500"></i><span class="font-bold">มุมมอง: คุณครู (Admin)</span>`;
-                    roleBtnText.innerText = "สลับเป็น นักเรียน 🎓";
-                    teacherElements.forEach(el => el.classList.remove('hidden'));
-                    studentElements.forEach(el => el.classList.add('hidden'));
-                    tabSummaryText.innerText = "4. สรุปผลการเรียน & เกรด";
-                    showToast("สลับเข้าสู่โหมด 'คุณครู' แล้ว สามารถจัดการข้อมูลได้เต็มที่");
-                } else {
-                    roleBadge.innerHTML = `<i class="fa-solid fa-user-graduate mr-2 text-brand-purple"></i><span class="font-bold">มุมมอง: นักเรียน</span>`;
-                    roleBtnText.innerText = "สลับเป็น คุณครู 👩‍🏫";
-                    teacherElements.forEach(el => el.classList.add('hidden'));
-                    studentElements.forEach(el => el.classList.remove('hidden'));
-                    tabSummaryText.innerText = "4. ติดตามการส่งงาน";
-                    showToast("สลับเข้าสู่โหมด 'นักเรียน'");
-                }
-                renderAllViews();
-            });
-        }
-
-        // Tab Switching
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = "tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border-2 border-slate-200";
-            });
-
-            const activeTab = document.getElementById(`tab-${tabName}`);
-            const activeView = document.getElementById(`view-${tabName}`);
-
-            activeTab.className = "tab-btn btn-bounce px-5 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 whitespace-nowrap bg-brand-purple text-white shadow-chunky-purple border-2 border-purple-600";
-            activeView.classList.remove('hidden');
-
-            if (tabName === 'summary' && isTeacherMode) {
-                setTimeout(renderGradeChart, 100);
+            if ((dayOfWeek === 6 && hour === 9 && minute === 0) || window.forceSaturdayReminder) {
+                showToast("⏰ แจ้งเตือนอัตโนมัติ: ถึงเวลาทวงงานและควิซประจำวันเสาร์ 09:00 น. แล้ว!", "info");
+                window.forceSaturdayReminder = false;
             }
         }
 
-        // Modal Helpers
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function checkStudentAuthSession() {
+            if (!isTeacherMode && !currentStudent) {
+                document.getElementById('regContextInfo').innerText = `วิชา: ${currentSubject} | ห้อง: ${currentClassroom} (ภาคเรียน ${currentTerm})`;
+                document.getElementById('registerModal').classList.remove('hidden');
+            } else {
+                updateNavbarStudentProfile();
+                renderStudentStatusView();
+                document.getElementById('registerModal').classList.add('hidden');
+            }
+        }
 
-        function showToast(msg, isError = false) {
+        function openRegisterModal() {
+            if (isTeacherMode) return;
+            if (currentStudent) {
+                document.getElementById('regNo').value = currentStudent.no;
+                document.getElementById('regId').value = currentStudent.id;
+                document.getElementById('regName').value = currentStudent.name;
+                document.getElementById('regAvatarUrl').value = currentStudent.avatar;
+            }
+            document.getElementById('regContextInfo').innerText = `วิชา: ${currentSubject} | ห้อง: ${currentClassroom} (ภาคเรียน ${currentTerm})`;
+            document.getElementById('registerModal').classList.remove('hidden');
+        }
+
+        function handleStudentRegister(e) {
+            e.preventDefault();
+            const no = parseInt(document.getElementById('regNo').value);
+            const id = document.getElementById('regId').value.trim();
+            const name = document.getElementById('regName').value.trim();
+            const avatarFileInp = document.getElementById('regAvatarFile');
+            const avatarUrlInp = document.getElementById('regAvatarUrl').value.trim();
+
+            let finalAvatar = avatarUrlInp || `https://api.dicebear.com/7.x/bottts/svg?seed=${id}`;
+
+            if (avatarFileInp.files && avatarFileInp.files[0]) {
+                const file = avatarFileInp.files[0];
+                const fileName = file.name.toLowerCase();
+                const validExts = ['.png', '.jpg', '.jpeg', '.tiff', '.tif'];
+                const isValid = validExts.some(ext => fileName.endsWith(ext));
+
+                if (!isValid) {
+                    showToast("กรุณาแนบไฟล์รูปภาพสกุล .png, .jpg หรือ .tiff เท่านั้น", "info");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    finalAvatar = evt.target.result;
+                    saveStudentSessionAndData(no, id, name, finalAvatar);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            saveStudentSessionAndData(no, id, name, finalAvatar);
+        }
+
+        function saveStudentSessionAndData(no, id, name, avatar) {
+            currentStudent = { no, id, name, avatar };
+
+            const existingIdx = appData.students.findIndex(s => s.id === id);
+            if (existingIdx !== -1) {
+                appData.students[existingIdx].no = no;
+                appData.students[existingIdx].name = name;
+                appData.students[existingIdx].avatar = avatar;
+            } else {
+                appData.students.push({
+                    id,
+                    no,
+                    name,
+                    avatar,
+                    assignmentScore: 0,
+                    quizScore: 0
+                });
+            }
+
+            saveData();
+            updateNavbarStudentProfile();
+            renderSummaryData();
+            renderStudentStatusView();
+            closeModal('registerModal');
+            showToast(`ลงทะเบียนสำเร็จ! ยินดีต้อนรับคุณ ${name} สู่ห้องเรียน`, "success");
+        }
+
+        function updateNavbarStudentProfile() {
+            if (!currentStudent) return;
+            document.getElementById('navUserAvatar').src = currentStudent.avatar;
+            document.getElementById('navUserName').innerText = currentStudent.name;
+            document.getElementById('navUserMeta').innerText = `เลขที่ ${currentStudent.no} (${currentStudent.id})`;
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn text-xs sm:text-sm font-bold px-4 py-2 rounded-2xl transition flex items-center gap-2 whitespace-nowrap text-slate-600 hover:bg-slate-100";
+            });
+
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = "tab-btn active text-xs sm:text-sm font-bold px-4 py-2 rounded-2xl transition flex items-center gap-2 whitespace-nowrap bg-purple-100 text-purple-700";
+            }
+        }
+
+        function changeContext() {
+            currentSubject = document.getElementById('subjectSelect').value;
+            currentClassroom = document.getElementById('classSelect').value;
+            currentTerm = document.getElementById('termSelect').value;
+            document.getElementById('navContextSubtitle').innerText = `${currentSubject} | ห้อง ${currentClassroom}`;
+            showToast(`เปลี่ยนบริบท: ภาคเรียน ${currentTerm} | ${currentSubject} (${currentClassroom})`, "info");
+        }
+
+        function renderTermsDropdown() {
+            const termSel = document.getElementById('termSelect');
+            termSel.innerHTML = '';
+            appData.terms.forEach(t => {
+                termSel.innerHTML += `<option value="${t}" class="text-slate-800">${t}</option>`;
+            });
+        }
+
+        function openShareModal() {
+            if (!isTeacherMode) {
+                showToast("เฉพาะคุณครูเท่านั้นที่มีสิทธิ์แชร์ห้องเรียน", "info");
+                return;
+            }
+            const classCode = "ROOM-" + currentClassroom.replace('/', '') + "-" + Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('shareClassCode').innerText = classCode;
+            const link = window.location.href.split('?')[0] + `?code=${classCode}&subject=${encodeURIComponent(currentSubject)}&class=${encodeURIComponent(currentClassroom)}`;
+            document.getElementById('shareClassLink').value = link;
+            document.getElementById('shareQrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function copyShareLink() {
+            const copyText = document.getElementById("shareClassLink");
+            copyText.select();
+            document.execCommand("copy");
+            showToast("คัดลอกลิงก์แชร์ห้องเรียนเรียบร้อย!", "success");
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showToast(msg, type = "success") {
             const toast = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = msg;
-            document.getElementById('toast-icon').className = isError ? "fa-solid fa-triangle-exclamation text-rose-400 text-xl" : "fa-solid fa-circle-check text-emerald-400 text-xl";
-            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.innerText = msg;
+            if (type === "success") {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => {
-                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
         }
 
-        // ==================== 1. SLIDES LOGIC ====================
-        function renderSlides() {
-            const cls = getCurrentClassroom();
-            const container = document.getElementById('slides-container');
+        // ================= TERMS MANAGEMENT =================
+        function openManageTermsModal() {
+            if (!isTeacherMode) return;
+            renderTermsListInModal();
+            document.getElementById('termsModal').classList.remove('hidden');
+        }
+
+        function renderTermsListInModal() {
+            const container = document.getElementById('termsList');
             container.innerHTML = '';
-
-            if (!cls || !cls.slides || cls.slides.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200"><i class="fa-solid fa-folder-open text-3xl mb-2"></i><p class="text-xs font-bold">ยังไม่มีเอกสารสไลด์ในห้องเรียนนี้</p></div>`;
-                return;
-            }
-
-            cls.slides.forEach(slide => {
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-3xl border-4 border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden card-pop";
-                card.innerHTML = `
-                    <div class="p-5 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="bg-purple-100 text-brand-purple text-xs font-bold px-3 py-1 rounded-xl border border-purple-200">
-                                <i class="fa-regular fa-clock mr-1"></i> ${slide.hour}
-                            </span>
-                            <div class="teacher-only ${isTeacherMode ? '' : 'hidden'} space-x-1">
-                                <button onclick="deleteSlide(${slide.id})" class="text-slate-400 hover:text-rose-600 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                        <h3 class="font-bold text-slate-800 text-base leading-snug">${slide.title}</h3>
-                        <p class="text-slate-500 text-xs font-medium">${slide.desc}</p>
-                    </div>
-                    <div class="bg-slate-50 px-5 py-3 border-t-2 border-slate-100 flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-400"><i class="fa-solid fa-file-pdf text-rose-500 mr-1"></i> Slide File</span>
-                        <a href="${slide.link}" target="_blank" class="btn-bounce bg-brand-purple hover:bg-purple-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-chunky-purple flex items-center">
-                            เปิดสไลด์ <i class="fa-solid fa-arrow-up-right-from-square ml-1.5 text-[10px]"></i>
-                        </a>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function saveSlide(e) {
-            e.preventDefault();
-            const cls = getCurrentClassroom();
-            const hour = document.getElementById('slide-hour').value;
-            const title = document.getElementById('slide-title').value;
-            const desc = document.getElementById('slide-desc').value;
-            const link = document.getElementById('slide-link').value;
-
-            cls.slides.push({ id: Date.now(), hour, title, desc, link });
-            showToast("เพิ่มสไลด์บทเรียนใหม่แล้ว 📚");
-            closeModal('slide-modal');
-            renderSlides();
-        }
-
-        function deleteSlide(id) {
-            const cls = getCurrentClassroom();
-            cls.slides = cls.slides.filter(s => s.id !== id);
-            renderSlides();
-            showToast("ลบสไลด์เรียบร้อย");
-        }
-
-        // ==================== 2. QUIZZES LOGIC ====================
-        function renderQuizzes() {
-            const cls = getCurrentClassroom();
-            const container = document.getElementById('quizzes-container');
-            container.innerHTML = '';
-
-            if (!cls || !cls.quizzes || cls.quizzes.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200"><i class="fa-solid fa-puzzle-piece text-3xl mb-2"></i><p class="text-xs font-bold">ยังไม่มีแบบทดสอบในห้องเรียนนี้</p></div>`;
-                return;
-            }
-
-            cls.quizzes.forEach(quiz => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 card-pop";
-                card.innerHTML = `
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-start">
-                            <h3 class="font-bold text-slate-800 text-base">${quiz.title}</h3>
-                            <button onclick="deleteQuiz(${quiz.id})" class="teacher-only ${isTeacherMode ? '' : 'hidden'} text-slate-400 hover:text-rose-600 text-xs"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                        <div class="flex space-x-4 text-xs font-semibold text-slate-500">
-                            <span class="bg-blue-50 text-brand-blue px-2.5 py-1 rounded-xl border border-blue-200"><i class="fa-solid fa-list-check mr-1"></i> ${quiz.items} ข้อ</span>
-                            <span class="bg-amber-50 text-amber-600 px-2.5 py-1 rounded-xl border border-amber-200"><i class="fa-regular fa-clock mr-1"></i> ${quiz.time} นาที</span>
-                        </div>
-                    </div>
-                    <a href="${quiz.link}" target="_blank" class="w-full btn-bounce text-center bg-brand-blue hover:bg-blue-600 text-white font-bold py-2.5 rounded-2xl text-xs border-2 border-blue-700 shadow-chunky-blue block">
-                        เริ่มทำแบบทดสอบ 🎯
-                    </a>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function saveQuiz(e) {
-            e.preventDefault();
-            const cls = getCurrentClassroom();
-            const title = document.getElementById('quiz-title').value;
-            const items = document.getElementById('quiz-items').value;
-            const time = document.getElementById('quiz-time').value;
-            const link = document.getElementById('quiz-link').value;
-
-            cls.quizzes.push({ id: Date.now(), title, items, time, link });
-            showToast("สร้างแบบทดสอบใหม่เรียบร้อย 🧩");
-            closeModal('quiz-modal');
-            renderQuizzes();
-        }
-
-        function deleteQuiz(id) {
-            const cls = getCurrentClassroom();
-            cls.quizzes = cls.quizzes.filter(q => q.id !== id);
-            renderQuizzes();
-            showToast("ลบแบบทดสอบแล้ว");
-        }
-
-        // ==================== 3. ASSIGNMENTS LOGIC ====================
-        function renderAssignments() {
-            const cls = getCurrentClassroom();
-            const container = document.getElementById('assignments-container');
-            container.innerHTML = '';
-
-            if (!cls || !cls.assignments || cls.assignments.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200"><i class="fa-solid fa-box-archive text-3xl mb-2"></i><p class="text-xs font-bold">ยังไม่มีภาระงานที่มอบหมาย</p></div>`;
-                return;
-            }
-
-            cls.assignments.forEach(asgn => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 card-pop";
-                card.innerHTML = `
-                    <div class="space-y-1">
-                        <div class="flex items-center space-x-2">
-                            <h3 class="font-bold text-slate-800 text-base">${asgn.title}</h3>
-                            <span class="bg-green-100 text-brand-green text-xs font-bold px-2.5 py-0.5 rounded-full border border-green-200">${asgn.score} คะแนน</span>
-                        </div>
-                        <p class="text-xs text-slate-500 font-medium">${asgn.desc}</p>
-                        <p class="text-xs text-rose-500 font-bold"><i class="fa-regular fa-calendar-xmark mr-1"></i> กำหนดส่ง: ${asgn.due}</p>
-                    </div>
-                    <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
-                        <button onclick="deleteAssignment(${asgn.id})" class="teacher-only ${isTeacherMode ? '' : 'hidden'} text-slate-400 hover:text-rose-600 text-xs p-2"><i class="fa-solid fa-trash"></i></button>
-                        <a href="${asgn.link}" target="_blank" class="btn-bounce bg-brand-green hover:bg-green-600 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border-2 border-green-700 shadow-chunky-green flex items-center space-x-1.5">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <span>ส่งงาน / ดูโฟลเดอร์ 🎁</span>
-                        </a>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function saveAssignment(e) {
-            e.preventDefault();
-            const cls = getCurrentClassroom();
-            const title = document.getElementById('assignment-title').value;
-            const due = document.getElementById('assignment-due').value;
-            const score = document.getElementById('assignment-score').value;
-            const desc = document.getElementById('assignment-desc').value;
-            const link = document.getElementById('assignment-link').value;
-
-            cls.assignments.push({ id: Date.now(), title, due, score, desc, link });
-            showToast("มอบหมายชิ้นงานใหม่สำเร็จ 🎁");
-            closeModal('assignment-modal');
-            renderAssignments();
-        }
-
-        function deleteAssignment(id) {
-            const cls = getCurrentClassroom();
-            cls.assignments = cls.assignments.filter(a => a.id !== id);
-            renderAssignments();
-            showToast("ลบชิ้นงานแล้ว");
-        }
-
-        // ==================== 4. TEACHER SCORES & GPA SUMMARY ====================
-        function renderTeacherScoreTable() {
-            const cls = getCurrentClassroom();
-            const tbody = document.getElementById('teacher-score-tbody');
-            tbody.innerHTML = '';
-
-            if (!cls || !cls.students || cls.students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400 font-bold">ยังไม่มีข้อมูลนักเรียนในห้องเรียนนี้</td></tr>`;
-                updateTeacherMetrics(0, 0, 0, 0, []);
-                return;
-            }
-
-            let totalScoreSum = 0;
-            let totalGpaSum = 0;
-            let passCount = 0;
-            let gradeCounts = { A:0, 'B+':0, B:0, 'C+':0, C:0, 'D+':0, D:0, F:0 };
-
-            cls.students.forEach((std, idx) => {
-                const total = (Number(std.test) || 0) + (Number(std.work) || 0) + (Number(std.affective) || 0);
-                const gradeInfo = calculateGradeDetails(total);
-
-                totalScoreSum += total;
-                totalGpaSum += gradeInfo.gpa;
-                if (total >= 50) passCount++;
-                gradeCounts[gradeInfo.grade]++;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-purple-50/50 transition";
-                tr.innerHTML = `
-                    <td class="px-3 py-3 font-bold text-slate-800">${std.name}</td>
-                    <td class="px-2 py-3 text-center">${std.test}</td>
-                    <td class="px-2 py-3 text-center">${std.work}</td>
-                    <td class="px-2 py-3 text-center">${std.affective}</td>
-                    <td class="px-2 py-3 text-center font-extrabold text-indigo-700">${total}</td>
-                    <td class="px-2 py-3 text-center">
-                        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${gradeInfo.color}">${gradeInfo.grade} (${gradeInfo.gpa.toFixed(1)})</span>
-                    </td>
-                    <td class="px-3 py-3 text-center space-x-1">
-                        <button onclick="openStudentReportCard(${idx})" class="btn-bounce bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-bold hover:bg-purple-200"><i class="fa-solid fa-eye"></i> รายงาน</button>
-                        <button onclick="editStudentScoreModal(${idx})" class="text-indigo-600 hover:text-indigo-900 p-1"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteStudent(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            const studentCount = cls.students.length;
-            const avgScore = (totalScoreSum / studentCount).toFixed(1);
-            const avgGpa = (totalGpaSum / studentCount).toFixed(2);
-            const passRate = ((passCount / studentCount) * 100).toFixed(0);
-
-            updateTeacherMetrics(studentCount, avgScore, avgGpa, passRate, gradeCounts);
-        }
-
-        function updateTeacherMetrics(count, avg, gpa, passRate, gradeCounts) {
-            document.getElementById('stat-teacher-total-students').innerText = `${count} คน`;
-            document.getElementById('stat-teacher-avg-score').innerText = `${avg} / 100`;
-            document.getElementById('stat-teacher-gpa').innerText = gpa;
-            document.getElementById('stat-teacher-pass-rate').innerText = `${passRate}%`;
-        }
-
-        function renderGradeChart() {
-            const cls = getCurrentClassroom();
-            if (!cls || !cls.students) return;
-
-            let counts = { A:0, 'B+':0, B:0, 'C+':0, C:0, 'D+':0, D:0, F:0 };
-            cls.students.forEach(std => {
-                const total = (Number(std.test) || 0) + (Number(std.work) || 0) + (Number(std.affective) || 0);
-                const g = calculateGradeDetails(total).grade;
-                counts[g]++;
-            });
-
-            const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
-            if (gradeChartInstance) gradeChartInstance.destroy();
-
-            gradeChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'],
-                    datasets: [{
-                        label: 'จำนวนนักเรียน (คน)',
-                        data: [counts.A, counts['B+'], counts.B, counts['C+'], counts.C, counts['D+'], counts.D, counts.F],
-                        backgroundColor: ['#10B981', '#14B8A6', '#3B82F6', '#6366F1', '#A855F7', '#F59E0B', '#F97316', '#EF4444'],
-                        borderRadius: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                }
-            });
-        }
-
-        function editStudentScoreModal(idx) {
-            const cls = getCurrentClassroom();
-            const std = cls.students[idx];
-            document.getElementById('student-index').value = idx;
-            document.getElementById('student-name').value = std.name;
-            document.getElementById('score-test').value = std.test;
-            document.getElementById('score-work').value = std.work;
-            document.getElementById('score-affective').value = std.affective;
-            openModal('score-modal');
-        }
-
-        function saveStudentScore(e) {
-            e.preventDefault();
-            const cls = getCurrentClassroom();
-            const idx = document.getElementById('student-index').value;
-            cls.students[idx].name = document.getElementById('student-name').value;
-            cls.students[idx].test = Number(document.getElementById('score-test').value);
-            cls.students[idx].work = Number(document.getElementById('score-work').value);
-            cls.students[idx].affective = Number(document.getElementById('score-affective').value);
-            showToast("อัปเดตคะแนนเรียบร้อย");
-            closeModal('score-modal');
-            renderTeacherScoreTable();
-            renderGradeChart();
-        }
-
-        function addSingleStudent(e) {
-            e.preventDefault();
-            const cls = getCurrentClassroom();
-            const name = document.getElementById('new-student-single-name').value;
-            cls.students.push({ id: Date.now(), name, test: 0, work: 0, affective: 0, submissions: {}, quizzesDone: {} });
-            showToast("เพิ่มนักเรียนใหม่เรียบร้อย");
-            closeModal('modal-add-student');
-            renderTeacherScoreTable();
-        }
-
-        function deleteStudent(idx) {
-            const cls = getCurrentClassroom();
-            cls.students.splice(idx, 1);
-            renderTeacherScoreTable();
-            renderGradeChart();
-            showToast("ลบรายชื่อนักเรียนแล้ว");
-        }
-
-        function openStudentReportCard(idx) {
-            const cls = getCurrentClassroom();
-            const std = cls.students[idx];
-            const total = std.test + std.work + std.affective;
-            const gradeInfo = calculateGradeDetails(total);
-
-            const content = document.getElementById('report-card-content');
-            content.innerHTML = `
-                <div class="w-20 h-20 bg-purple-100 text-brand-purple text-4xl rounded-full flex items-center justify-center mx-auto font-bold border-4 border-purple-300">
-                    <i class="fa-solid fa-user-astronaut"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-xl text-slate-800">${std.name}</h3>
-                    <p class="text-xs text-slate-500 font-semibold">ห้องเรียน: ${cls.name}</p>
-                </div>
-
-                <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-200 text-left space-y-2 text-xs font-semibold">
-                    <div class="flex justify-between"><span>คะแนนแบบทดสอบ (30):</span><span class="font-bold">${std.test} คะแนน</span></div>
-                    <div class="flex justify-between"><span>คะแนนชิ้นงาน (40):</span><span class="font-bold">${std.work} คะแนน</span></div>
-                    <div class="flex justify-between"><span>คะแนนจิตพิสัย (30):</span><span class="font-bold">${std.affective} คะแนน</span></div>
-                    <div class="border-t pt-2 flex justify-between text-sm text-brand-purple font-extrabold"><span>รวมทั้งสิ้น (100):</span><span>${total} คะแนน</span></div>
-                </div>
-
-                <div class="p-4 rounded-2xl ${gradeInfo.color} space-y-1 shadow-md">
-                    <p class="text-xs uppercase font-bold tracking-wider">เกรดเฉลี่ยประเมินผล</p>
-                    <h2 class="text-3xl font-black">${gradeInfo.grade} (${gradeInfo.gpa.toFixed(1)})</h2>
-                    <p class="text-xs font-semibold opacity-95">ความหมาย: ${gradeInfo.desc}</p>
-                </div>
-            `;
-            openModal('modal-student-report');
-        }
-
-        // ==================== 5. STUDENT VIEW DASHBOARD ====================
-        function renderStudentDashboard() {
-            const cls = getCurrentClassroom();
-            const select = document.getElementById('select-student-view-name');
-            select.innerHTML = '';
-
-            if (!cls || !cls.students || cls.students.length === 0) {
-                select.innerHTML = `<option>ไม่มีนักเรียนในห้องนี้</option>`;
-                return;
-            }
-
-            cls.students.forEach((std, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.textContent = std.name;
-                select.appendChild(opt);
-            });
-
-            const currentIdx = select.value || 0;
-            const currentStudent = cls.students[currentIdx];
-
-            // Render Assignment Status List
-            const asgnContainer = document.getElementById('student-assignment-status-list');
-            asgnContainer.innerHTML = '';
-            if (cls.assignments.length === 0) {
-                asgnContainer.innerHTML = `<p class="text-slate-400">ไม่มีชิ้นงาน</p>`;
-            } else {
-                cls.assignments.forEach(a => {
-                    const isDone = currentStudent.submissions && currentStudent.submissions[a.id];
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200";
-                    item.innerHTML = `
-                        <span class="font-bold text-slate-700">${a.title}</span>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isDone ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-amber-100 text-amber-700 border border-amber-300'}">
-                            ${isDone ? '✓ ส่งแล้ว' : '⏳ รอดำเนินการ'}
-                        </span>
-                    `;
-                    asgnContainer.appendChild(item);
-                });
-            }
-
-            // Render Quiz Status List
-            const quizContainer = document.getElementById('student-quiz-status-list');
-            quizContainer.innerHTML = '';
-            if (cls.quizzes.length === 0) {
-                quizContainer.innerHTML = `<p class="text-slate-400">ไม่มีแบบทดสอบ</p>`;
-            } else {
-                cls.quizzes.forEach(q => {
-                    const isDone = currentStudent.quizzesDone && currentStudent.quizzesDone[q.id];
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200";
-                    item.innerHTML = `
-                        <span class="font-bold text-slate-700">${q.title}</span>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isDone ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-blue-100 text-blue-700 border border-blue-300'}">
-                            ${isDone ? '✓ ทำแล้ว' : '✏️ ยังไม่ได้ทำ'}
-                        </span>
-                    `;
-                    quizContainer.appendChild(item);
-                });
-            }
-        }
-
-        // ==================== 6. LEADERBOARD ====================
-        function renderLeaderboard() {
-            const cls = getCurrentClassroom();
-            const tbody = document.getElementById('leaderboard-tbody');
-            tbody.innerHTML = '';
-
-            if (!cls || !cls.students || cls.students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold">ไม่มีข้อมูลนักเรียน</td></tr>`;
-                return;
-            }
-
-            const sorted = [...cls.students].map(s => {
-                const total = (s.test || 0) + (s.work || 0) + (s.affective || 0);
-                return { ...s, total, gradeInfo: calculateGradeDetails(total) };
-            }).sort((a, b) => b.total - a.total);
-
-            sorted.forEach((std, rank) => {
-                const tr = document.createElement('tr');
-                tr.className = rank === 0 ? "bg-amber-50 font-bold" : "hover:bg-slate-50";
-
-                let rankBadge = `${rank + 1}`;
-                if (rank === 0) rankBadge = "🥇 1";
-                if (rank === 1) rankBadge = "🥈 2";
-                if (rank === 2) rankBadge = "🥉 3";
-
-                tr.innerHTML = `
-                    <td class="px-4 py-3 text-center text-base font-extrabold text-amber-600">${rankBadge}</td>
-                    <td class="px-4 py-3 font-bold text-slate-800">${std.name}</td>
-                    <td class="px-4 py-3 text-center font-extrabold text-brand-purple">${std.total}</td>
-                    <td class="px-4 py-3 text-center">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold ${std.gradeInfo.color}">${std.gradeInfo.badge} (${std.gradeInfo.desc})</span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // ==================== 7. SUBJECT & CLASSROOM MANAGEMENT ====================
-        function addSubject() {
-            const name = document.getElementById('new-subject-name').value.trim();
-            if (!name) return;
-            const newId = `SUB-${Date.now()}`;
-            appData.subjects.push({
-                id: newId,
-                name: name,
-                classrooms: [{ id: `CLS-${Date.now()}`, name: "ห้อง 1", code: `CODE-${Date.now()}`, slides: [], quizzes: [], assignments: [], students: [] }]
-            });
-            document.getElementById('new-subject-name').value = '';
-            currentSubjectId = newId;
-            renderSubjectAndClassroomSelectors();
-            onSubjectOrClassChange();
-            showToast("เพิ่มรายวิชาใหม่แล้ว 📚");
-        }
-
-        function addClassroom() {
-            const sub = appData.subjects.find(s => s.id === currentSubjectId);
-            const name = document.getElementById('new-class-name').value.trim();
-            if (!name || !sub) return;
-            const newId = `CLS-${Date.now()}`;
-            sub.classrooms.push({
-                id: newId,
-                name: name,
-                code: `CLS-${Math.floor(100 + Math.random() * 900)}`,
-                slides: [], quizzes: [], assignments: [], students: []
-            });
-            document.getElementById('new-class-name').value = '';
-            currentClassroomCode = newId;
-            renderSubjectAndClassroomSelectors();
-            onSubjectOrClassChange();
-            showToast("เพิ่มห้องเรียนเรียบร้อย 🏫");
-        }
-
-        function renderManageClassList() {
-            const sub = appData.subjects.find(s => s.id === currentSubjectId);
-            const container = document.getElementById('manage-class-list');
-            container.innerHTML = '';
-            if (!sub) return;
-
-            sub.classrooms.forEach(cls => {
+            appData.terms.forEach((term, index) => {
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200";
+                div.className = "flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border";
                 div.innerHTML = `
-                    <span class="font-bold text-slate-700">${cls.name} (รหัส: ${cls.code})</span>
-                    <button onclick="deleteClassroom('${cls.id}')" class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    <span class="font-bold text-xs text-slate-800">${term}</span>
+                    <button onclick="deleteTerm(${index})" class="text-xs text-rose-600 hover:text-rose-800 font-bold"><i class="fa-solid fa-trash"></i> ลบ</button>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function deleteClassroom(clsId) {
-            const sub = appData.subjects.find(s => s.id === currentSubjectId);
-            if (sub.classrooms.length <= 1) {
-                showToast("ต้องมีอย่างน้อย 1 ห้องเรียนในวิชา", true);
-                return;
+        function handleAddTerm(e) {
+            e.preventDefault();
+            const val = document.getElementById('newTermInput').value.trim();
+            if (val && !appData.terms.includes(val)) {
+                appData.terms.push(val);
+                saveData();
+                renderTermsDropdown();
+                renderTermsListInModal();
+                document.getElementById('newTermInput').value = '';
+                showToast("เพิ่มภาคเรียนสำเร็จและบันทึกอัตโนมัติ");
             }
-            sub.classrooms = sub.classrooms.filter(c => c.id !== clsId);
-            currentClassroomCode = sub.classrooms[0].id;
-            renderSubjectAndClassroomSelectors();
-            onSubjectOrClassChange();
-            renderManageClassList();
-            showToast("ลบห้องเรียนแล้ว");
         }
 
-        // ==================== 8. IMPORT & EXPORT FUNCTIONS ====================
-        function processImportStudents() {
-            const cls = getCurrentClassroom();
-            const text = document.getElementById('import-students-textarea').value.trim();
-            if (!text) return;
+        function deleteTerm(index) {
+            if (appData.terms.length <= 1) {
+                showToast("ต้องมีภาคเรียนอย่างน้อย 1 ภาคเรียน", "info");
+                return;
+            }
+            appData.terms.splice(index, 1);
+            saveData();
+            renderTermsDropdown();
+            renderTermsListInModal();
+            showToast("ลบภาคเรียนเรียบร้อย");
+        }
 
-            const lines = text.split('\n');
-            let count = 0;
-            lines.forEach(line => {
-                const name = line.trim();
-                if (name) {
-                    cls.students.push({ id: Date.now() + Math.random(), name, test: 0, work: 0, affective: 0, submissions: {}, quizzesDone: {} });
-                    count++;
+        // ================= LESSONS MODULE =================
+        function renderLessons(filter = '') {
+            const container = document.getElementById('lessonsContainer');
+            container.innerHTML = '';
+
+            const filtered = appData.lessons.filter(l => l.title.toLowerCase().includes(filter.toLowerCase()));
+
+            filtered.forEach(lesson => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col bouncy-hover";
+                
+                let teacherActions = '';
+                if (isTeacherMode) {
+                    teacherActions = `
+                        <div class="flex gap-2 mb-2">
+                            <button onclick="openEditLessonModal(${lesson.id})" class="text-[11px] bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-xl"><i class="fa-solid fa-pen"></i> แก้ไข</button>
+                            <button onclick="deleteLesson(${lesson.id})" class="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-xl"><i class="fa-solid fa-trash"></i> ลบ</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="bg-gradient-to-r from-purple-100 to-indigo-50 border-b border-purple-100 p-4 flex justify-between items-center">
+                        <span class="text-xs font-extrabold text-purple-700 bg-purple-200/60 px-3 py-1 rounded-full">ชั่วโมงที่ ${lesson.hour}</span>
+                        ${isTeacherMode ? `<span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-bold">โหมดครู</span>` : ''}
+                    </div>
+                    <div class="p-5 flex-grow space-y-2">
+                        ${teacherActions}
+                        <h3 class="font-bold text-slate-800 text-base leading-snug">${lesson.title}</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">${lesson.description}</p>
+                    </div>
+                    <div class="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400 font-medium"><i class="fa-solid fa-file-pdf text-rose-500 mr-1"></i> สไลด์/สื่อการสอน</span>
+                        <a href="${lesson.fileUrl || '#'}" target="_blank" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-1.5 rounded-xl font-bold transition shadow-sm bouncy-btn flex items-center">
+                            <i class="fa-solid fa-download mr-1 text-[10px]"></i> เปิด / ดาวน์โหลด
+                        </a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterLessons() {
+            renderLessons(document.getElementById('lessonSearch').value);
+        }
+
+        function openAddLessonModal() {
+            document.getElementById('editLessonId').value = '';
+            document.getElementById('lessonHour').value = appData.lessons.length + 1;
+            document.getElementById('lessonTitleInput').value = '';
+            document.getElementById('lessonDescInput').value = '';
+            document.getElementById('lessonFileUrl').value = '';
+            document.getElementById('lessonModalTitle').innerText = "เพิ่มบทเรียนใหม่";
+            document.getElementById('lessonModal').classList.remove('hidden');
+        }
+
+        function openEditLessonModal(id) {
+            const l = appData.lessons.find(item => item.id === id);
+            if (!l) return;
+            document.getElementById('editLessonId').value = l.id;
+            document.getElementById('lessonHour').value = l.hour;
+            document.getElementById('lessonTitleInput').value = l.title;
+            document.getElementById('lessonDescInput').value = l.description;
+            document.getElementById('lessonFileUrl').value = l.fileUrl;
+            document.getElementById('lessonModalTitle').innerText = "แก้ไขบทเรียน";
+            document.getElementById('lessonModal').classList.remove('hidden');
+        }
+
+        function handleSaveLesson(e) {
+            e.preventDefault();
+            const id = document.getElementById('editLessonId').value;
+            const hour = parseInt(document.getElementById('lessonHour').value);
+            const title = document.getElementById('lessonTitleInput').value;
+            const description = document.getElementById('lessonDescInput').value;
+            const fileUrl = document.getElementById('lessonFileUrl').value;
+
+            if (id) {
+                const l = appData.lessons.find(item => item.id === parseInt(id));
+                if (l) {
+                    l.hour = hour; l.title = title; l.description = description; l.fileUrl = fileUrl;
+                }
+            } else {
+                appData.lessons.push({ id: Date.now(), hour, title, description, fileUrl });
+            }
+
+            saveData();
+            closeModal('lessonModal');
+            renderLessons();
+            showToast("บันทึกบทเรียนสำเร็จและบันทึกอัตโนมัติแล้ว");
+        }
+
+        function deleteLesson(id) {
+            appData.lessons = appData.lessons.filter(l => l.id !== id);
+            saveData();
+            renderLessons();
+            showToast("ลบบทเรียนเรียบร้อย");
+        }
+
+        // ================= ASSIGNMENTS MODULE =================
+        function renderAssignments() {
+            const container = document.getElementById('assignmentsContainer');
+            container.innerHTML = '';
+
+            appData.assignments.forEach(item => {
+                const subCount = appData.submissions.filter(s => s.assignmentId === item.id).length;
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bouncy-hover";
+                
+                let teacherBtns = '';
+                if (isTeacherMode) {
+                    teacherBtns = `
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="openEditAssignmentModal(${item.id})" class="text-xs bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-xl"><i class="fa-solid fa-pen"></i> แก้ไข</button>
+                            <button onclick="deleteAssignment(${item.id})" class="text-xs bg-rose-100 text-rose-800 font-bold px-3 py-1.5 rounded-xl"><i class="fa-solid fa-trash"></i> ลบ</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="space-y-1 flex-grow">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700">คะแนนเต็ม ${item.maxScore}</span>
+                            <span class="text-xs text-slate-400 font-medium">ส่งแล้ว ${subCount} คน</span>
+                            ${item.fileUrl ? `<a href="${item.fileUrl}" target="_blank" class="text-xs text-purple-600 underline font-bold"><i class="fa-solid fa-paperclip"></i> ไฟล์โจทย์/รูปภาพ</a>` : ''}
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-base">${item.title}</h3>
+                        <p class="text-xs text-slate-500">${item.description}</p>
+                        ${teacherBtns}
+                    </div>
+                    <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                        <button onclick="openSubmitModal(${item.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl font-bold shadow-sm bouncy-btn flex items-center">
+                            <i class="fa-solid fa-paper-plane mr-1.5"></i> ส่ง / แก้ไขงาน
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openAddAssignmentModal() {
+            document.getElementById('editAssignmentId').value = '';
+            document.getElementById('assignmentTitle').value = '';
+            document.getElementById('assignmentDesc').value = '';
+            document.getElementById('assignmentMaxScore').value = 10;
+            document.getElementById('assignmentFileUrl').value = '';
+            document.getElementById('assignmentModalTitle').innerText = "เพิ่มภารกิจใหม่";
+            document.getElementById('assignmentModal').classList.remove('hidden');
+        }
+
+        function openEditAssignmentModal(id) {
+            const item = appData.assignments.find(a => a.id === id);
+            if (!item) return;
+            document.getElementById('editAssignmentId').value = item.id;
+            document.getElementById('assignmentTitle').value = item.title;
+            document.getElementById('assignmentDesc').value = item.description;
+            document.getElementById('assignmentMaxScore').value = item.maxScore;
+            document.getElementById('assignmentFileUrl').value = item.fileUrl || '';
+            document.getElementById('assignmentModalTitle').innerText = "แก้ไขภารกิจ";
+            document.getElementById('assignmentModal').classList.remove('hidden');
+        }
+
+        function handleSaveAssignment(e) {
+            e.preventDefault();
+            const id = document.getElementById('editAssignmentId').value;
+            const title = document.getElementById('assignmentTitle').value;
+            const description = document.getElementById('assignmentDesc').value;
+            const maxScore = parseInt(document.getElementById('assignmentMaxScore').value);
+            const fileUrl = document.getElementById('assignmentFileUrl').value;
+
+            if (id) {
+                const a = appData.assignments.find(item => item.id === parseInt(id));
+                if (a) { a.title = title; a.description = description; a.maxScore = maxScore; a.fileUrl = fileUrl; }
+            } else {
+                appData.assignments.push({ id: Date.now(), title, description, maxScore, fileUrl });
+            }
+
+            saveData();
+            closeModal('assignmentModal');
+            renderAssignments();
+            showToast("บันทึกภารกิจและอัปเดตอัตโนมัติแล้ว");
+        }
+
+        function deleteAssignment(id) {
+            appData.assignments = appData.assignments.filter(a => a.id !== id);
+            saveData();
+            renderAssignments();
+            showToast("ลบภารกิจเรียบร้อย");
+        }
+
+        function openSubmitModal(assignmentId) {
+            if (!currentStudent && !isTeacherMode) {
+                openRegisterModal();
+                return;
+            }
+            document.getElementById('submitAssignmentId').value = assignmentId;
+            if (currentStudent) {
+                document.getElementById('submitModalAvatar').src = currentStudent.avatar;
+                document.getElementById('submitModalName').innerText = currentStudent.name;
+                document.getElementById('submitModalMeta').innerText = `เลขที่ ${currentStudent.no} (${currentStudent.id})`;
+            }
+            document.getElementById('submitModal').classList.remove('hidden');
+        }
+
+        function handleAssignmentSubmit(e) {
+            e.preventDefault();
+            if (!currentStudent) {
+                openRegisterModal();
+                return;
+            }
+            const assignmentId = parseInt(document.getElementById('submitAssignmentId').value);
+            const fileUrl = document.getElementById('submitFileUrl').value;
+            const note = document.getElementById('submitNote').value;
+
+            const existingIndex = appData.submissions.findIndex(s => s.assignmentId === assignmentId && s.studentId === currentStudent.id);
+            if (existingIndex !== -1) {
+                appData.submissions[existingIndex].fileUrl = fileUrl;
+                appData.submissions[existingIndex].note = note;
+                appData.submissions[existingIndex].timestamp = new Date().toLocaleString('th-TH');
+            } else {
+                appData.submissions.push({
+                    id: Date.now(),
+                    assignmentId,
+                    studentId: currentStudent.id,
+                    studentName: currentStudent.name,
+                    fileUrl,
+                    note,
+                    timestamp: new Date().toLocaleString('th-TH'),
+                    status: 'ontime',
+                    score: 0
+                });
+            }
+
+            saveData();
+            closeModal('submitModal');
+            renderAssignments();
+            renderStudentStatusView();
+            renderSummaryData();
+            showToast("ส่งชิ้นงาน / แนบไฟล์สำเร็จแล้ว!", "success");
+        }
+
+        // ================= QUIZ MODULE =================
+        function renderQuizzes() {
+            const container = document.getElementById('quizzesContainer');
+            container.innerHTML = '';
+
+            appData.quizzes.forEach(quiz => {
+                const totalScore = quiz.questions.reduce((sum, q) => sum + (q.score || 1), 0);
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 space-y-4 flex flex-col justify-between bouncy-hover";
+                
+                let teacherQuizBtns = '';
+                if (isTeacherMode) {
+                    teacherQuizBtns = `
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="openEditQuizModal(${quiz.id})" class="text-xs bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-xl"><i class="fa-solid fa-pen"></i> แก้ไข</button>
+                            <button onclick="deleteQuiz(${quiz.id})" class="text-xs bg-rose-100 text-rose-800 font-bold px-3 py-1.5 rounded-xl"><i class="fa-solid fa-trash"></i> ลบ</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-purple-100 text-purple-700">${quiz.questions.length} ข้อ (${totalScore} คะแนน)</span>
+                            ${quiz.attachmentUrl ? `<a href="${quiz.attachmentUrl}" target="_blank" class="text-xs text-purple-600 underline font-bold"><i class="fa-solid fa-file-image"></i> แนบไฟล์/รูปภาพ</a>` : ''}
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-base">${quiz.title}</h3>
+                        <p class="text-xs text-slate-500">${quiz.description}</p>
+                        ${teacherQuizBtns}
+                    </div>
+                    <button onclick="openTakeQuizModal(${quiz.id})" class="w-full text-center text-xs bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-2xl font-bold transition shadow-sm bouncy-btn">
+                        <i class="fa-solid fa-gamepad mr-1.5"></i> ทำแบบทดสอบในระบบ
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openCreateQuizModal() {
+            document.getElementById('quizEditId').value = '';
+            document.getElementById('quizTitleInput').value = '';
+            document.getElementById('quizDescInput').value = '';
+            document.getElementById('quizAttachmentInput').value = '';
+            document.getElementById('quizQuestionsContainer').innerHTML = '';
+            addQuestionField('mc', 'ข้อที่ 1: ตัวอย่างคำถามปรนัย', ['ตัวเลือก A', 'ตัวเลือก B', 'ตัวเลือก C', 'ตัวเลือก D'], 0, 5);
+            document.getElementById('createQuizModal').classList.remove('hidden');
+        }
+
+        function openEditQuizModal(id) {
+            const quiz = appData.quizzes.find(q => q.id === id);
+            if (!quiz) return;
+            document.getElementById('quizEditId').value = quiz.id;
+            document.getElementById('quizTitleInput').value = quiz.title;
+            document.getElementById('quizDescInput').value = quiz.description;
+            document.getElementById('quizAttachmentInput').value = quiz.attachmentUrl || '';
+            const container = document.getElementById('quizQuestionsContainer');
+            container.innerHTML = '';
+            quiz.questions.forEach((q, idx) => {
+                addQuestionField(q.type, q.q, q.choices || [], q.ans || 0, q.score || 1);
+            });
+            document.getElementById('createQuizModal').classList.remove('hidden');
+        }
+
+        function addQuestionField(type, qText = '', choices = [], ans = 0, score = 1) {
+            const container = document.getElementById('quizQuestionsContainer');
+            const index = container.children.length + 1;
+            const div = document.createElement('div');
+            div.className = "p-4 bg-slate-50 rounded-2xl border space-y-3 question-block";
+            div.dataset.type = type;
+
+            let choicesHtml = '';
+            if (type === 'mc') {
+                const c1 = choices[0] || '';
+                const c2 = choices[1] || '';
+                const c3 = choices[2] || '';
+                const c4 = choices[3] || '';
+                choicesHtml = `
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" placeholder="ตัวเลือก 1" class="border rounded-xl p-2 q-choice" value="${c1}">
+                        <input type="text" placeholder="ตัวเลือก 2" class="border rounded-xl p-2 q-choice" value="${c2}">
+                        <input type="text" placeholder="ตัวเลือก 3" class="border rounded-xl p-2 q-choice" value="${c3}">
+                        <input type="text" placeholder="ตัวเลือก 4" class="border rounded-xl p-2 q-choice" value="${c4}">
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <label class="font-bold">ชอยส์ที่ถูกต้อง (0-3):</label>
+                        <input type="number" min="0" max="3" class="w-16 border rounded-xl p-1 text-center q-ans" value="${ans}">
+                    </div>
+                `;
+            } else {
+                choicesHtml = `<p class="text-xs text-slate-500 font-medium">คำถามอัตนัย (ให้นักเรียนพิมพ์ตอบยาว)</p>`;
+            }
+
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-xs text-purple-700">ข้อที่ ${index} (${type === 'mc' ? 'ปรนัย' : 'อัตนัย'})</span>
+                    <button type="button" onclick="this.closest('.question-block').remove()" class="text-rose-500 text-xs font-bold"><i class="fa-solid fa-trash"></i> ลบข้อนี้</button>
+                </div>
+                <input type="text" placeholder="พิมพ์คำถาม..." class="w-full border rounded-xl p-2 text-xs q-text" value="${qText}">
+                ${choicesHtml}
+                <div class="flex items-center gap-2 text-xs">
+                    <label class="font-bold">คะแนน:</label>
+                    <input type="number" class="w-20 border rounded-xl p-1 text-center q-score" value="${score}">
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function handleSaveQuiz(e) {
+            e.preventDefault();
+            const id = document.getElementById('quizEditId').value;
+            const title = document.getElementById('quizTitleInput').value;
+            const description = document.getElementById('quizDescInput').value;
+            const attachmentUrl = document.getElementById('quizAttachmentInput').value;
+
+            const questions = [];
+            document.querySelectorAll('.question-block').forEach(block => {
+                const type = block.dataset.type;
+                const q = block.querySelector('.q-text').value;
+                const score = parseInt(block.querySelector('.q-score').value) || 1;
+                let choices = [];
+                let ans = 0;
+                if (type === 'mc') {
+                    block.querySelectorAll('.q-choice').forEach(inp => choices.push(inp.value));
+                    ans = parseInt(block.querySelector('.q-ans').value) || 0;
+                }
+                questions.push({ type, q, choices, ans, score });
+            });
+
+            if (id) {
+                const quiz = appData.quizzes.find(q => q.id === parseInt(id));
+                if (quiz) { quiz.title = title; quiz.description = description; quiz.attachmentUrl = attachmentUrl; quiz.questions = questions; }
+            } else {
+                appData.quizzes.push({ id: Date.now(), title, description, attachmentUrl, questions });
+            }
+
+            saveData();
+            closeModal('createQuizModal');
+            renderQuizzes();
+            showToast("บันทึกแบบทดสอบและอัปเดตอัตโนมัติแล้ว");
+        }
+
+        function deleteQuiz(id) {
+            appData.quizzes = appData.quizzes.filter(q => q.id !== id);
+            saveData();
+            renderQuizzes();
+            showToast("ลบแบบทดสอบเรียบร้อย");
+        }
+
+        function openTakeQuizModal(quizId) {
+            if (!currentStudent && !isTeacherMode) {
+                openRegisterModal();
+                return;
+            }
+            currentQuizTakingId = quizId;
+            const quiz = appData.quizzes.find(q => q.id === quizId);
+            if (!quiz) return;
+            document.getElementById('takeQuizTitle').innerText = quiz.title;
+            if (currentStudent) {
+                document.getElementById('quizTakerAvatar').src = currentStudent.avatar;
+                document.getElementById('quizTakerNameDisplay').innerText = `${currentStudent.name} (${currentStudent.id})`;
+            }
+
+            const container = document.getElementById('takeQuizContent');
+            container.innerHTML = '';
+
+            if (quiz.attachmentUrl) {
+                container.innerHTML += `<div class="mb-3"><a href="${quiz.attachmentUrl}" target="_blank" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-xl font-bold"><i class="fa-solid fa-file-image"></i> เปิดดูไฟล์/รูปภาพประกอบข้อสอบ</a></div>`;
+            }
+
+            quiz.questions.forEach((q, idx) => {
+                let body = '';
+                if (q.type === 'mc') {
+                    body = `
+                        <div class="space-y-1.5 pl-4">
+                            ${q.choices.map((c, cIdx) => `
+                                <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer">
+                                    <input type="radio" name="q_${idx}" value="${cIdx}" class="text-purple-600">
+                                    <span>${c}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    body = `<textarea class="w-full border rounded-xl p-2.5 text-xs ans-sub-input" rows="2" placeholder="พิมพ์คำตอบของคุณที่นี่..."></textarea>`;
+                }
+                container.innerHTML += `
+                    <div class="space-y-2 pb-3 border-b quiz-item-block" data-qindex="${idx}">
+                        <p class="font-bold text-slate-800 text-xs">ข้อที่ ${idx + 1}: ${q.q} (${q.score} คะแนน)</p>
+                        ${body}
+                    </div>
+                `;
+            });
+
+            document.getElementById('takeQuizModal').classList.remove('hidden');
+        }
+
+        function submitQuizAnswers() {
+            if (!currentStudent) {
+                openRegisterModal();
+                return;
+            }
+            const quiz = appData.quizzes.find(q => q.id === currentQuizTakingId);
+            if (!quiz) return;
+
+            let earnedScore = 0;
+            const totalMaxScore = quiz.questions.reduce((sum, q) => sum + (q.score || 1), 0);
+
+            document.querySelectorAll('.quiz-item-block').forEach((block, idx) => {
+                const qObj = quiz.questions[idx];
+                if (qObj.type === 'mc') {
+                    const selected = block.querySelector(`input[name="q_${idx}"]:checked`);
+                    if (selected && parseInt(selected.value) === qObj.ans) {
+                        earnedScore += qObj.score;
+                    }
+                } else {
+                    const val = block.querySelector('textarea').value.trim();
+                    if (val.length > 0) earnedScore += Math.round(qObj.score / 2);
                 }
             });
 
-            document.getElementById('import-students-textarea').value = '';
-            closeModal('modal-import-students');
-            renderTeacherScoreTable();
-            showToast(`นำเข้านักเรียนเรียบร้อย ${count} คน 🎉`);
-        }
-
-        function exportToCSV() {
-            const cls = getCurrentClassroom();
-            if (!cls || !cls.students || cls.students.length === 0) {
-                showToast("ไม่มีข้อมูลสำหรับส่งออก", true);
-                return;
+            const std = appData.students.find(s => s.id === currentStudent.id);
+            if (std) {
+                std.quizScore = Math.min(50, Math.round((earnedScore / (totalMaxScore || 1)) * 50));
             }
 
-            let csvContent = "\uFEFFลำดับ,ชื่อ-นามสกุล,ทดสอบ (30),ชิ้นงาน (40),จิตพิสัย (30),รวม (100),เกรด,ความหมาย\n";
-            cls.students.forEach((std, i) => {
-                const total = std.test + std.work + std.affective;
-                const g = calculateGradeDetails(total);
-                csvContent += `"${i+1}","${std.name}","${std.test}","${std.work}","${std.affective}","${total}","${g.grade}","${g.desc}"\n`;
+            const existing = appData.quizSubmissions.find(qs => qs.quizId === currentQuizTakingId && qs.studentId === currentStudent.id);
+            if (!existing) {
+                appData.quizSubmissions.push({ id: Date.now(), quizId: currentQuizTakingId, studentId: currentStudent.id, timestamp: new Date().toLocaleString('th-TH'), status: 'ontime' });
+            }
+
+            saveData();
+            closeModal('takeQuizModal');
+            renderSummaryData();
+            renderStudentStatusView();
+            showToast(`ส่งแบบทดสอบสำเร็จ! ได้คะแนนประเมินย่อย ${earnedScore} คะแนน`, "success");
+        }
+
+        // ================= SUMMARY & GRADING & STATUS MODULE =================
+        function renderStudentStatusView() {
+            if (!currentStudent) return;
+            const selfStdId = currentStudent.id;
+            const tableBody = document.getElementById('studentStatusTableBody');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            let ontime = 0, late = 0, pending = 0;
+
+            appData.assignments.forEach(item => {
+                const sub = appData.submissions.find(s => s.assignmentId === item.id && s.studentId === selfStdId);
+                let statusBadge = `<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-bold">ค้างส่ง</span>`;
+                let timeText = "-";
+
+                if (sub) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold">ส่งตรงเวลา</span>`;
+                    ontime++;
+                    timeText = sub.timestamp;
+                } else {
+                    pending++;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-orange-600"><i class="fa-solid fa-pen-ruler mr-1"></i> ภารกิจ</td>
+                    <td class="p-4 font-bold text-slate-800">${item.title}</td>
+                    <td class="p-4 text-center">${statusBadge}</td>
+                    <td class="p-4 text-center text-slate-500">${timeText}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="openSubmitModal(${item.id})" class="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-xl font-bold bouncy-btn">
+                            ${sub ? 'แก้ไขการส่ง' : 'ส่งงาน'}
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
             });
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            appData.quizzes.forEach(quiz => {
+                const qSub = appData.quizSubmissions.find(qs => qs.quizId === quiz.id && qs.studentId === selfStdId);
+                let statusBadge = `<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-bold">ยังไม่ทำ</span>`;
+                let timeText = "-";
+
+                if (qSub) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold">ทำแล้ว (ตรงเวลา)</span>`;
+                    ontime++;
+                    timeText = qSub.timestamp;
+                } else {
+                    pending++;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-emerald-600"><i class="fa-solid fa-puzzle-piece mr-1"></i> ควิซสอบ</td>
+                    <td class="p-4 font-bold text-slate-800">${quiz.title}</td>
+                    <td class="p-4 text-center">${statusBadge}</td>
+                    <td class="p-4 text-center text-slate-500">${timeText}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="openTakeQuizModal(${quiz.id})" class="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold bouncy-btn">
+                            ${qSub ? 'ทำอีกครั้ง' : 'เริ่มทำควิซ'}
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById('statOntimeCount').innerText = ontime;
+            document.getElementById('statLateCount').innerText = late;
+            document.getElementById('statPendingCount').innerText = pending;
+        }
+
+        function renderSummaryData() {
+            const tableBody = document.getElementById('studentScoreTableBody');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            const totalStudents = appData.students.length;
+            const totalAvg = Math.round(appData.students.reduce((acc, s) => acc + s.assignmentScore + s.quizScore, 0) / (totalStudents || 1));
+            const passedStudents = appData.students.filter(s => (s.assignmentScore + s.quizScore) >= 50).length;
+            const passRate = Math.round((passedStudents / (totalStudents || 1)) * 100);
+            const gradeACount = appData.students.filter(s => (s.assignmentScore + s.quizScore) >= 80).length;
+
+            document.getElementById('statTotalStudents').innerText = totalStudents;
+            document.getElementById('statAvgScore').innerText = `${totalAvg} / 100`;
+            document.getElementById('statPassRate').innerText = `${passRate}%`;
+            document.getElementById('statTopGradeCount').innerText = `${gradeACount} คน`;
+
+            appData.students.forEach(std => {
+                const total = std.assignmentScore + std.quizScore;
+                const gradeObj = calculateGrade(total);
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-slate-500">${std.no || '-'}</td>
+                    <td class="p-4 font-bold text-purple-900">${std.id}</td>
+                    <td class="p-4 flex items-center space-x-2 font-bold text-slate-800">
+                        <img src="${std.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + std.id}" class="w-7 h-7 rounded-xl object-cover bg-purple-100">
+                        <span>${std.name}</span>
+                    </td>
+                    <td class="p-4 text-center text-slate-600">${std.assignmentScore}</td>
+                    <td class="p-4 text-center text-slate-600">${std.quizScore}</td>
+                    <td class="p-4 text-center font-extrabold text-indigo-600 text-sm">${total}</td>
+                    <td class="p-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-xs font-extrabold border ${gradeObj.bg}">${gradeObj.grade}</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="openGradeReviewModal('${std.id}')" class="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-xl font-bold bouncy-btn">ตรวจงาน/ให้คะแนน</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            renderCharts();
+        }
+
+        function openGradeReviewModal(studentId) {
+            const std = appData.students.find(s => s.id === studentId);
+            const sub = appData.submissions.find(s => s.studentId === studentId);
+            if (!std) return;
+
+            document.getElementById('gradeSubId').value = studentId;
+            document.getElementById('gradeStudentName').innerText = std.name;
+            document.getElementById('gradeAssignmentTitle').innerText = sub ? "ส่งงานแล้ว" : "ยังไม่ส่งงาน";
+            const linkEl = document.getElementById('gradeFileLink');
+            if (sub) {
+                linkEl.href = sub.fileUrl;
+                linkEl.innerText = sub.fileUrl;
+                document.getElementById('gradeStudentNote').innerText = sub.note || '-';
+                document.getElementById('assignedScoreInput').value = std.assignmentScore;
+            } else {
+                linkEl.href = '#';
+                linkEl.innerText = 'ไม่มีลิงก์ไฟล์';
+                document.getElementById('gradeStudentNote').innerText = '-';
+                document.getElementById('assignedScoreInput').value = std.assignmentScore;
+            }
+            document.getElementById('gradeModal').classList.remove('hidden');
+        }
+
+        function saveStudentAssignmentScore() {
+            const studentId = document.getElementById('gradeSubId').value;
+            const newScore = parseInt(document.getElementById('assignedScoreInput').value) || 0;
+            const std = appData.students.find(s => s.id === studentId);
+            if (std) {
+                std.assignmentScore = Math.min(50, newScore);
+                saveData();
+                renderSummaryData();
+                closeModal('gradeModal');
+                showToast("บันทึกและอัปเดตคะแนนอัตโนมัติแล้ว", "success");
+            }
+        }
+
+        // ================= CSV IMPORT / EXPORT =================
+        function triggerImportCSV() {
+            document.getElementById('csvFileInput').click();
+        }
+
+        function handleImportCSV(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                const lines = text.split('\n');
+                let newStudents = [];
+                lines.forEach((line, idx) => {
+                    if (!line.trim()) return;
+                    const parts = line.split(',');
+                    if (parts.length >= 3) {
+                        const sId = parts[0].trim();
+                        newStudents.push({
+                            id: sId,
+                            no: idx + 1,
+                            name: parts[1].trim(),
+                            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${sId}`,
+                            assignmentScore: parseInt(parts[2]) || 0,
+                            quizScore: parseInt(parts[3]) || 0
+                        });
+                    }
+                });
+                if (newStudents.length > 0) {
+                    appData.students = newStudents;
+                    saveData();
+                    renderSummaryData();
+                    showToast(`นำเข้าข้อมูลนักเรียนจำนวน ${newStudents.length} คน สำเร็จ!`);
+                } else {
+                    showToast("รูปแบบไฟล์ CSV ไม่ถูกต้อง (รูปแบบ: ID,Name,AssignmentScore,QuizScore)", "info");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportScoresCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "Student ID,No,Name,Assignment Score,Quiz Score,Total Score,Grade\n";
+
+            appData.students.forEach(std => {
+                const total = std.assignmentScore + std.quizScore;
+                const g = calculateGrade(total).grade;
+                csvContent += `"${std.id}",${std.no},"${std.name}",${std.assignmentScore},${std.quizScore},${total},"${g}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `Grade_Summary_${cls.name}.csv`);
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Playful_LMS_Grades_${currentClassroom.replace('/', '_')}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast("ส่งออกไฟล์ CSV เรียบร้อย 📊");
+            showToast("ส่งออกไฟล์คะแนน CSV เรียบร้อยแล้ว!");
         }
 
-        function printSummaryReport() {
-            const cls = getCurrentClassroom();
-            const sub = appData.subjects.find(s => s.id === currentSubjectId);
-            document.getElementById('print-subject-class-info').innerText = `รายวิชา: ${sub.name} | ห้องเรียน: ${cls.name} | รหัสห้อง: ${cls.code}`;
-            
-            const tbody = document.getElementById('print-tbody');
-            tbody.innerHTML = '';
-            cls.students.forEach((std, i) => {
-                const total = std.test + std.work + std.affective;
-                const g = calculateGradeDetails(total);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="border border-slate-300 p-2 text-center">${i+1}</td>
-                    <td class="border border-slate-300 p-2">${std.name}</td>
-                    <td class="border border-slate-300 p-2 text-center">${std.test}</td>
-                    <td class="border border-slate-300 p-2 text-center">${std.work}</td>
-                    <td class="border border-slate-300 p-2 text-center">${std.affective}</td>
-                    <td class="border border-slate-300 p-2 text-center font-bold">${total}</td>
-                    <td class="border border-slate-300 p-2 text-center font-bold">${g.grade}</td>
-                    <td class="border border-slate-300 p-2 text-center">${g.desc}</td>
-                `;
-                tbody.appendChild(tr);
+        // ================= CHART ANALYTICS =================
+        function renderCharts() {
+            const labels = appData.students.map(s => s.name);
+            const scores = appData.students.map(s => s.assignmentScore + s.quizScore);
+
+            const ctxScore = document.getElementById('scoreChart')?.getContext('2d');
+            if (ctxScore) {
+                if (scoreChartInstance) scoreChartInstance.destroy();
+                scoreChartInstance = new Chart(ctxScore, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'คะแนนรวม (100 คะแนน)',
+                            data: scores,
+                            backgroundColor: 'rgba(147, 51, 234, 0.7)',
+                            borderColor: 'rgba(147, 51, 234, 1)',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, max: 100 } }
+                    }
+                });
+            }
+
+            const gradeCounts = { A: 0, 'B+': 0, B: 0, 'C+': 0, C: 0, 'D+': 0, D: 0, F: 0 };
+            appData.students.forEach(s => {
+                const total = s.assignmentScore + s.quizScore;
+                const g = calculateGrade(total).grade;
+                if (gradeCounts[g] !== undefined) gradeCounts[g]++;
             });
 
-            window.print();
-        }
-
-        // ==================== 9. SHARE & QR CODE ====================
-        function openShareModal() {
-            const cls = getCurrentClassroom();
-            document.getElementById('share-class-code').innerText = cls.code || "CLS-101";
-            
-            const qrContainer = document.getElementById('qrcode-container');
-            qrContainer.innerHTML = '';
-            qrCodeInstance = new QRCode(qrContainer, {
-                text: window.location.href + `#class=${cls.code}`,
-                width: 140,
-                height: 140
-            });
-
-            openModal('modal-share');
-        }
-
-        function copyClassLink() {
-            const cls = getCurrentClassroom();
-            const shareUrl = window.location.href + `#class=${cls.code}`;
-            const dummy = document.createElement('input');
-            document.body.appendChild(dummy);
-            dummy.value = shareUrl;
-            dummy.select();
-            document.execCommand('copy');
-            document.body.removeChild(dummy);
-            showToast("คัดลอกลิงก์ห้องเรียนแล้ว 🔗");
+            const ctxGrade = document.getElementById('gradeDistributionChart')?.getContext('2d');
+            if (ctxGrade) {
+                if (gradeDistributionChartInstance) gradeDistributionChartInstance.destroy();
+                gradeDistributionChartInstance = new Chart(ctxGrade, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(gradeCounts),
+                        datasets: [{
+                            data: Object.values(gradeCounts),
+                            backgroundColor: [
+                                '#10b981', '#14b8a6', '#06b6d4', '#3b82f6',
+                                '#6366f1', '#f59e0b', '#f97316', '#ef4444'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
         }
     </script>
 </body>
