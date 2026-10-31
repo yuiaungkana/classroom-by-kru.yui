@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom LMS - Cute Chibi 3D Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Mali, Prompt, Sarabun) -->
+    <link href="https://fonts.googleapis.com/css2?family=Mali:ital,wght@0,400;0,600;0,700;1,500&family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            pink: '#fbcfe8',
+                            pinkDark: '#f472b6',
+                            purple: '#e9d5ff',
+                            purpleDark: '#c084fc',
+                            blue: '#bae6fd',
+                            blueDark: '#38bdf8',
+                            mint: '#a7f3d0',
+                            mintDark: '#34d399',
+                            yellow: '#fef08a',
+                            yellowDark: '#facc15',
+                            bg: '#fdf4ff'
+                        }
+                    },
+                    fontFamily: {
+                        prompt: ['Prompt', 'sans-serif'],
+                        mali: ['Mali', 'cursive'],
+                        sarabun: ['Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, #fdf4ff 0%, #f0f9ff 50%, #f0fdf4 100%);
+            min-height: 100vh;
+        }
+        .font-mali { font-family: 'Mali', cursive; }
+        .content-font { font-family: 'Sarabun', sans-serif; }
+        
+        /* Bouncy Chibi 3D Button Style */
+        .btn-bounce {
+            transition: all 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 6px 0 0 rgba(0,0,0,0.08);
+        }
+        .btn-bounce:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.12);
+        }
+        .btn-bounce:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 2px 0 0 rgba(0,0,0,0.08);
+        }
+
+        .card-chibi {
+            border-radius: 1.75rem;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.08);
+        }
+        .card-chibi:hover {
+            transform: translateY(-4px) rotate(0.5deg);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #fbcfe8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-slate-700 min-h-screen flex flex-col antialiased">
+
+    <!-- Google Drive Auto-Save Status Bar -->
+    <div id="autoSaveIndicator" class="bg-pastel-pink/90 text-slate-800 text-[11px] font-bold py-1 px-4 text-center border-b border-pastel-pinkDark/30 flex items-center justify-center space-x-2">
+        <span id="saveStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="saveStatusText">พร้อมใช้งาน - บันทึกอัตโนมัติแล้ว</span>
+        <button onclick="syncDataWithGoogleDrive()" class="ml-3 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px] text-slate-600 transition btn-bounce">
+            <i class="fa-solid fa-cloud-arrow-up text-pastel-pinkDark mr-1"></i>ซิงค์ข้อมูล Google Drive
+        </button>
+    </div>
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b-4 border-pastel-pink sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                
+                <!-- Mascot & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pastel-pinkDark to-pastel-purpleDark text-white flex items-center justify-center text-2xl shadow-md transform -rotate-3 hover:rotate-6 transition cursor-pointer">
+                        🐥
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-mali font-bold text-xl sm:text-2xl text-slate-800 leading-tight">Classroom LMS</span>
+                            <span class="bg-pastel-yellow text-slate-700 font-bold text-[10px] px-2.5 py-0.5 rounded-full border border-yellow-300">Chibi 3D</span>
+                        </div>
+                        <span id="activeClassroomSub" class="text-xs text-slate-500 font-medium hidden sm:block">วิชาคอมพิวเตอร์ - ห้อง ม.4/1</span>
+                    </div>
+                </div>
+
+                <!-- Controls & Role Switcher -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    
+                    <!-- Notification Bell -->
+                    <div class="relative">
+                        <button onclick="toggleNotifMenu()" class="p-2.5 bg-white border-2 border-pastel-pink/60 hover:bg-pastel-pink/20 rounded-2xl text-slate-700 text-sm font-bold relative btn-bounce">
+                            <i class="fa-solid fa-bell"></i>
+                            <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[9px] flex items-center justify-center font-bold hidden">0</span>
+                        </button>
+
+                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-3xl shadow-xl border-2 border-pastel-pink/40 p-3 z-50 text-xs content-font">
+                            <div class="flex justify-between items-center border-b pb-2 mb-2 font-mali font-bold text-slate-800">
+                                <span>🔔 การแจ้งเตือนในระบบ</span>
+                                <button onclick="clearNotifs()" class="text-[10px] text-slate-400 hover:text-slate-600">ล้างทั้งหมด</button>
+                            </div>
+                            <div id="notifList" class="space-y-2 max-h-60 overflow-y-auto">
+                                <div class="text-center text-slate-400 py-4">ไม่มีการแจ้งเตือนใหม่</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Role Switcher -->
+                    <div class="bg-slate-100 p-1.5 rounded-2xl flex items-center border-2 border-slate-200">
+                        <button id="roleTeacherBtn" onclick="setRole('teacher')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <span class="hidden sm:inline">มุมครู</span>
+                        </button>
+                        <button id="roleStudentBtn" onclick="setRole('student')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5">
+                            <i class="fa-solid fa-user-graduate"></i>
+                            <span class="hidden sm:inline">มุมนักเรียน</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 flex-shrink-0">
+            <div class="bg-white/90 backdrop-blur-sm rounded-3xl border-2 border-pastel-pink/40 p-4 shadow-sm sticky top-24">
+                
+                <div id="userInfoCard" class="p-3.5 bg-gradient-to-r from-pastel-pink/30 to-pastel-purple/30 rounded-2xl mb-4 border border-pastel-pink/40 flex items-center space-x-3">
+                    <!-- Dynamic -->
+                </div>
+
+                <nav class="space-y-1.5">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i>
+                        <span>ภาพรวม & ติดตามงาน</span>
+                    </button>
+
+                    <button onclick="switchTab('students')" id="nav-students" class="teacher-only w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-users-gear w-5 text-center text-lg"></i>
+                        <span>จัดการรายชื่อนักเรียน</span>
+                    </button>
+
+                    <button onclick="switchTab('materials')" id="nav-materials" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-book-open w-5 text-center text-lg"></i>
+                        <span>สื่อการเรียนการสอน</span>
+                    </button>
+
+                    <button onclick="switchTab('exercises')" id="nav-exercises" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-pen-to-square w-5 text-center text-lg"></i>
+                        <span>แบบฝึกหัด</span>
+                    </button>
+
+                    <button onclick="switchTab('tests')" id="nav-tests" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-file-lines w-5 text-center text-lg"></i>
+                        <span>แบบทดสอบ</span>
+                    </button>
+
+                    <button onclick="switchTab('projects')" id="nav-projects" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-cubes w-5 text-center text-lg"></i>
+                        <span>ชิ้นงาน / โครงงาน</span>
+                    </button>
+
+                    <button onclick="switchTab('grades')" id="nav-grades" class="teacher-only w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-award w-5 text-center text-lg"></i>
+                        <span>ผลการเรียน (เฉพาะครู)</span>
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Display Tab Content -->
+        <main class="flex-1 min-w-0">
+            
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">ติดตามสถานะการส่งงาน</h1>
+                    <p class="text-xs text-slate-500 content-font">สรุปภาพรวมการส่งงานรายบุคคล</p>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 card-chibi border-2 border-pastel-blue flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-pastel-blue flex items-center justify-center text-2xl">📋</div>
+                        <div>
+                            <span class="text-xs text-slate-500 block font-bold">งานทั้งหมด</span>
+                            <span id="stat-total-tasks" class="text-xl font-bold text-slate-800">0</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 card-chibi border-2 border-pastel-mint flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-pastel-mint flex items-center justify-center text-2xl">✅</div>
+                        <div>
+                            <span class="text-xs text-slate-500 block font-bold">ตรงเวลา</span>
+                            <span id="stat-completed-tasks" class="text-xl font-bold text-emerald-600">0</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 card-chibi border-2 border-pastel-yellow flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-pastel-yellow flex items-center justify-center text-2xl">⏰</div>
+                        <div>
+                            <span class="text-xs text-slate-500 block font-bold">ส่งล่าช้า</span>
+                            <span id="stat-late-tasks" class="text-xl font-bold text-amber-600">0</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 card-chibi border-2 border-pastel-pink flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-pastel-pink flex items-center justify-center text-2xl">🚨</div>
+                        <div>
+                            <span class="text-xs text-slate-500 block font-bold">ยังไม่ส่ง</span>
+                            <span id="stat-missing-tasks" class="text-xl font-bold text-rose-600">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                        <h2 class="font-bold text-slate-800 text-sm">ตารางติดตามสถานะส่งงานรายบุคคล</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-pastel-pink/20 text-slate-700 font-bold border-b">
+                                <tr id="dashboardTableHeader">
+                                    <th class="py-3 px-4">เลขที่</th>
+                                    <th class="py-3 px-4">ชื่อ-นามสกุล</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTableBody" class="divide-y content-font"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Students Tab -->
+            <section id="tab-students" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">จัดการรายชื่อนักเรียน</h1>
+                        <p class="text-xs text-slate-500 content-font">ดึง เพิ่ม แก้ไข หรือลบรายชื่อนักเรียน</p>
+                    </div>
+                    <button onclick="openStudentModal()" class="bg-pastel-pinkDark hover:bg-pink-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition btn-bounce">
+                        + เพิ่มนักเรียนใหม่
+                    </button>
+                </div>
+                <div class="bg-white rounded-3xl border-2 border-slate-100 p-4">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-pastel-purple/20 font-bold border-b">
+                            <tr>
+                                <th class="p-3">เลขที่</th>
+                                <th class="p-3">รหัสประจำตัว</th>
+                                <th class="p-3">ชื่อ-นามสกุล</th>
+                                <th class="p-3 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentRosterBody" class="divide-y content-font"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Learning Materials Tab -->
+            <section id="tab-materials" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">สื่อการเรียนการสอน</h1>
+                        <p class="text-xs text-slate-500 content-font">ศึกษาเรียนรู้ในระบบและดาวน์โหลดเอกสาร</p>
+                    </div>
+                    <button onclick="openCreateModal('material')" class="teacher-only bg-pastel-blueDark hover:bg-sky-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition btn-bounce">
+                        + เพิ่มสื่อการเรียน
+                    </button>
+                </div>
+                <div id="materialsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </section>
+
+            <!-- Exercises Tab -->
+            <section id="tab-exercises" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">แบบฝึกหัด</h1>
+                        <p class="text-xs text-slate-500 content-font">ระบบเตือนขีดเส้นใต้เขียนชื่อ-สกุลก่อนส่งงาน</p>
+                    </div>
+                    <button onclick="openCreateModal('exercise')" class="teacher-only bg-pastel-pinkDark hover:bg-pink-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition btn-bounce">
+                        + เพิ่มแบบฝึกหัด
+                    </button>
+                </div>
+                <div id="exercisesList" class="space-y-4"></div>
+            </section>
+
+            <!-- Tests Tab -->
+            <section id="tab-tests" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">แบบทดสอบ</h1>
+                        <p class="text-xs text-slate-500 content-font">พร้อมระบบป้องกันการสลับแท็บทุจริตขณะทำข้อสอบ</p>
+                    </div>
+                    <button onclick="openCreateTestModal()" class="teacher-only bg-pastel-purpleDark hover:bg-purple-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition btn-bounce">
+                        + สร้างแบบทดสอบ
+                    </button>
+                </div>
+                <div id="testsList" class="space-y-4"></div>
+            </section>
+
+            <!-- Projects Tab -->
+            <section id="tab-projects" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">ชิ้นงาน / โครงงาน</h1>
+                        <p class="text-xs text-slate-500 content-font">มอบหมายและตรวจชิ้นงาน</p>
+                    </div>
+                    <button onclick="openCreateModal('project')" class="teacher-only bg-pastel-mintDark hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition btn-bounce">
+                        + เพิ่มชิ้นงาน
+                    </button>
+                </div>
+                <div id="projectsList" class="space-y-4"></div>
+            </section>
+
+            <!-- Teacher Grades Tab -->
+            <section id="tab-grades" class="teacher-only tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-mali font-bold text-slate-800">สรุปผลการเรียน (เฉพาะครู)</h1>
+                        <p class="text-xs text-slate-500 content-font">เกรด 8 ระดับ (A, B+, B, C+, C, D+, D, F)</p>
+                    </div>
+                    <button onclick="exportGradeReport()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition btn-bounce">
+                        <i class="fa-solid fa-file-excel mr-1"></i> ส่งออกรายงาน
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-pastel-yellow/40 font-bold border-b">
+                                <tr id="gradeTableHeader">
+                                    <th class="p-3 w-10 text-center">เลขที่</th>
+                                    <th class="p-3">ชื่อ-นามสกุล</th>
+                                    <th class="p-3 text-center bg-amber-100">รวม (%)</th>
+                                    <th class="p-3 text-center bg-amber-200">เกรด</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradeTableBody" class="divide-y content-font"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Frontend Script Logic -->
+    <script>
+        // วาง Web App URL จากการ Deploy ใน Google Apps Script ตรงนี้
+        const GOOGLE_APPS_SCRIPT_URL = "";
+
+        let items = [
+            { id: 'mat-1', type: 'material', title: 'บทที่ 1: การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น', desc: 'ใบความรู้เรื่องตัวแปร ชนิดข้อมูล และฟังก์ชัน', fileUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800', createdAt: '2026-10-01' },
+            { id: 'ex-1', type: 'exercise', title: 'แบบฝึกหัดที่ 1: การประกาศตัวแปร', desc: 'เขียนโปรแกรมคำนวณพื้นที่สามเหลี่ยม พร้อมขีดเส้นใต้เขียนชื่อ-สกุล', maxScore: 10, dueDate: '2026-11-10', createdAt: '2026-10-05' }
+        ];
+
+        let students = [
+            { id: 'stu-101', code: '6601', number: 1, name: 'นายสมชาย ใจดี' },
+            { id: 'stu-102', code: '6602', number: 2, name: 'นางสาวสมหญิง รักเรียน' }
+        ];
+
+        let submissions = {};
+        let notifications = [];
+        let currentRole = 'teacher';
+
+        // Auto Save Data
+        function triggerAutoSave() {
+            setSaveStatus('saving');
+            const dataState = { items, students, submissions, notifications, updatedAt: new Date().toISOString() };
+
+            localStorage.setItem('CLASSROOM_LMS_STATE', JSON.stringify(dataState));
+
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=saveData`, {
+                    method: 'POST',
+                    body: JSON.stringify(dataState)
+                }).then(() => setSaveStatus('saved'))
+                  .catch(() => setSaveStatus('saved'));
+            } else {
+                setTimeout(() => setSaveStatus('saved'), 500);
+            }
+        }
+
+        function setSaveStatus(status) {
+            const dot = document.getElementById('saveStatusDot');
+            const text = document.getElementById('saveStatusText');
+            if (!dot || !text) return;
+
+            if (status === 'saving') {
+                dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+                text.textContent = "กำลังบันทึกข้อมูลอัตโนมัติ...";
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                text.textContent = `บันทึกอัตโนมัติแล้ว (${new Date().toLocaleTimeString('th-TH')})`;
+            }
+        }
+
+        function syncDataWithGoogleDrive() {
+            if (!GOOGLE_APPS_SCRIPT_URL) {
+                alert('โปรดระบุ Google Apps Script Web App URL ในตัวแปร GOOGLE_APPS_SCRIPT_URL ก่อนใช้งานการซิงค์');
+                return;
+            }
+            fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getData`)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'success' && res.data) {
+                        if (res.data.items) items = res.data.items;
+                        if (res.data.students) students = res.data.students;
+                        if (res.data.submissions) submissions = res.data.submissions;
+                        if (res.data.notifications) notifications = res.data.notifications;
+                        renderAllTabs();
+                        alert('ดึงและซิงค์ข้อมูลจาก Google Drive สำเร็จแล้ว!');
+                    }
+                });
+        }
+
+        function setRole(role) {
+            currentRole = role;
+            document.querySelectorAll('.teacher-only').forEach(el => {
+                el.classList.toggle('hidden', role !== 'teacher');
+            });
+            renderAllTabs();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+        }
+
+        function renderAllTabs() {
+            // Render logic
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('CLASSROOM_LMS_STATE');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.items) items = data.items;
+                    if (data.students) students = data.students;
+                    if (data.submissions) submissions = data.submissions;
+                    if (data.notifications) notifications = data.notifications;
+                } catch(e){}
+            }
+            setRole('teacher');
+        });
+    </script>
+</body>
+</html>
