@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classroom LMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#17231f;--mute:#5d6d66;--line:#d5ded9;--acc:#1f6f5c;--accink:#fff;--warn:#b3261e;--chalk:#f2d96b}
+@media(prefers-color-scheme:dark){:root{--bg:#121916;--card:#1b2420;--ink:#e8efeb;--mute:#9aaba3;--line:#2c3933;--acc:#5fc4a8;--accink:#0d1512;--warn:#ff8a80;--chalk:#d9c25a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Sarabun,system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--acc);color:var(--accink)}
+header b{flex:1;font-size:18px}
+main{max-width:760px;margin:0 auto;padding:16px}
+h2{margin:8px 0 12px;font-size:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin:0 0 12px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;cursor:pointer}
+.row:hover{border-color:var(--acc)}
+.row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.row2 input{flex:1;min-width:110px}
+.m{color:var(--mute);font-size:14px}
+.tag{display:inline-block;padding:0 8px;border-radius:99px;background:var(--chalk);color:#2b2500;font-size:13px;font-weight:600}
+.tag.bad{background:var(--warn);color:#fff}
+button{font:inherit;font-weight:600;border:0;border-radius:6px;padding:8px 14px;background:var(--acc);color:var(--accink);cursor:pointer}
+button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+button.del{background:var(--warn);color:#fff}
+header button{background:transparent;color:inherit;border:1px solid currentColor;padding:4px 10px}
+input,select,textarea{font:inherit;width:100%;padding:8px 10px;margin:4px 0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.row2 input{margin:0}
+input[type=radio]{width:auto;margin:0 8px 0 0}
+label.o{display:block;padding:4px 0}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--chalk);outline-offset:1px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1}
+a.file,.chip{display:inline-block;margin:2px 8px 2px 0;color:var(--acc);font-weight:600;text-decoration:underline;cursor:pointer}
+.chip b{margin-left:4px;color:var(--warn);cursor:pointer}
+.q{border-left:4px solid var(--chalk);padding-left:12px;margin-bottom:14px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:6px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<header><b>Classroom LMS</b><span id="who"></span><button id="out" hidden onclick="logout()">ออกจากระบบ</button></header>
+<main id="app"></main>
+<div id="toast"></div>
+<script>
+/* วาง Web app URL ที่ได้จาก Apps Script (Deploy > Web app) */
+const GAS_URL = 'ใส่ Web app URL ตรงนี้';
+const MAX_MB = 15;
+const ST = { submitted: 'ส่งแล้ว รอตรวจ', graded: 'ตรวจแล้ว', cheated: 'ถูกยกเลิก (ออกจากหน้าสอบ)' };
+const S = { core: { items: [], students: [] }, subs: {}, role: '', key: '', sid: '', cur: null, tab: 'items', draft: null, up: [], testing: false };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const fmt = t => new Date(t).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+const items = () => S.core.items || (S.core.items = []);
+const studs = () => S.core.students || (S.core.students = []);
+const item = id => items().find(i => i.id === id);
+const sub = (iid, sid) => (S.subs[iid] || {})[sid];
+const late = i => !!(i.due && Date.now() > new Date(i.due).getTime());
+const stuName = id => (studs().find(s => s.id === id) || {}).name || '';
+
+function toast(t) { const e = $('#toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => e.style.display = 'none', 2800); }
+function keep() { try { localStorage.setItem('lms', JSON.stringify({ role: S.role, key: S.key, sid: S.sid })); } catch (e) {} }
+
+/* ---------- API ---------- */
+async function get(q) {
+  try { return await (await fetch(GAS_URL + '?' + new URLSearchParams(q))).json(); }
+  catch (e) { return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' }; }
+}
+async function post(b) {
+  try {
+    const r = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ key: S.key }, b)) });
+    return await r.json();
+  } catch (e) { return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' }; }
+}
+async function load() {
+  const d = await get({ action: 'getAll', key: S.key, sid: S.sid });
+  if (!d.ok) return toast(d.error || 'โหลดข้อมูลไม่สำเร็จ');
+  S.core = d.core || { items: [], students: [] };
+  S.subs = d.subs || {};
+}
+const b64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
+
+/* ---------- ไฟล์แนบ ---------- */
+async function dl(id, name) {
+  toast('กำลังดาวน์โหลด…');
+  const d = await get({ action: 'file', id });
+  if (!d.ok) return toast('เปิดไฟล์ไม่ได้');
+  const bin = atob(d.data), a8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a8[i] = bin.charCodeAt(i);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([a8], { type: d.type }));
+  a.download = name || d.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('.file');
+  if (a) { e.preventDefault(); dl(a.dataset.id, a.dataset.name); }
+});
+const filesHtml = fs => (fs || []).map(f => `<a class="file" data-id="${esc(f.id)}" data-name="${esc(f.name)}">📎 ${esc(f.name)}</a>`).join('');
+const chips = (arr, t) => arr.map((f, n) => `<span class="chip">${esc(f.name)}<b onclick="rmf('${t}',${n})">×</b></span>`).join('');
+const target = t => t === 'd' ? S.draft.files : S.up;
+async function pick(el, t) {
+  for (const f of el.files) {
+    if (f.size > MAX_MB * 1048576) { toast(f.name + ' ใหญ่เกิน ' + MAX_MB + ' MB'); continue; }
+    toast('กำลังอัปโหลด ' + f.name);
+    const r = await post({ action: 'upload', name: f.name, type: f.type, data: await b64(f) });
+    if (r.ok) target(t).push({ id: r.id, name: f.name }); else toast(r.error || 'อัปโหลดไม่สำเร็จ');
+  }
+  el.value = ''; $('#chips').innerHTML = chips(target(t), t);
+}
+function rmf(t, n) { target(t).splice(n, 1); $('#chips').innerHTML = chips(target(t), t); }
+const picker = t => `<input type="file" multiple onchange="pick(this,'${t}')"><div id="chips">${chips(target(t), t)}</div>`;
+
+/* ---------- เข้า/ออกระบบ ---------- */
+async function loginS() {
+  S.sid = $('#sel').value; if (!S.sid) return toast('เลือกชื่อก่อน');
+  S.role = 's'; keep(); await load(); render();
+}
+async function loginT() {
+  S.key = $('#pw').value;
+  const r = await post({ action: 'auth' });
+  if (!r.ok) { S.key = ''; return toast('รหัสครูไม่ถูกต้อง'); }
+  S.role = 't'; keep(); await load(); render();
+}
+function logout() {
+  S.role = ''; S.key = ''; S.sid = ''; S.cur = null; S.testing = false; keep(); load().then(render); render();
+}
+function back() { S.cur = null; S.draft = null; S.testing = false; S.up = []; render(); }
+
+/* ---------- หน้าเข้าสู่ระบบ ---------- */
+function vLogin() {
+  const o = studs().map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  return `<div class="card"><h2>นักเรียน</h2>
+    ${o ? `<select id="sel"><option value="">เลือกชื่อของคุณ</option>${o}</select><button onclick="loginS()">เข้าเรียน</button>` : '<p class="m">ครูยังไม่ได้เพิ่มรายชื่อนักเรียน</p>'}</div>
+    <div class="card"><h2>ครู</h2><input id="pw" type="password" placeholder="รหัสครู"><button onclick="loginT()">เข้าสู่ระบบ</button></div>`;
+}
+
+/* ---------- นักเรียน ---------- */
+function vStudent() {
+  if (S.cur) return vItem();
+  const l = items().map(i => {
+    const s = sub(i.id, S.sid);
+    const tag = s ? `<span class="tag ${s.status === 'cheated' ? 'bad' : ''}">${ST[s.status]}${s.score != null ? ` · ${s.score}/${i.max}` : ''}</span>` : '<span class="tag">ยังไม่ส่ง</span>';
+    return `<div class="card row" onclick="openItem('${i.id}')"><div><b>${esc(i.title)}</b><div class="m">${i.type === 'test' ? 'แบบทดสอบ' : 'งาน'}${i.due ? ' · กำหนดส่ง ' + fmt(i.due) : ''}</div></div>${tag}</div>`;
+  }).join('');
+  return '<h2>งานและแบบทดสอบ</h2>' + (l || '<p class="m">ยังไม่มีงาน</p>');
+}
+function openItem(id) { S.cur = id; S.up = []; S.testing = false; render(); }
+function vItem() {
+  const i = item(S.cur), s = sub(i.id, S.sid);
+  let h = `<button class="ghost" onclick="back()">← กลับ</button><h2>${esc(i.title)}</h2><p>${esc(i.desc)}</p>${filesHtml(i.files)}`;
+  if (i.due) h += `<p class="m">กำหนดส่ง ${fmt(i.due)}</p>`;
+  if (s) {
+    h += `<div class="card"><span class="tag ${s.status === 'cheated' ? 'bad' : ''}">${ST[s.status]}${s.late ? ' · ส่งช้า' : ''}</span>
+      ${s.score != null ? `<p><b>คะแนน ${s.score}/${i.max}</b></p>` : ''}${s.feedback ? `<p>${esc(s.feedback)}</p>` : ''}
+      ${s.text ? `<p>${esc(s.text)}</p>` : ''}${filesHtml(s.files)}</div>`;
+    if (i.type !== 'test' && s.status !== 'graded') h += `<button class="del" onclick="unsend()">ยกเลิกการส่ง</button>`;
+  } else if (i.type === 'test') {
+    h += S.testing ? testForm(i) : `<div class="card"><p>แบบทดสอบ ${(i.questions || []).length} ข้อ ทำได้ครั้งเดียว หากสลับหน้าจอหรือออกจากหน้านี้ ระบบจะยกเลิกผลสอบและให้ 0 คะแนน</p><button onclick="S.testing=true;render()">เริ่มสอบ</button></div>`;
+  } else {
+    h += `<div class="card"><textarea id="txt" rows="5" placeholder="พิมพ์คำตอบหรือข้อความถึงครู"></textarea>${picker('s')}<button onclick="submitWork()">ส่งงาน</button></div>`;
+  }
+  return h;
+}
+function testForm(i) {
+  const qs = (i.questions || []).map((q, n) => {
+    let inp;
+    if (q.type === 'essay') inp = `<textarea id="q${n}" rows="4"></textarea>`;
+    else if (q.type === 'fill') inp = `<input id="q${n}" placeholder="คำตอบ">`;
+    else inp = (q.choices || []).map((c, k) => `<label class="o"><input type="radio" name="q${n}" value="${k}">${esc(c)}</label>`).join('');
+    return `<div class="q"><b>${n + 1}. ${esc(q.q)}</b>${inp}</div>`;
+  }).join('');
+  return `<div class="card">${qs}<button onclick="submitTest(false)">ส่งคำตอบ</button></div>`;
+}
+async function send(iid, s) {
+  const r = await post({ action: 'putSub', iid, sid: S.sid, sub: s });
+  if (!r.ok) return toast(r.error || 'บันทึกไม่สำเร็จ');
+  await load(); render();
+}
+function submitWork() {
+  const i = item(S.cur), t = $('#txt').value.trim();
+  if (!t && !S.up.length) return toast('ใส่ข้อความหรือแนบไฟล์ก่อน');
+  send(i.id, { status: 'submitted', at: Date.now(), late: late(i), text: t, files: S.up.slice() });
+}
+async function unsend() {
+  if (!confirm('ยกเลิกการส่งงานนี้?')) return;
+  const r = await post({ action: 'delSub', iid: S.cur, sid: S.sid });
+  if (!r.ok) return toast(r.error || 'ยกเลิกไม่ได้');
+  await load(); render();
+}
+function submitTest(cheat) {
+  const i = item(S.cur); if (!i || !S.testing) return;
+  const answers = (i.questions || []).map((q, n) => {
+    if (q.type === 'mc' || !q.type) { const r = document.querySelector(`input[name=q${n}]:checked`); return r ? r.value : ''; }
+    const e = document.getElementById('q' + n); return e ? e.value : '';
+  });
+  S.testing = false;
+  send(i.id, { status: cheat ? 'cheated' : 'submitted', at: Date.now(), late: late(i), answers });
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && S.testing) submitTest(true); });
+
+/* ---------- ครู ---------- */
+function vTeacher() {
+  const t = (k, n) => `<button class="${S.tab === k ? '' : 'ghost'}" onclick="S.tab='${k}';S.cur=null;S.draft=null;render()">${n}</button>`;
+  const tabs = `<div class="tabs">${t('items', 'งาน')}${t('stu', 'นักเรียน')}${t('bk', 'สำรองข้อมูล')}</div>`;
+  if (S.tab === 'stu') return tabs + vStu();
+  if (S.tab === 'bk') return tabs + `<div class="card"><p>ระบบสำรองข้อมูลอัตโนมัติทุกครั้งที่บันทึก (ไฟล์ backup-วันที่.json ในโฟลเดอร์ Drive)</p><button onclick="doBackup()">สำรองตอนนี้</button></div>`;
+  if (S.draft) return vEdit();
+  const l = items().map(i => {
+    const n = Object.keys(S.subs[i.id] || {}).length;
+    return `<div class="card row" onclick="editItem('${i.id}')"><div><b>${esc(i.title)}</b><div class="m">${i.type === 'test' ? 'แบบทดสอบ' : 'งาน'} · คะแนนเต็ม ${i.max}</div></div><span class="tag">ส่ง ${n}/${studs().length}</span></div>`;
+  }).join('');
+  return tabs + `<button onclick="editItem('')">+ เพิ่มงานหรือแบบทดสอบ</button><p></p>` + (l || '<p class="m">ยังไม่มีงาน</p>');
+}
+async function persist(msg) {
+  const r = await post({ action: 'saveCore', core: S.core });
+  if (!r.ok) { toast(r.error || 'บันทึกไม่สำเร็จ'); return false; }
+  toast(msg || 'บันทึกแล้ว'); return true;
+}
+function vStu() {
+  return `<div class="card"><p>ชื่อนักเรียน (หนึ่งบรรทัดต่อหนึ่งคน)</p><textarea id="names" rows="10">${esc(studs().map(s => s.name).join('\n'))}</textarea><button onclick="saveStu()">บันทึกรายชื่อ</button></div>`;
+}
+async function saveStu() {
+  const old = studs(), names = $('#names').value.split('\n').map(x => x.trim()).filter(Boolean);
+  S.core.students = names.map(n => ({ id: (old.find(s => s.name === n) || {}).id || uid(), name: n }));
+  if (await persist()) render();
+}
+async function doBackup() { const r = await post({ action: 'backup' }); toast(r.ok ? 'สำรองแล้ว: ' + r.name : r.error); }
+
+function editItem(id) {
+  S.cur = id || null;
+  S.draft = id ? JSON.parse(JSON.stringify(item(id))) : { id: uid(), type: 'work', title: '', desc: '', max: 10, due: '', files: [], questions: [] };
+  if (!S.draft.files) S.draft.files = [];
+  render();
+}
+const dset = (k, v) => { S.draft[k] = k === 'max' ? +v : v; };
+function qset(n, k, v) { S.draft.questions[n][k] = v; }
+function qchoices(n, v) { S.draft.questions[n].choices = v.split('\n').map(x => x.trim()).filter(Boolean); }
+function addQ() { S.draft.questions.push({ type: 'mc', q: '', choices: [], ans: '0' }); render(); }
+function delQ(n) { S.draft.questions.splice(n, 1); render(); }
+function qType(n, v) { S.draft.questions[n].type = v; S.draft.questions[n].ans = v === 'mc' ? '0' : ''; render(); }
+function vEdit() {
+  const d = S.draft;
+  const qs = d.type !== 'test' ? '' : d.questions.map((q, n) => {
+    let ex = '';
+    if (q.type === 'mc') ex = `<textarea rows="4" placeholder="ตัวเลือก (หนึ่งบรรทัดต่อหนึ่งข้อ)" oninput="qchoices(${n},this.value)">${esc((q.choices || []).join('\n'))}</textarea>
+      <input type="number" min="1" placeholder="เฉลย: ตัวเลือกที่ถูกคือข้อที่" value="${q.ans === '' ? '' : (+q.ans) + 1}" oninput="qset(${n},'ans',String(this.value-1))">`;
+    if (q.type === 'fill') ex = `<input placeholder="เฉลย (หลายคำตอบคั่นด้วย |)" value="${esc(q.ans)}" oninput="qset(${n},'ans',this.value)">`;
+    return `<div class="q"><select onchange="qType(${n},this.value)"><option value="mc"${q.type === 'mc' ? ' selected' : ''}>ปรนัย</option><option value="fill"${q.type === 'fill' ? ' selected' : ''}>เติมคำ</option><option value="essay"${q.type === 'essay' ? ' selected' : ''}>อัตนัย (ครูตรวจ)</option></select>
+      <input placeholder="โจทย์" value="${esc(q.q)}" oninput="qset(${n},'q',this.value)">${ex}
+      <input type="number" step="0.1" placeholder="คะแนนข้อนี้ (เว้นว่าง = หารเท่ากัน)" value="${q.pts == null ? '' : q.pts}" oninput="qset(${n},'pts',this.value===''?null:+this.value)">
+      <button class="del" onclick="delQ(${n})">ลบข้อนี้</button></div>`;
+  }).join('') + '<button class="ghost" onclick="addQ()">+ เพิ่มข้อสอบ</button>';
+  let h = `<button class="ghost" onclick="back()">← กลับ</button><div class="card"><h2>${S.cur ? 'แก้ไข' : 'เพิ่ม'}</h2>
+    <select onchange="dset('type',this.value);render()"><option value="work"${d.type === 'work' ? ' selected' : ''}>งาน</option><option value="test"${d.type === 'test' ? ' selected' : ''}>แบบทดสอบ</option></select>
+    <input placeholder="ชื่อ" value="${esc(d.title)}" oninput="dset('title',this.value)">
+    <textarea rows="3" placeholder="รายละเอียด" oninput="dset('desc',this.value)">${esc(d.desc)}</textarea>
+    <label class="m">คะแนนเต็ม</label><input type="number" value="${d.max}" oninput="dset('max',this.value)">
+    <label class="m">กำหนดส่ง</label><input type="datetime-local" value="${esc(d.due)}" oninput="dset('due',this.value)">
+    <label class="m">ไฟล์แนบ</label>${picker('d')}${qs}
+    <p><button onclick="saveItem()">บันทึก</button> ${S.cur ? '<button class="del" onclick="delItem()">ลบ</button>' : ''}</p></div>`;
+  if (S.cur) h += '<h2>งานที่ส่ง</h2>' + subsHtml(d);
+  return h;
+}
+async function saveItem() {
+  const d = S.draft; if (!d.title.trim()) return toast('ใส่ชื่อก่อน');
+  const n = items().findIndex(i => i.id === d.id);
+  if (n < 0) items().push(d); else items()[n] = d;
+  if (await persist()) back();
+}
+async function delItem() {
+  if (!confirm('ลบรายการนี้? งานที่นักเรียนส่งจะยังอยู่ในไฟล์สำรอง')) return;
+  S.core.items = items().filter(i => i.id !== S.draft.id);
+  if (await persist('ลบแล้ว')) back();
+}
+function ansHtml(i, s) {
+  if (i.type !== 'test' || !s.answers) return '';
+  return (i.questions || []).map((q, n) => {
+    const a = s.answers[n], shown = q.type === 'mc' ? ((q.choices || [])[a] || '—') : (a || '—');
+    return `<div class="m">${n + 1}. ${esc(shown)}</div>`;
+  }).join('');
+}
+function subsHtml(i) {
+  const m = S.subs[i.id] || {};
+  return studs().map(st => {
+    const s = m[st.id];
+    if (!s) return `<div class="card"><b>${esc(st.name)}</b> <span class="m">ยังไม่ส่ง</span></div>`;
+    return `<div class="card"><b>${esc(st.name)}</b> <span class="tag ${s.status === 'cheated' ? 'bad' : ''}">${ST[s.status]}${s.late ? ' · ส่งช้า' : ''}</span>
+      ${s.text ? `<p>${esc(s.text)}</p>` : ''}${filesHtml(s.files)}${ansHtml(i, s)}
+      <div class="row2"><input id="sc_${st.id}" type="number" step="0.1" value="${s.score == null ? '' : s.score}" placeholder="คะแนน/${i.max}"><input id="fb_${st.id}" value="${esc(s.feedback || '')}" placeholder="ความเห็น">
+      <button onclick="grade('${i.id}','${st.id}')">บันทึกคะแนน</button><button class="ghost" onclick="reset('${i.id}','${st.id}')">ให้ส่งใหม่</button></div></div>`;
+  }).join('');
+}
+async function grade(iid, sid) {
+  const s = Object.assign({}, sub(iid, sid)), v = $('#sc_' + sid).value;
+  s.score = v === '' ? null : +v; s.feedback = $('#fb_' + sid).value; s.status = 'graded';
+  const r = await post({ action: 'putSub', iid, sid, sub: s });
+  if (!r.ok) return toast(r.error || 'บันทึกไม่สำเร็จ');
+  toast('บันทึกคะแนนแล้ว'); await load(); render();
+}
+async function reset(iid, sid) {
+  if (!confirm('ลบผลงานนี้เพื่อให้นักเรียนส่งใหม่?')) return;
+  const r = await post({ action: 'delSub', iid, sid });
+  if (r.ok) { await load(); render(); } else toast(r.error || 'ลบไม่ได้');
+}
+
+/* ---------- เริ่มต้น ---------- */
+function render() {
+  $('#who').textContent = S.role === 't' ? 'ครู' : S.role === 's' ? stuName(S.sid) : '';
+  $('#out').hidden = !S.role;
+  $('#app').innerHTML = !S.role ? vLogin() : S.role === 't' ? vTeacher() : vStudent();
+}
+(async () => {
+  if (!/^https:/.test(GAS_URL)) { $('#app').innerHTML = '<div class="card"><b>ยังไม่ได้ตั้งค่า</b><p>แก้ GAS_URL ในไฟล์นี้เป็น Web app URL ของ Apps Script</p></div>'; return; }
+  try { const x = JSON.parse(localStorage.getItem('lms') || '{}'); S.role = x.role || ''; S.key = x.key || ''; S.sid = x.sid || ''; } catch (e) {}
+  await load(); render();
+})();
+</script>
+</body>
+</html>
