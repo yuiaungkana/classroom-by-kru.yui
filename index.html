@@ -57,7 +57,7 @@ try{const d=JSON.parse(localStorage.getItem(K)||'null');if(d&&d.items)S=d}catch(
 S.cfg={term:'1',year:'2569',room:'ม.4/1',scode:'',sname:'คอมพิวเตอร์',pw:'',...S.cfg};
 let DB=null,canEdit=true,seen=0;try{seen=+localStorage.getItem('lms_seen')||0}catch(e){}
 /* ===== ตั้งค่า: วาง Web app URL จาก Apps Script ตรงนี้ ===== */
-const GAS_URL='วาง_URL_WEB_APP_ที่นี่';
+const GAS_URL='https://script.google.com/macros/s/AKfycbwRRYb2s-4YhpuWOTi_kc1Nd7p8uoB799LRxzZVQiJ8k26UpxoPotuftk0aTGYR2fqu/execนี่';
 const G=()=>/^https:\/\//.test(GAS_URL);
 let TKEY='',authed=false,saveTimer=null;
 async function gas(b){const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:TKEY})});return r.json()}
