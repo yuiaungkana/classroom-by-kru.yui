@@ -371,7 +371,7 @@
     <!-- Frontend Script Logic -->
     <script>
         // วาง Web App URL จากการ Deploy ใน Google Apps Script ตรงนี้
-        const GOOGLE_APPS_SCRIPT_URL = "";
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEMpbIk4y00kiI_u58LegOutWJJ_GhqQ0I4jfOHcgxTN-K2ehWJG7UfzA2CnLusZLO/exec";
 
         let items = [
             { id: 'mat-1', type: 'material', title: 'บทที่ 1: การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น', desc: 'ใบความรู้เรื่องตัวแปร ชนิดข้อมูล และฟังก์ชัน', fileUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800', createdAt: '2026-10-01' },
