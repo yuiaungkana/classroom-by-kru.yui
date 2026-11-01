@@ -293,7 +293,7 @@ render();
 </script>
 <script>
 /* ===== Google Apps Script backend (บันทึกอัตโนมัติลง Google Drive) ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbyvlkRo1MjCIFG8vORNqzy2LPebzxCU_RcxBaSuna9Z6RuX7IwcIi2LxsZNO6erJJ4s/exec';   // ← วาง URL ของ Web App ที่ Deploy แล้ว
+const GAS_URL='https://script.google.com/macros/s/AKfycbzZnVcs_Tof8yZOlsz6O-pdenD5JluR6YjO_W2OkNe3-BAEu1qDHu6SxyDjhwOuAouO/exec';   // ← วาง URL ของ Web App ที่ Deploy แล้ว
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 let KEY='',pend=null,inflight=0;try{KEY=localStorage.getItem('lms_key')||''}catch(e){}
 const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
