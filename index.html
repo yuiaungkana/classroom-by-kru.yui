@@ -369,7 +369,7 @@ let AUTH=false; // true เมื่อ Apps Script ยืนยันรหั�
  const ic='w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal';
  const TEACHER_USERS=['admin'];
  function drawGate(msg){
-  ov.innerHTML=`<div class="card border-4 border-pink-200 p-6 w-full max-w-sm space-y-3"><div class="text-center"><div class="text-5xl">🐥</div><h1 class="mali font-bold text-xl">Classroom LMS</h1><p class="text-xs text-slate-500">${msg||'กรุณาเข้าสู่ระบบก่อนใช้งาน'}</p></div>
+  ov.innerHTML=`<div class="card border-4 border-pink-200 p-6 w-full max-w-sm space-y-3"><div class="text-center"><div class="text-5xl">🐥</div><h1 class="mali font-bold text-xl">Classroom by KRU.yui</h1><p class="text-xs text-slate-500">${msg||'กรุณาเข้าสู่ระบบก่อนใช้งาน'}</p></div>
   <label class="block text-xs font-bold">ชื่อผู้ใช้ / รหัสประจำตัวนักเรียน<input id="g-u" class="${ic}" autocomplete="off" autocapitalize="off"></label>
   <label class="block text-xs font-bold">รหัสผ่าน<input id="g-p" type="password" class="${ic}"></label>
   <button id="g-go" class="bb w-full py-2.5 bg-pink-400 text-white rounded-2xl text-xs font-bold">เข้าสู่ระบบ</button>
