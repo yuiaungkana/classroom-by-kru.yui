@@ -348,7 +348,7 @@ addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsa
 if(unsaved&&KEY)setTimeout(flush,1200);
 pull();setInterval(pull,15000);
 </script>
- <!-- แทนที่บล็อกเดิม (teacher-lock) ด้วยบล็อกนี้ทั้งก้อน วางก่อน </body> ต่อจากสคริปต์เดิมตัวสุดท้าย -->
+<!-- แทนที่บล็อกเดิม (teacher-lock) ด้วยบล็อกนี้ทั้งก้อน วางก่อน </body> ต่อจากสคริปต์เดิมตัวสุดท้าย -->
 <script>
 /* ===== ต้องเข้าสู่ระบบก่อนเสมอ (ครู/นักเรียน) + นักเรียนสลับเป็นครูไม่ได้ ===== */
 let AUTH=false; // true เมื่อ Apps Script ยืนยันรหัสครูแล้วเท่านั้น
@@ -365,33 +365,32 @@ let AUTH=false; // true เมื่อ Apps Script ยืนยันรหั�
  ov.className='fixed inset-0 z-[100] flex items-center justify-center p-4';
  ov.style.cssText='background:linear-gradient(135deg,#fdf4ff,#f0f9ff 50%,#f0fdf4)';
  document.body.appendChild(ov);
- let mode='student',busyLogin=false;
+ let busyLogin=false;
  const ic='w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal';
+ const TEACHER_USERS=['admin'];
  function drawGate(msg){
   ov.innerHTML=`<div class="card border-4 border-pink-200 p-6 w-full max-w-sm space-y-3"><div class="text-center"><div class="text-5xl">🐥</div><h1 class="mali font-bold text-xl">Classroom LMS</h1><p class="text-xs text-slate-500">${msg||'กรุณาเข้าสู่ระบบก่อนใช้งาน'}</p></div>
-  <div class="bg-slate-100 p-1 rounded-2xl flex text-xs font-bold"><button id="g-s" class="flex-1 py-1.5 rounded-xl ${mode==='student'?'bg-pink-400 text-white':''}">🎓 นักเรียน</button><button id="g-t" class="flex-1 py-1.5 rounded-xl ${mode==='teacher'?'bg-pink-400 text-white':''}">👩‍🏫 ครู</button></div>
-  ${mode==='student'?`<label class="block text-xs font-bold">รหัสประจำตัวนักเรียน<input id="g-code" class="${ic}" autocomplete="off"></label><label class="block text-xs font-bold">รหัสผ่านห้องเรียน<input id="g-pw" type="password" class="${ic}"></label>`
-  :`<label class="block text-xs font-bold">รหัสผ่านครู<input id="g-k" type="password" class="${ic}"></label>`}
-  <button id="g-go" class="bb w-full py-2.5 bg-pink-400 text-white rounded-2xl text-xs font-bold">เข้าสู่ระบบ</button></div>`;
-  $('g-s').onclick=()=>{mode='student';drawGate()};$('g-t').onclick=()=>{mode='teacher';drawGate()};
+  <label class="block text-xs font-bold">ชื่อผู้ใช้ / รหัสประจำตัวนักเรียน<input id="g-u" class="${ic}" autocomplete="off" autocapitalize="off"></label>
+  <label class="block text-xs font-bold">รหัสผ่าน<input id="g-p" type="password" class="${ic}"></label>
+  <button id="g-go" class="bb w-full py-2.5 bg-pink-400 text-white rounded-2xl text-xs font-bold">เข้าสู่ระบบ</button>
+  <p class="text-[10px] text-slate-400 text-center">นักเรียน: รหัสประจำตัว + รหัสผ่านห้องเรียน</p></div>`;
   $('g-go').onclick=login;
   ov.querySelectorAll('input').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')login()})}
  async function login(){
   if(busyLogin)return;busyLogin=true;$('g-go').textContent='กำลังตรวจสอบ...';
   try{
-   if(mode==='teacher'){
-    if(!online())return drawGate('ยังไม่ได้ตั้งค่า GAS_URL จึงเข้าสู่ระบบครูไม่ได้');
-    const k=$('g-k').value.trim();
-    const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(k)).then(r=>r.json()).catch(()=>({}));
-    if(!x.ok)return drawGate('❌ รหัสครูไม่ถูกต้อง');
-    KEY=k;try{localStorage.setItem('lms_key',KEY)}catch(e){}
+   const u=$('g-u').value.trim(),p=$('g-p').value.trim();
+   if(!u)return drawGate('กรอกชื่อผู้ใช้หรือรหัสประจำตัว');
+   if(TEACHER_USERS.includes(u.toLowerCase())){
+    if(!online())return drawGate('ยังไม่ได้ตั้งค่า GAS_URL');
+    const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));
+    if(!x.ok)return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    KEY=p;try{localStorage.setItem('lms_key',KEY)}catch(e){}
     AUTH=true;me=null;_sr('teacher');pull();
    }else{
-    const code=$('g-code').value.trim(),pw=$('g-pw').value.trim();
-    if(!code)return drawGate('กรอกรหัสประจำตัวนักเรียน');
     await pull();
-    const f=S.students.find(x=>x.code===code);
-    if(!f||!(await pwOk(pw)))return drawGate('❌ รหัสนักเรียนหรือรหัสผ่านห้องไม่ถูกต้อง');
+    const f=S.students.find(x=>x.code===u);
+    if(!f||!(await pwOk(p)))return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     me=f;role='student';render();
    }
    closeModal();render();
@@ -419,7 +418,7 @@ let AUTH=false; // true เมื่อ Apps Script ยืนยันรหั�
   clearTimeout(pend);
   if(AUTH&&unsaved){try{await flush()}catch(e){}}
   AUTH=false;KEY='';try{localStorage.removeItem('lms_key')}catch(e){}
-  role='student';me=null;tab='dashboard';mode='student';closeModal();ov.innerHTML='';render()}
+  role='student';me=null;tab='dashboard';closeModal();ov.innerHTML='';render()}
  window.logout=logout;
 
  /* เริ่มต้น: ล็อกไว้ก่อนเสมอ แล้วตรวจรหัสครูที่จำไว้กับเซิร์ฟเวอร์ */
