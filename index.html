@@ -295,15 +295,21 @@ function openGrade(iid,sid){
   c.onpointerdown=e=>{e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(_){}draw=true;c.dataset.dirty='1';const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none';g.beginPath();g.moveTo(...p(e))};
   c.onpointermove=e=>{if(draw){g.lineTo(...p(e));g.stroke()}};
   c.onpointerup=c.onpointercancel=()=>draw=false})}
-function cvClear(){const c=$('cv');c.getContext('2d').clearRect(0,0,c.width,c.height)}function saveGrade(){
+async function saveGrade(){
  const{iid,sid}=gt,it=S.items.find(i=>i.id===iid);
  const prev=(S.subs[iid]||{})[sid]||{};
  const raw=Math.round(Math.min(Math.max(parseFloat($('gs').value)||0,0),it.max)*100)/100;
  const pen=(prev.late&&it.type!=='test')?it.max/2:0;
  const score=Math.round(Math.max(0,raw-pen)*100)/100;
+ const status=$('gst').value,feedback=$('gf').value;
+ let marks=[...(prev.marks||[])];
+ const cs=[...document.querySelectorAll('#modal canvas.mk')].filter(c=>c.dataset.dirty==='1');
+ if(cs.length)toast('กำลังบันทึกรอยเขียน...');
+ try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}}
+ catch(e){return toast('บันทึกรอยเขียนไม่สำเร็จ: '+((e&&e.message)||''))}
  const x=(S.subs[iid]??={});
- x[sid]={at:new Date().toISOString(),...x[sid],status:$('gst').value,raw,score,feedback:$('gf').value};
- putSub(iid,sid);save();closeModal();render();toast(pen?`บันทึกแล้ว (หักส่งช้า ${pen} คะแนน)`:'บันทึกผลการตรวจแล้ว')}
+ x[sid]={at:new Date().toISOString(),...x[sid],status,raw,score,feedback,marks};
+ putSub(iid,sid);save();closeModal();render();toast(pen?'บันทึกแล้ว (หักส่งช้า '+pen+' คะแนน)':'บันทึกผลการตรวจแล้ว')}
 
 /* grades (8 levels) */
 function calc(sid){let m=0,e=0;tasks().forEach(t=>{m+=t.max||10;const x=sub(t.id,sid);if(x?.status==='graded')e+=x.score||0});
