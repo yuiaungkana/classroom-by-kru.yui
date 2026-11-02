@@ -275,12 +275,15 @@ function openGrade(iid,sid){
  const c=$('cv'),g=c.getContext('2d');g.strokeStyle='#ef4444';g.lineWidth=3;g.lineCap='round';
  const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
  c.onpointerdown=e=>{draw=true;g.beginPath();g.moveTo(...p(e))};c.onpointermove=e=>{if(draw){g.lineTo(...p(e));g.stroke()}};c.onpointerup=c.onpointerleave=()=>draw=false}
-function cvClear(){const c=$('cv');c.getContext('2d').clearRect(0,0,c.width,c.height)}
-function saveGrade(){
+function cvClear(){const c=$('cv');c.getContext('2d').clearRect(0,0,c.width,c.height)}function saveGrade(){
  const{iid,sid}=gt,it=S.items.find(i=>i.id===iid);
- const score=Math.min(parseFloat($('gs').value)||0,it.max);
- const x=(S.subs[iid]??={});x[sid]={at:new Date().toISOString(),...x[sid],status:$('gst').value,score,feedback:$('gf').value};
- putSub(iid,sid);save();closeModal();render();toast('บันทึกผลการตรวจแล้ว')}
+ const prev=(S.subs[iid]||{})[sid]||{};
+ const raw=Math.round(Math.min(Math.max(parseFloat($('gs').value)||0,0),it.max)*100)/100;
+ const pen=(prev.late&&it.type!=='test')?it.max/2:0;
+ const score=Math.round(Math.max(0,raw-pen)*100)/100;
+ const x=(S.subs[iid]??={});
+ x[sid]={at:new Date().toISOString(),...x[sid],status:$('gst').value,raw,score,feedback:$('gf').value};
+ putSub(iid,sid);save();closeModal();render();toast(pen?`บันทึกแล้ว (หักส่งช้า ${pen} คะแนน)`:'บันทึกผลการตรวจแล้ว')}
 
 /* grades (8 levels) */
 function calc(sid){let m=0,e=0;tasks().forEach(t=>{m+=t.max||10;const x=sub(t.id,sid);if(x?.status==='graded')e+=x.score||0});
