@@ -348,5 +348,65 @@ addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsa
 if(unsaved&&KEY)setTimeout(flush,1200);
 pull();setInterval(pull,15000);
 </script>
+ <!-- วางบล็อกนี้ทั้งก้อน "ก่อน </body>" ต่อท้ายสคริปต์เดิมสุดท้าย ไม่ต้องแก้โค้ดส่วนอื่น -->
+<script>
+/* ===== ล็อกมุมมองครู: นักเรียนสลับเป็นครูไม่ได้ ===== */
+let AUTH=false; // true เฉพาะเมื่อ Apps Script ยืนยันรหัสครูแล้วเท่านั้น
+(function(){
+ const TEACHER_TABS=['room','students','grades','bonus'];
+ const rb=$('r-teacher').parentElement;
+ const lo=document.createElement('button');
+ lo.className='bb bg-white border-2 border-pink-200 rounded-2xl px-3 py-1.5 text-sm hidden';
+ lo.title='ออกจากระบบครู';lo.textContent='🚪';lo.onclick=logoutTeacher;
+ rb.parentElement.insertBefore(lo,rb);
+
+ /* 1) render: ถ้ายังไม่ยืนยันตัวตนครู บังคับเป็นนักเรียนเสมอ + ซ่อนปุ่มสลับ/เมนูครู */
+ const _render=render;
+ render=function(){
+  if(!AUTH&&role==='teacher')role='student';
+  if(role!=='teacher'&&TEACHER_TABS.includes(tab))tab='dashboard';
+  _render();
+  rb.classList.toggle('hidden',!AUTH);lo.classList.toggle('hidden',!AUTH);
+  if(role==='student')$('who').insertAdjacentHTML('beforeend',me
+   ?`<br><button onclick="me=null;render()" class="bb mt-2 px-3 py-1.5 bg-slate-100 rounded-xl font-bold">ออกจากระบบ</button>`
+   :`<br><button onclick="setRole('student')" class="bb mt-2 px-3 py-1.5 bg-pink-400 text-white rounded-xl font-bold">🎓 เข้าสู่ระบบ</button>`);
+ };
+
+ /* 2) setRole: เข้า 'teacher' ได้ก็ต่อเมื่อ AUTH เท่านั้น */
+ setRole=function(r){
+  if(r==='teacher'&&!AUTH){toast('ไม่มีสิทธิ์เข้ามุมมองครู');return}
+  _sr(r)};
+
+ /* 3) ทางเข้าครูแบบซ่อน: แตะโลโก้ 🐥 7 ครั้ง แล้วต้องใส่รหัสครูที่เซิร์ฟเวอร์ตรวจ */
+ let taps=0,tt;
+ document.querySelector('header .text-3xl').onclick=()=>{
+  taps++;clearTimeout(tt);tt=setTimeout(()=>taps=0,4000);
+  if(taps>=7){taps=0;teacherLogin()}};
+ function teacherLogin(){
+  if(AUTH)return;
+  if(!online())return toast('ยังไม่ได้ตั้งค่า GAS_URL');
+  openForm('🔑 รหัสครู',[['k','รหัสผ่านครู','']],async v=>{
+   const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(v.k)).then(r=>r.json()).catch(()=>({}));
+   if(!x.ok)return toast('รหัสไม่ถูกต้อง');
+   KEY=v.k;try{localStorage.setItem('lms_key',KEY)}catch(e){}
+   AUTH=true;me=null;_sr('teacher');pull();return true});
+  $('f_k').type='password'}
+
+ async function logoutTeacher(){
+  clearTimeout(pend);
+  if(unsaved){try{await flush()}catch(e){}}
+  AUTH=false;KEY='';try{localStorage.removeItem('lms_key')}catch(e){}
+  role='student';me=null;tab='dashboard';render();toast('ออกจากระบบครูแล้ว')}
+
+ /* 4) เริ่มต้นเป็นนักเรียนเสมอ แล้วตรวจรหัสครูที่จำไว้กับเซิร์ฟเวอร์ก่อนคืนสิทธิ์ */
+ role='student';render();
+ (async()=>{
+  if(!KEY||!online())return;
+  const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(KEY)).then(r=>r.json()).catch(()=>null);
+  if(x&&x.ok){AUTH=true;_sr('teacher');pull()}
+  else if(x){KEY='';unsaved=false;try{localStorage.removeItem('lms_key');localStorage.removeItem('lms_unsaved')}catch(e){}_sr('student')}
+ })();
+})();
+</script>
 </body>
 </html>
