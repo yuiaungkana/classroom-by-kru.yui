@@ -120,7 +120,7 @@ const add=(f,l)=>role==='teacher'?`<button onclick="${f}" class="bb bg-pink-400 
 function badge(s,i){
  if(!s)return'<span class="px-2 py-0.5 rounded-lg bg-rose-100 text-rose-600 text-[10px] font-bold">ยังไม่ส่ง</span>';
  if(s.status==='cheated')return'<span class="px-2 py-0.5 rounded-lg bg-rose-200 text-rose-700 text-[10px] font-bold">ตัดสิทธิ์</span>';
- if(s.status==='graded'&&(role==='teacher'||i.type==='test'))return`<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">ตรวจแล้ว ${s.score}/${i.max}</span>`;
+ if(s.status==='graded')return role==='teacher'?`<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">ตรวจแล้ว ${s.score}/${i.max}</span>`:'<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">ตรวจแล้ว</span>';
  if(s.status==='revision')return'<span class="px-2 py-0.5 rounded-lg bg-orange-100 text-orange-700 text-[10px] font-bold">แก้ไข</span>';
  return s.late?'<span class="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700 text-[10px] font-bold">ส่งช้า</span>':`<span class="px-2 py-0.5 rounded-lg bg-sky-100 text-sky-700 text-[10px] font-bold">${i.type==='test'?'ส่งแล้ว':'ตรงเวลา'}</span>`}
 function vDash(){
@@ -149,9 +149,9 @@ function teacherList(it){return`<div class="border-t pt-2 space-y-1.5">${S.stude
 function studentBox(it){
  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
  const s=sub(it.id,me.id);
- const status=`<div class="flex justify-between text-xs"><b>สถานะ:</b>${badge(s,it)}</div>${s?.feedback?`<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 ${esc(s.feedback)}</div>`:''}`;
+ const status=`<div class="flex justify-between text-xs"><b>สถานะ:</b>${badge(s,it)}</div>${s?.feedback?`<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 ${esc(s.feedback)}</div>`:''}${markHtml(s)}`;
  if(it.type==='test'){
-  if(s&&['cheated','graded','submitted'].includes(s.status))return`<div class="p-3 rounded-2xl text-xs font-bold ${s.status==='cheated'?'bg-rose-50 text-rose-600':'bg-emerald-50 text-emerald-700'}">${s.status==='cheated'?'⚠️ ถูกตัดสิทธิ์สอบ (สลับหน้าจอ)':s.status==='submitted'?'📨 ส่งแล้ว รอครูตรวจข้อเขียน':`✅ ทำเสร็จแล้ว ได้ ${s.score}/${it.max}`}</div>`;
+  if(s&&['cheated','graded','submitted'].includes(s.status))return`<div class="p-3 rounded-2xl text-xs font-bold ${s.status==='cheated'?'bg-rose-50 text-rose-600':'bg-emerald-50 text-emerald-700'}">${s.status==='cheated'?'⚠️ ถูกตัดสิทธิ์สอบ (สลับหน้าจอ)':s.status==='submitted'?'📨 ส่งแล้ว รอครูตรวจข้อเขียน':'✅ ทำแบบทดสอบเสร็จแล้ว'}</div>`;
   return`<button onclick="startTest('${it.id}')" class="bb px-4 py-2 bg-purple-400 text-white rounded-xl text-xs font-bold">▶ เริ่มทำแบบทดสอบ</button>`}
  return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<textarea id="t_${it.id}" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อความส่งงาน...">${esc(s?.text)}</textarea><input id="u_${it.id}" value="${esc(s?.url)}" placeholder="ลิงก์ผลงาน (ถ้ามี)" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs">${attHtml(s?.att,`rmSubAtt('${it.id}',`)}<input id="fl_${it.id}" type="file" multiple class="w-full text-xs"><div class="flex gap-2"><button onclick="send('${it.id}')" class="bb flex-1 py-2 bg-pink-400 text-white rounded-xl text-xs font-bold">${s?'บันทึกการแก้ไข':'ส่งงาน'}</button>${s?`<button onclick="delSub('${it.id}')" class="bb px-4 py-2 bg-rose-100 text-rose-600 rounded-xl text-xs font-bold">ลบงาน</button>`:''}</div></div>`}
 const attHtml=(l,rm)=>(l||[]).map((f,i)=>`<div class="flex items-center gap-2 text-xs">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-36 rounded-xl border">`:`<a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a>`}${rm?`<button onclick="${rm}${i})">✕</button>`:''}</div>`).join('');
@@ -263,19 +263,38 @@ function finishTest(){
 
 /* grading */
 let gt=null,draw=false;
+function markHtml(s){
+ if(!s||!s.marks||!s.marks.length||!['graded','revision'].includes(s.status))return'';
+ return'<div class="space-y-2"><b class="text-xs">🖍️ งานที่ครูตรวจ</b>'+s.marks.map(m=>{const f=(s.att||[])[m.i];return f?`<div class="relative"><img src="${esc(f.url)}" class="w-full rounded-xl border block"><img src="${esc(m.url)}" class="absolute inset-0 w-full h-full pointer-events-none"></div>`:''}).join('')+'</div>'}
+function gAtt(x){
+ return (x.att||[]).map((f,i)=>{
+  if(!(f.ct||'').startsWith('image/'))return`<div><a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a> <span class="text-slate-400">(เขียนตรวจได้เฉพาะรูปภาพ)</span></div>`;
+  const m=(x.marks||[]).find(k=>k.i===i);
+  return`<div class="space-y-1"><div class="text-[11px] font-bold">🖍️ ${esc(f.name)} <button type="button" onclick="mkClear(${i})" class="bg-slate-100 rounded-lg px-2 py-0.5">ล้างรอยเขียน</button></div><div class="relative"><img src="${esc(f.url)}" class="w-full rounded-xl border block">${m?`<img src="${esc(m.url)}" class="mo absolute inset-0 w-full h-full pointer-events-none">`:''}<canvas class="mk absolute inset-0 w-full h-full touch-none" data-i="${i}"></canvas></div></div>`}).join('')}
+function mkClear(i){
+ const c=document.querySelector('#modal canvas.mk[data-i="'+i+'"]');if(!c)return;
+ c.getContext('2d').clearRect(0,0,c.width,c.height);c.dataset.dirty='1';
+ const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none'}
+
 function openGrade(iid,sid){
  gt={iid,sid};const it=S.items.find(i=>i.id===iid),st=S.students.find(s=>s.id===sid),x=sub(iid,sid)||{};
+ const lateMsg=(x.late&&it.type!=='test')?'<div class="text-xs bg-amber-50 border border-amber-200 rounded-xl p-2 font-bold text-amber-800">⏰ ส่งช้า: ระบบจะหักอัตโนมัติ '+(Math.round(it.max/2*100)/100)+' คะแนน (ครึ่งหนึ่งของคะแนนเต็ม)</div>':'';
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div><h3 class="mali font-bold">ตรวจ: ${esc(it.title)}</h3><p class="text-xs text-slate-500">${esc(st.name)}</p></div>
- <div class="text-xs bg-slate-50 rounded-xl p-2 break-words">${it.type==='test'?ansHtml(it,x):esc(x.text)||'<i class="text-slate-400">ไม่มีข้อความ</i>'}${x.url?`<br><a class="text-sky-600 underline" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.url)}</a>`:''}${attHtml(x.att)}</div>
- <canvas id="cv" width="460" height="220" class="w-full bg-white border border-slate-300 rounded-xl touch-none"></canvas><button onclick="cvClear()" class="text-xs bg-slate-100 rounded-lg px-3 py-1 font-bold">ล้างรอยเขียน</button>
- ${x.late&&it.type!=='test'?`<div class="text-xs bg-amber-50 border border-amber-200 rounded-xl p-2 font-bold text-amber-800">⏰ ส่งช้า: ระบบจะหักอัตโนมัติ ${it.max/2} คะแนน (ครึ่งหนึ่งของคะแนนเต็ม)</div>`:''}
-<div class="grid grid-cols-2 gap-2 text-xs font-bold"><label>คะแนนที่ตรวจได้ (เต็ม ${it.max})<input id="gs" type="number" min="0" max="${it.max}" step="any" inputmode="decimal" value="${(x.raw??x.score)||0}" class="w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal"></label><label>สถานะ<select id="gst" class="w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal"><option value="graded">ตรวจแล้ว</option><option value="revision">ให้แก้ไข</option></select></label></div>
- <textarea id="gf" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อติชม / คำแนะนำ">${esc(x.feedback)}</textarea>
+ <div class="text-xs bg-slate-50 rounded-xl p-2 break-words space-y-2">${it.type==='test'?ansHtml(it,x):esc(x.text)||'<i class="text-slate-400">ไม่มีข้อความ</i>'}${x.url?`<br><a class="text-sky-600 underline" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.url)}</a>`:''}</div>
+ ${gAtt(x)}
+ ${lateMsg}
+ <div class="grid grid-cols-2 gap-2 text-xs font-bold"><label>คะแนนที่ตรวจได้ (เต็ม ${it.max})<input id="gs" type="number" min="0" max="${it.max}" step="any" inputmode="decimal" value="${(x.raw??x.score)||0}" class="w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal"></label><label>สถานะ<select id="gst" class="w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal"><option value="graded">ตรวจแล้ว</option><option value="revision">ให้แก้ไข</option></select></label></div>
+ <textarea id="gf" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อติชม / คำแนะนำ (นักเรียนเห็น)">${esc(x.feedback)}</textarea>
  <div class="flex gap-2"><button onclick="closeModal()" class="bb flex-1 py-2 bg-slate-100 rounded-xl text-xs font-bold">ปิด</button><button onclick="saveGrade()" class="bb flex-1 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold">บันทึก</button></div></div>`;
  $('modal').classList.remove('hidden');
- const c=$('cv'),g=c.getContext('2d');g.strokeStyle='#ef4444';g.lineWidth=3;g.lineCap='round';
- const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
- c.onpointerdown=e=>{draw=true;g.beginPath();g.moveTo(...p(e))};c.onpointermove=e=>{if(draw){g.lineTo(...p(e));g.stroke()}};c.onpointerup=c.onpointerleave=()=>draw=false}
+ document.querySelectorAll('#modal canvas.mk').forEach(c=>{
+  const img=c.parentElement.querySelector('img'),g=c.getContext('2d');
+  const init=()=>{const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight,1));c.width=Math.round(img.naturalWidth*k)||800;c.height=Math.round(img.naturalHeight*k)||600;g.strokeStyle='#ef4444';g.lineWidth=Math.max(3,c.width/160);g.lineCap='round';g.lineJoin='round'};
+  if(img.complete&&img.naturalWidth)init();else img.addEventListener('load',init);
+  const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  c.onpointerdown=e=>{e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(_){}draw=true;c.dataset.dirty='1';const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none';g.beginPath();g.moveTo(...p(e))};
+  c.onpointermove=e=>{if(draw){g.lineTo(...p(e));g.stroke()}};
+  c.onpointerup=c.onpointercancel=()=>draw=false})}
 function cvClear(){const c=$('cv');c.getContext('2d').clearRect(0,0,c.width,c.height)}function saveGrade(){
  const{iid,sid}=gt,it=S.items.find(i=>i.id===iid);
  const prev=(S.subs[iid]||{})[sid]||{};
