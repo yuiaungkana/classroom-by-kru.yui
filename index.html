@@ -348,63 +348,88 @@ addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsa
 if(unsaved&&KEY)setTimeout(flush,1200);
 pull();setInterval(pull,15000);
 </script>
- <!-- วางบล็อกนี้ทั้งก้อน "ก่อน </body>" ต่อท้ายสคริปต์เดิมสุดท้าย ไม่ต้องแก้โค้ดส่วนอื่น -->
+ <!-- แทนที่บล็อกเดิม (teacher-lock) ด้วยบล็อกนี้ทั้งก้อน วางก่อน </body> ต่อจากสคริปต์เดิมตัวสุดท้าย -->
 <script>
-/* ===== ล็อกมุมมองครู: นักเรียนสลับเป็นครูไม่ได้ ===== */
-let AUTH=false; // true เฉพาะเมื่อ Apps Script ยืนยันรหัสครูแล้วเท่านั้น
+/* ===== ต้องเข้าสู่ระบบก่อนเสมอ (ครู/นักเรียน) + นักเรียนสลับเป็นครูไม่ได้ ===== */
+let AUTH=false; // true เมื่อ Apps Script ยืนยันรหัสครูแล้วเท่านั้น
 (function(){
  const TEACHER_TABS=['room','students','grades','bonus'];
  const rb=$('r-teacher').parentElement;
  const lo=document.createElement('button');
  lo.className='bb bg-white border-2 border-pink-200 rounded-2xl px-3 py-1.5 text-sm hidden';
- lo.title='ออกจากระบบครู';lo.textContent='🚪';lo.onclick=logoutTeacher;
+ lo.title='ออกจากระบบ';lo.textContent='🚪';lo.onclick=logout;
  rb.parentElement.insertBefore(lo,rb);
 
- /* 1) render: ถ้ายังไม่ยืนยันตัวตนครู บังคับเป็นนักเรียนเสมอ + ซ่อนปุ่มสลับ/เมนูครู */
+ /* หน้าล็อกอินเต็มจอ ปิดทับแอปทั้งหมดจนกว่าจะผ่าน */
+ const ov=document.createElement('div');
+ ov.className='fixed inset-0 z-[100] flex items-center justify-center p-4';
+ ov.style.cssText='background:linear-gradient(135deg,#fdf4ff,#f0f9ff 50%,#f0fdf4)';
+ document.body.appendChild(ov);
+ let mode='student',busyLogin=false;
+ const ic='w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal';
+ function drawGate(msg){
+  ov.innerHTML=`<div class="card border-4 border-pink-200 p-6 w-full max-w-sm space-y-3"><div class="text-center"><div class="text-5xl">🐥</div><h1 class="mali font-bold text-xl">Classroom LMS</h1><p class="text-xs text-slate-500">${msg||'กรุณาเข้าสู่ระบบก่อนใช้งาน'}</p></div>
+  <div class="bg-slate-100 p-1 rounded-2xl flex text-xs font-bold"><button id="g-s" class="flex-1 py-1.5 rounded-xl ${mode==='student'?'bg-pink-400 text-white':''}">🎓 นักเรียน</button><button id="g-t" class="flex-1 py-1.5 rounded-xl ${mode==='teacher'?'bg-pink-400 text-white':''}">👩‍🏫 ครู</button></div>
+  ${mode==='student'?`<label class="block text-xs font-bold">รหัสประจำตัวนักเรียน<input id="g-code" class="${ic}" autocomplete="off"></label><label class="block text-xs font-bold">รหัสผ่านห้องเรียน<input id="g-pw" type="password" class="${ic}"></label>`
+  :`<label class="block text-xs font-bold">รหัสผ่านครู<input id="g-k" type="password" class="${ic}"></label>`}
+  <button id="g-go" class="bb w-full py-2.5 bg-pink-400 text-white rounded-2xl text-xs font-bold">เข้าสู่ระบบ</button></div>`;
+  $('g-s').onclick=()=>{mode='student';drawGate()};$('g-t').onclick=()=>{mode='teacher';drawGate()};
+  $('g-go').onclick=login;
+  ov.querySelectorAll('input').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')login()})}
+ async function login(){
+  if(busyLogin)return;busyLogin=true;$('g-go').textContent='กำลังตรวจสอบ...';
+  try{
+   if(mode==='teacher'){
+    if(!online())return drawGate('ยังไม่ได้ตั้งค่า GAS_URL จึงเข้าสู่ระบบครูไม่ได้');
+    const k=$('g-k').value.trim();
+    const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(k)).then(r=>r.json()).catch(()=>({}));
+    if(!x.ok)return drawGate('❌ รหัสครูไม่ถูกต้อง');
+    KEY=k;try{localStorage.setItem('lms_key',KEY)}catch(e){}
+    AUTH=true;me=null;_sr('teacher');pull();
+   }else{
+    const code=$('g-code').value.trim(),pw=$('g-pw').value.trim();
+    if(!code)return drawGate('กรอกรหัสประจำตัวนักเรียน');
+    await pull();
+    const f=S.students.find(x=>x.code===code);
+    if(!f||!(await pwOk(pw)))return drawGate('❌ รหัสนักเรียนหรือรหัสผ่านห้องไม่ถูกต้อง');
+    me=f;role='student';render();
+   }
+   closeModal();render();
+  }finally{busyLogin=false}}
+
+ /* render: ยังไม่ผ่านล็อกอิน = ปิดทับ + บังคับเป็นนักเรียน ห้ามเข้าแท็บครู */
  const _render=render;
  render=function(){
   if(!AUTH&&role==='teacher')role='student';
   if(role!=='teacher'&&TEACHER_TABS.includes(tab))tab='dashboard';
   _render();
-  rb.classList.toggle('hidden',!AUTH);lo.classList.toggle('hidden',!AUTH);
-  if(role==='student')$('who').insertAdjacentHTML('beforeend',me
-   ?`<br><button onclick="me=null;render()" class="bb mt-2 px-3 py-1.5 bg-slate-100 rounded-xl font-bold">ออกจากระบบ</button>`
-   :`<br><button onclick="setRole('student')" class="bb mt-2 px-3 py-1.5 bg-pink-400 text-white rounded-xl font-bold">🎓 เข้าสู่ระบบ</button>`);
+  const authed=AUTH||!!me;
+  ov.classList.toggle('hidden',authed);
+  if(!authed&&!ov.firstChild)drawGate();
+  rb.classList.toggle('hidden',!AUTH);lo.classList.toggle('hidden',!authed);
+  if(role==='student'&&me)$('who').insertAdjacentHTML('beforeend',`<br><button onclick="logout()" class="bb mt-2 px-3 py-1.5 bg-slate-100 rounded-xl font-bold">ออกจากระบบ</button>`);
  };
 
- /* 2) setRole: เข้า 'teacher' ได้ก็ต่อเมื่อ AUTH เท่านั้น */
+ /* setRole: เข้า 'teacher' ได้เมื่อ AUTH เท่านั้น */
  setRole=function(r){
   if(r==='teacher'&&!AUTH){toast('ไม่มีสิทธิ์เข้ามุมมองครู');return}
   _sr(r)};
 
- /* 3) ทางเข้าครูแบบซ่อน: แตะโลโก้ 🐥 7 ครั้ง แล้วต้องใส่รหัสครูที่เซิร์ฟเวอร์ตรวจ */
- let taps=0,tt;
- document.querySelector('header .text-3xl').onclick=()=>{
-  taps++;clearTimeout(tt);tt=setTimeout(()=>taps=0,4000);
-  if(taps>=7){taps=0;teacherLogin()}};
- function teacherLogin(){
-  if(AUTH)return;
-  if(!online())return toast('ยังไม่ได้ตั้งค่า GAS_URL');
-  openForm('🔑 รหัสครู',[['k','รหัสผ่านครู','']],async v=>{
-   const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(v.k)).then(r=>r.json()).catch(()=>({}));
-   if(!x.ok)return toast('รหัสไม่ถูกต้อง');
-   KEY=v.k;try{localStorage.setItem('lms_key',KEY)}catch(e){}
-   AUTH=true;me=null;_sr('teacher');pull();return true});
-  $('f_k').type='password'}
-
- async function logoutTeacher(){
+ async function logout(){
   clearTimeout(pend);
-  if(unsaved){try{await flush()}catch(e){}}
+  if(AUTH&&unsaved){try{await flush()}catch(e){}}
   AUTH=false;KEY='';try{localStorage.removeItem('lms_key')}catch(e){}
-  role='student';me=null;tab='dashboard';render();toast('ออกจากระบบครูแล้ว')}
+  role='student';me=null;tab='dashboard';mode='student';closeModal();ov.innerHTML='';render()}
+ window.logout=logout;
 
- /* 4) เริ่มต้นเป็นนักเรียนเสมอ แล้วตรวจรหัสครูที่จำไว้กับเซิร์ฟเวอร์ก่อนคืนสิทธิ์ */
- role='student';render();
+ /* เริ่มต้น: ล็อกไว้ก่อนเสมอ แล้วตรวจรหัสครูที่จำไว้กับเซิร์ฟเวอร์ */
+ role='student';me=null;closeModal();render();
  (async()=>{
   if(!KEY||!online())return;
+  drawGate('กำลังตรวจสอบสิทธิ์...');
   const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(KEY)).then(r=>r.json()).catch(()=>null);
-  if(x&&x.ok){AUTH=true;_sr('teacher');pull()}
-  else if(x){KEY='';unsaved=false;try{localStorage.removeItem('lms_key');localStorage.removeItem('lms_unsaved')}catch(e){}_sr('student')}
+  if(x&&x.ok){AUTH=true;_sr('teacher');pull();render()}
+  else{if(x){KEY='';unsaved=false;try{localStorage.removeItem('lms_key');localStorage.removeItem('lms_unsaved')}catch(e){}}drawGate()}
  })();
 })();
 </script>
