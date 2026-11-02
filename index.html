@@ -173,7 +173,7 @@ function itemForm(type,id){
   if(!v.title)return toast('กรอกชื่อหัวข้อ');
   const it=o.id?o:{id:type[0]+Date.now(),type};Object.assign(it,{title:v.title,desc:v.desc});
   if(type==='material'){it.url=v.url;if(v.file){try{(it.att=it.att||[]).push(await upFile(v.file))}catch(e){toast(e.message);return}}}
-  else{it.max=parseInt(v.max)||10;it.due=v.due}
+  else{it.max=Math.round((parseFloat(v.max)||10)*100)/100;it.due=v.due}
   if(!o.id)S.items.push(it);save();render();toast('บันทึกแล้ว');return true})}
 function matView(it){
  const a=(it.att||[]).map((f,i)=>`<div class="flex flex-wrap items-center gap-2">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-44 rounded-xl border">`:(f.url||'').includes('/preview')?`<iframe src="${esc(f.url)}" class="w-full h-72 rounded-xl border"></iframe>`:''}<button onclick="viewFile('${it.id}',${i})" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: ${esc(f.name)}</button><button onclick="dlAtt('${it.id}',${i})" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>${role==='teacher'?`<button onclick="rmAtt('${it.id}',${i})">✕</button>`:''}</div>`).join('');
