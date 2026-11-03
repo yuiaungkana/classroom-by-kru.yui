@@ -78,6 +78,9 @@ const ok=(q,a)=>qt(q)==='mc'?a===q.ans:qt(q)==='fill'&&String(q.ans).split('|').
 const notifs=()=>{const r=[];Object.entries(S.subs).forEach(([i,o])=>Object.entries(o).forEach(([d,x])=>{const t=Date.parse(x.at);if(t>seen&&['submitted','cheated'].includes(x.status)){const it=S.items.find(k=>k.id===i),st=S.students.find(k=>k.id===d);r.push({t:(x.status==='cheated'?'🚨 ถูกตัดสิทธิ์: ':'ส่งงาน: ')+(st?.name||d)+' – '+(it?.title||''),time:new Date(t).toLocaleTimeString('th-TH'),k:t})}}));return r.sort((a,b)=>b.k-a.k).slice(0,30)};
 const TY={material:{n:'สื่อการเรียน',e:'📖',c:'sky'},exercise:{n:'แบบฝึกหัด',e:'✏️',c:'pink'},test:{n:'แบบทดสอบ',e:'📝',c:'purple'},project:{n:'ชิ้นงาน/โครงงาน',e:'🧩',c:'emerald'}};
 const tasks=()=>S.items.filter(i=>i.type!=='material');
+const isOpen=it=>!it.openAt||new Date()>=new Date(it.openAt);
+const lockBox=it=>`<div class="text-xs font-bold text-slate-500 bg-slate-100 rounded-xl p-3">🔒 จะเปิดวันที่ ${esc(it.openAt.replace('T',' '))}</div>`;
+setInterval(()=>{if(role==='student'&&!busy()&&!activeTest&&$('modal').classList.contains('hidden'))render()},30000);
 const sub=(i,s)=>(S.subs[i]||{})[s];
 const wrote={};
 let pendW=0;
@@ -143,8 +146,8 @@ function vList(type){
  return head(T.e+' '+T.n,sub_,add(type==='test'?'openTest()':`itemForm('${type}')`,'+ เพิ่ม'))+list.map(it=>`<div class="card p-5 border-2 border-${T.c}-200 space-y-3">
   <div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-${T.c}-100">${T.n}${it.max&&role==='teacher'?` • เต็ม ${it.max}`:''}${it.time?` • ${it.time} นาที`:''}${it.time?` • ${it.time} นาที`:''}</span><h3 class="font-bold text-sm mt-1.5">${esc(it.title)}</h3></div>${role==='teacher'?`<span class="flex gap-2 shrink-0"><button onclick="${type==='test'?`openTest('${it.id}')`:`itemForm('${type}','${it.id}')`}">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div>
   <p class="text-xs text-slate-500">${esc(it.desc)}</p>
-  ${it.due?`<div class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">⏰ กำหนดส่ง: ${esc(it.due.replace('T',' '))}</div>`:''}
-  ${type==='material'?matView(it):role==='teacher'?teacherList(it):studentBox(it)}</div>`).join('')||'<div class="text-center text-slate-400 py-8">ยังไม่มีรายการ</div>'}
+  ${it.due?`<div class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">⏰ กำหนดส่ง: ${esc(it.due.replace('T',' '))}</div>`:''}${it.openAt?`<div class="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded-xl p-2">🕒 เปิด: ${esc(it.openAt.replace('T',' '))}</div>`:''}
+  ${role!=='teacher'&&!isOpen(it)?lockBox(it):type==='material'?matView(it):role==='teacher'?teacherList(it):studentBox(it)}
 function teacherList(it){return`<div class="border-t pt-2 space-y-1.5">${S.students.map(s=>`<div class="flex justify-between items-center bg-slate-50 rounded-xl p-2 text-xs"><span>${s.no}. ${esc(s.name)}</span><span class="flex items-center gap-2">${badge(sub(it.id,s.id),it)}<button onclick="openGrade('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-purple-100 rounded-lg font-bold">ตรวจ</button></span></div>`).join('')}</div>`}
 function studentBox(it){
  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
@@ -157,6 +160,8 @@ function studentBox(it){
 const attHtml=(l,rm)=>(l||[]).map((f,i)=>`<div class="flex items-center gap-2 text-xs">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-36 rounded-xl border">`:`<a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a>`}${rm?`<button onclick="${rm}${i})">✕</button>`:''}</div>`).join('');
 async function send(id){
  const it=S.items.find(i=>i.id===id),old=sub(id,me.id),late=old?old.late:!!(it.due&&new Date()>new Date(it.due));
+ if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
+ const text=$('t_'+id).value,...
  const text=$('t_'+id).value,url=$('u_'+id).value,att=[...(old?.att||[])],fs=[...$('fl_'+id).files];
  for(const f of fs){try{att.push(await upFile(f))}catch(e){return toast(f.name+': '+e.message)}}
  (S.subs[id]??={})[me.id]={at:new Date().toISOString(),text,url,att,status:'submitted',late,score:0,feedback:''};
@@ -167,11 +172,12 @@ function autoDue(){const d=new Date();d.setDate(d.getDate()+7);const p=n=>String
 function itemForm(type,id){
  const o=S.items.find(i=>i.id===id)||{};
  const f=[['title','ชื่อหัวข้อ',o.title||''],['desc','รายละเอียด',o.desc||'','area']];
- if(type==='material')f.push(['url','ลิงก์เนื้อหา (ไม่บังคับ)',o.url||''],['file','แนบไฟล์ / รูปภาพ','','file']);
- else f.push(['max','คะแนนเต็ม',o.max||'10'],['due','กำหนดส่ง (กรอกอัตโนมัติ แก้ไขได้)',o.due||autoDue(),'dt']);
+ const OP=['openAt','🕒 เวลาเปิด (เว้นว่าง = เปิดทันที)',o.openAt||'','dt'];
+if(type==='material')f.push(['url','ลิงก์เนื้อหา (ไม่บังคับ)',o.url||''],['file','แนบไฟล์ / รูปภาพ','','file'],OP);
+else f.push(['max','คะแนนเต็ม',o.max||'10'],OP,['due','กำหนดส่ง (กรอกอัตโนมัติ แก้ไขได้)',o.due||autoDue(),'dt']);
  openForm((id?'แก้ไข':'เพิ่ม')+TY[type].n,f,async v=>{
   if(!v.title)return toast('กรอกชื่อหัวข้อ');
-  const it=o.id?o:{id:type[0]+Date.now(),type};Object.assign(it,{title:v.title,desc:v.desc});
+  const it=o.id?o:{id:type[0]+Date.now(),type};Object.assign(it,{title:v.title,desc:v.desc,openAt:v.openAt});
     if(type==='material'){it.url=v.url;if(v.file){try{(it.att=it.att||[]).push(await upFile(v.file))}catch(e){toast(e.message);return}}}
   else{it.max=Math.round((parseFloat(v.max)||10)*100)/100;it.due=v.due}
   if(!o.id)S.items.push(it);save();render();toast('บันทึกแล้ว');return true})}
@@ -232,11 +238,11 @@ function importStudents(){openForm('📥 นำเข้ารายชื่อ
 /* test editor */
 let TE=null;const sl='w-full border-2 border-slate-200 rounded-xl p-2 text-xs';
 function openTest(id){const o=S.items.find(i=>i.id===id);TE=o?JSON.parse(JSON.stringify(o)):{type:'test',title:'',desc:'',max:10,time:15,questions:[{type:'mc',q:'',opts:[],ans:'',pts:1}]};drawTE()}
-function syncTE(){if(!$('te_t'))return;TE.title=$('te_t').value;TE.desc=$('te_d').value;TE.time=parseInt($('te_m').value)||15;TE.questions.forEach((q,i)=>{q.type=$('qt'+i).value;q.q=$('qq'+i).value;q.pts=parseFloat($('qp'+i).value)||1;q.opts=$('qo'+i)?$('qo'+i).value.split(',').map(x=>x.trim()).filter(Boolean):[];q.ans=$('qa'+i)?$('qa'+i).value.trim():''})}
+function syncTE(){if(!$('te_t'))return;TE.title=$('te_t').value;TE.desc=$('te_d').value;TE.time=parseInt($('te_m').value)||15;TE.openAt=$('te_o').value;TE.due=$('te_c').value;TE.questions.forEach((q,i)=>{q.type=$('qt'+i).value;q.q=$('qq'+i).value;q.pts=parseFloat($('qp'+i).value)||1;q.opts=$('qo'+i)?$('qo'+i).value.split(',').map(x=>x.trim()).filter(Boolean):[];q.ans=$('qa'+i)?$('qa'+i).value.trim():''})}
 function teAdd(){syncTE();TE.questions.push({type:'mc',q:'',opts:[],ans:'',pts:1});drawTE()}
 function teDel(i){syncTE();TE.questions.splice(i,1);drawTE()}
 function drawTE(){
- $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3 text-xs"><h3 class="mali font-bold text-lg">${TE.id?'แก้ไข':'สร้าง'}แบบทดสอบ</h3><input id="te_t" value="${esc(TE.title)}" placeholder="ชื่อแบบทดสอบ" class="${sl}"><textarea id="te_d" rows="2" placeholder="คำอธิบาย" class="${sl}">${esc(TE.desc)}</textarea><label class="font-bold block">เวลา (นาที)<input id="te_m" type="number" value="${TE.time}" class="${sl} mt-1"></label>
+ $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3 text-xs"><h3 class="mali font-bold text-lg">${TE.id?'แก้ไข':'สร้าง'}แบบทดสอบ</h3><input id="te_t" value="${esc(TE.title)}" placeholder="ชื่อแบบทดสอบ" class="${sl}"><textarea id="te_d" rows="2" placeholder="คำอธิบาย" class="${sl}">${esc(TE.desc)}</textarea><label class="font-bold block">เวลา (นาที)<input id="te_m" type="number" value="${TE.time}" class="${sl} mt-1"></label><label class="font-bold block">🕒 เวลาเปิด (ว่าง = เปิดทันที)<input id="te_o" type="datetime-local" value="${esc(TE.openAt||'')}" class="${sl} mt-1"></label><label class="font-bold block">🔒 ปิดรับ (ไม่บังคับ)<input id="te_c" type="datetime-local" value="${esc(TE.due||'')}" class="${sl} mt-1"></label>
  ${TE.questions.map((q,i)=>`<div class="bg-purple-50 rounded-2xl p-3 space-y-2"><div class="flex gap-2 items-center"><select id="qt${i}" onchange="syncTE();drawTE()" class="${sl}">${[['mc','ปรนัย'],['fill','เติมคำ'],['essay','อัตนัย']].map(([v,n])=>`<option value="${v}" ${qt(q)===v?'selected':''}>${n}</option>`).join('')}</select><input id="qp${i}" type="number" value="${q.pts||1}" title="คะแนน" class="${sl}" style="width:5rem"><button onclick="teDel(${i})">🗑️</button></div><textarea id="qq${i}" rows="2" placeholder="ข้อ ${i+1}: คำถาม" class="${sl}">${esc(q.q)}</textarea>${qt(q)==='mc'?`<input id="qo${i}" value="${esc((q.opts||[]).join(', '))}" placeholder="ตัวเลือก คั่นด้วย ," class="${sl}">`:''}${qt(q)!=='essay'?`<input id="qa${i}" value="${esc(q.ans)}" placeholder="${qt(q)==='fill'?'คำตอบที่ถูก (หลายคำตอบคั่นด้วย |)':'คำตอบที่ถูก (ต้องตรงกับตัวเลือก)'}" class="${sl}">`:'<div class="text-slate-500">อัตนัย: ครูตรวจและให้คะแนนเอง</div>'}</div>`).join('')}
  <button onclick="teAdd()" class="bb w-full py-2 bg-purple-100 rounded-xl font-bold">+ เพิ่มข้อ</button><div class="flex gap-2"><button onclick="closeModal()" class="bb flex-1 py-2 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="saveTE()" class="bb flex-1 py-2 bg-emerald-500 text-white rounded-xl font-bold">บันทึก</button></div></div>`;$('modal').classList.remove('hidden')}
 function saveTE(){syncTE();if(!TE.title)return toast('กรอกชื่อแบบทดสอบ');if(!TE.questions.length)return toast('เพิ่มอย่างน้อย 1 ข้อ');
@@ -248,6 +254,9 @@ function delItem(id){openForm('ลบรายการนี้?',[],()=>{S.ite
 /* test with anti-cheat */
 function startTest(id){
  const it=S.items.find(i=>i.id===id);if(!it.questions?.length)return toast('แบบทดสอบนี้ยังไม่มีข้อสอบ');
+ if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
+ if(it.due&&new Date()>new Date(it.due))return toast('หมดเวลารับแบบทดสอบแล้ว');
+ activeTest=id;...
  activeTest=id;let left=(it.time||15)*60;const ic='w-full border-2 border-slate-200 rounded-xl p-2 text-xs';
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div class="flex justify-between items-center"><h3 class="mali font-bold">${esc(it.title)}</h3><span id="tm" class="bg-yellow-100 rounded-xl px-3 py-1 text-xs font-bold"></span></div><div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs font-bold text-amber-800">⚠️ ห้ามสลับแท็บ — ระบบจะตัดสิทธิ์ทันที</div>${it.questions.map((q,i)=>`<div class="text-xs space-y-1"><p class="font-bold">ข้อ ${i+1}: ${esc(q.q)} </p>${qt(q)==='essay'?`<textarea id="a${i}" rows="3" class="${ic}"></textarea>`:qt(q)==='fill'?`<input id="a${i}" class="${ic}" placeholder="คำตอบ">`:(q.opts||[]).map(o=>`<label class="block"><input type="radio" name="q${i}" value="${esc(o)}"> ${esc(o)}</label>`).join('')}</div>`).join('')}<button onclick="finishTest()" class="bb w-full py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">ส่งคำตอบ</button></div>`;
  $('modal').classList.remove('hidden');
