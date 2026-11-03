@@ -68,7 +68,7 @@ const roomLink=()=>location.href.split('#')[0]+'#'+S.cur;
 {let c=null;try{c=localStorage.getItem('lms_cur')}catch(e){}S.cur=hashRoom()||(S.rooms.some(r=>r.id===c)?c:S.rooms[0].id);hashed=!!hashRoom();repoint()}
 let DB=null,canEdit=true,seen=0;try{seen=+localStorage.getItem('lms_seen')||0}catch(e){}
 let lastSig=JSON.stringify([S.rooms,S.data]);
-setInterval(()=>{if(role!=='teacher'||!canEdit)return;stash();if(JSON.stringify([S.rooms,S.data])!==lastSig)save()},3000);
+setInterval(()=>{if(role!=='teacher'||!canEdit)return;stash();if(JSON.stringify([S.rooms,S.data])!==lastSig)save()},5000);
 addEventListener('pagehide',()=>{if(role==='teacher')save()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&role==='teacher')save()});
 const use=async n=>n==='assets'?ASSETS:null;
@@ -314,7 +314,8 @@ async function saveGrade(){
  let marks=[...(prev.marks||[])];
  const cs=[...document.querySelectorAll('#modal canvas.mk')].filter(c=>c.dataset.dirty==='1');
  if(cs.length)toast('กำลังบันทึกรอยเขียน...');
- try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}}
+ if(f.size>8*1024*1024)throw new Error('ไฟล์ใหญ่เกิน 8 MB');
+ try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}
  catch(e){return toast('บันทึกรอยเขียนไม่สำเร็จ: '+((e&&e.message)||''))}
  const x=(S.subs[iid]??={});
  x[sid]={at:new Date().toISOString(),...x[sid],status,raw,score,feedback,marks};
@@ -348,12 +349,13 @@ const GAS_URL='https://script.google.com/macros/s/AKfycbxO8aiY8CzFZbNCOhkK12Dywc
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 let KEY='',pend=null,inflight=0,unsaved=false;try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
 const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
-async function api(b){const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})});return r.json()}
+async function api(b){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);try{const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY}),signal:c.signal});return await r.json()}finally{clearTimeout(t)}}
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
 async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await fetch(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));return!!r.ok}
 async function pull(){
  if(!online())return;
- try{const r=await(await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(KEY))).json();if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}const d=r.data||{};
+  const sg=JSON.stringify(d);if(sg===window._ps){$('st').textContent='☁️ เชื่อมต่อ Google Drive แล้ว '+tm();return}window._ps=sg;
+  try{const c=new AbortController(),tt=setTimeout(()=>c.abort(),20000);let r;try{r=await(await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''),{signal:c.signal})).json()}finally{clearTimeout(tt)}if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}const d=r.data||{};
   if(!d.items){if(role==='teacher'&&KEY)save();return}
   if(pend||inflight||unsaved||activeTest)return;
   if(d.rooms?.length)S.rooms=d.rooms;else if(d.cfg){const c={...d.cfg},m=String(c.room||'').split('/');if(m.length>1){c.level=m[0];c.room=m[1]}Object.assign(S.rooms[0],c)}
@@ -384,7 +386,8 @@ setRole=function(r){
 if(online())$('st').textContent='⏳ กำลังเชื่อมต่อ Google Drive...';
 addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsaved)){stash();try{navigator.sendBeacon(GAS_URL,JSON.stringify({action:'saveCore',key:KEY,core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}}))}catch(e){}}});
 if(unsaved&&KEY)setTimeout(flush,1200);
-pull();setInterval(pull,15000);
+let pulling=false;const _p=pull;pull=async function(){if(pulling)return;pulling=true;try{await _p()}finally{pulling=false}};
+pull();setInterval(()=>{if(!document.hidden)pull()},15000);
 </script>
 <!-- แทนที่บล็อกเดิม (teacher-lock) ด้วยบล็อกนี้ทั้งก้อน วางก่อน </body> ต่อจากสคริปต์เดิมตัวสุดท้าย -->
 <script>
