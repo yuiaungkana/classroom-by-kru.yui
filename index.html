@@ -314,8 +314,7 @@ async function saveGrade(){
  let marks=[...(prev.marks||[])];
  const cs=[...document.querySelectorAll('#modal canvas.mk')].filter(c=>c.dataset.dirty==='1');
  if(cs.length)toast('กำลังบันทึกรอยเขียน...');
- if(f.size>8*1024*1024)throw new Error('ไฟล์ใหญ่เกิน 8 MB');
- try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}
+ try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));if(b.size>8*1024*1024)throw new Error('รอยเขียนใหญ่เกิน 8 MB');const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}}
  catch(e){return toast('บันทึกรอยเขียนไม่สำเร็จ: '+((e&&e.message)||''))}
  const x=(S.subs[iid]??={});
  x[sid]={at:new Date().toISOString(),...x[sid],status,raw,score,feedback,marks};
@@ -354,7 +353,7 @@ const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่�
 async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await fetch(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));return!!r.ok}
 async function pull(){
  if(!online())return;
-  const sg=JSON.stringify(d);if(sg===window._ps){$('st').textContent='☁️ เชื่อมต่อ Google Drive แล้ว '+tm();return}window._ps=sg;
+  const sg=JSON.stringify(d);if(sg===window._ps){...return}window._ps=sg;
   try{const c=new AbortController(),tt=setTimeout(()=>c.abort(),20000);let r;try{r=await(await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''),{signal:c.signal})).json()}finally{clearTimeout(tt)}if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}const d=r.data||{};
   if(!d.items){if(role==='teacher'&&KEY)save();return}
   if(pend||inflight||unsaved||activeTest)return;
