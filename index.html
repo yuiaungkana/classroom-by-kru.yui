@@ -153,9 +153,8 @@ function studentBox(it){
  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
  const s=sub(it.id,me.id);
  const status=`<div class="flex justify-between text-xs"><b>สถานะ:</b>${badge(s,it)}</div>${s?.feedback?`<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 ${esc(s.feedback)}</div>`:''}${markHtml(s)}`;
- if(it.type==='test'){
-  if(s&&['cheated','graded','submitted'].includes(s.status))return`<div class="p-3 rounded-2xl text-xs font-bold ${s.status==='cheated'?'bg-rose-50 text-rose-600':'bg-emerald-50 text-emerald-700'}">${s.status==='cheated'?'⚠️ ถูกตัดสิทธิ์สอบ (สลับหน้าจอ)':s.status==='submitted'?'📨 ส่งแล้ว รอครูตรวจข้อเขียน':'✅ ทำแบบทดสอบเสร็จแล้ว'}</div>`;
-  return`<button onclick="startTest('${it.id}')" class="bb px-4 py-2 bg-purple-400 text-white rounded-xl text-xs font-bold">▶ เริ่มทำแบบทดสอบ</button>`}
+ •	'📨 ส่งแล้ว รอครูตรวจข้อเขียน' → '📨 ส่งแล้ว รอผลคะแนน'
+	•	`✅ ส่งแบบทดสอบแล้ว` → `✅ ส่งแล้ว ได้ ${fmt(s.score)}/${fmt(it.max)} คะแนน`
  return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<textarea id="t_${it.id}" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อความส่งงาน...">${esc(s?.text)}</textarea><input id="u_${it.id}" value="${esc(s?.url)}" placeholder="ลิงก์ผลงาน (ถ้ามี)" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs">${attHtml(s?.att,`rmSubAtt('${it.id}',`)}<input id="fl_${it.id}" type="file" multiple class="w-full text-xs"><div class="flex gap-2"><button onclick="send('${it.id}')" class="bb flex-1 py-2 bg-pink-400 text-white rounded-xl text-xs font-bold">${s?'บันทึกการแก้ไข':'ส่งงาน'}</button>${s?`<button onclick="delSub('${it.id}')" class="bb px-4 py-2 bg-rose-100 text-rose-600 rounded-xl text-xs font-bold">ลบงาน</button>`:''}</div></div>`}
 const attHtml=(l,rm)=>(l||[]).map((f,i)=>`<div class="flex items-center gap-2 text-xs">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-36 rounded-xl border">`:`<a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a>`}${rm?`<button onclick="${rm}${i})">✕</button>`:''}</div>`).join('');
 async function send(id){
@@ -267,7 +266,7 @@ function cheat(){if(!document.hidden||!activeTest)return;const it=S.items.find(i
 function finishTest(){
  if(!activeTest)return;const it=S.items.find(i=>i.id===activeTest);let sc=0,es=false;
  const answers=it.questions.map((q,i)=>{const a=qt(q)==='mc'?(document.querySelector(`input[name=q${i}]:checked`)?.value||''):$('a'+i).value.trim();if(qt(q)==='essay')es=true;else if(ok(q,a))sc+=pts(q,it);return a});
- (S.subs[it.id]??={})[me.id]={status:es?'submitted':'graded',score:Math.round(sc*10)/10,answers,at:new Date().toISOString(),feedback:''};
+ (S.subs[it.id]??={})[me.id]={status:(es||online())?'submitted':'graded',score:Math.round(sc*10)/10,answers,at:new Date().toISOString(),feedback:''};
  putSub(it.id,me.id);endTest();save();render();toast('ส่งแบบทดสอบแล้ว')}
 
 /* grading */
@@ -348,7 +347,7 @@ const GAS_URL='https://script.google.com/macros/s/AKfycbz0jPCNArFWdlawPUklGZ-gFj
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 let KEY='',pend=null,inflight=0,unsaved=false;try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
 const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
-async function api(b){return(await fetch(GAS_URL,{method:'POST',body:JSON.stringify({...b,key:KEY})})).json()}
+async function api(b){return(await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''))
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
 async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await fetch(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));return!!r.ok}
 async function pull(){
@@ -369,7 +368,7 @@ function save(){
  if(role!=='teacher'||!KEY){$('st').textContent='ℹ️ ต้องเข้า "มุมครู" (ใส่รหัสครู) จึงจะบันทึกลง Google Drive';return}
  unsaved=true;try{localStorage.setItem('lms_unsaved','1')}catch(e){}clearTimeout(pend);$('st').textContent='⏳ กำลังบันทึก...';pend=setTimeout(flush,700)}
 async function flush(){pend=null;inflight++;try{const r=await api({action:'saveCore',core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}});if(r.ok){unsaved=false;try{localStorage.removeItem('lms_unsaved')}catch(e){}$('st').textContent='☁️ บันทึกลง Google Drive แล้ว '+tm()}else{$('st').textContent='⚠️ '+r.error;if(String(r.error).includes('รหัสครู')){KEY='';unsaved=false;try{localStorage.removeItem('lms_key');localStorage.removeItem('lms_unsaved')}catch(e){}}}}catch(e){$('st').textContent='⚠️ บันทึกไม่สำเร็จ จะลองใหม่อัตโนมัติ';setTimeout(()=>{if(unsaved&&!pend)flush()},5000)}finally{inflight--}}
-function putSub(i,d){if(!online())return;inflight++;api({action:'putSub',iid:i,sid:d,sub:S.subs[i][d]}).then(r=>$('st').textContent=r.ok?'☁️ บันทึกลง Google Drive แล้ว '+tm():'⚠️ '+r.error).catch(()=>toast('บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ')).finally(()=>inflight--)}
+function putSub(i,d){if(!online())return;inflight++;api({action:'putSub',iid:i,sid:d,sub:S.subs[i][d]}).then(r=>{if(r.ok&&r.sub&&role==='student'){S.subs[i][d]=r.sub;render()}if(!r.ok)toast(r.error);$('st').textContent=r.ok?'☁️ บันทึกลง Google Drive แล้ว '+tm():'⚠️ '+r.error}).catch(()=>toast('บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ')).finally(()=>inflight--)}
 function delSub(id){openForm('ลบงานที่ส่งนี้?',[],()=>{delete S.subs[id][me.id];if(online()){inflight++;api({action:'delSub',iid:id,sid:me.id}).finally(()=>inflight--)}save();render();return true})}
 async function dl(u,n){const m=u.match(/(?:id=|\/d\/)([\w-]{10,})/);window.open(m?'https://drive.google.com/uc?export=download&id='+m[1]:u,'_blank')}
 async function loadUsage(){const el=$('usage');if(!el)return;
