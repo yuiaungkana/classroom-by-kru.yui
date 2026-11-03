@@ -144,23 +144,25 @@ function vList(type){
  const T=TY[type],list=S.items.filter(i=>i.type===type);
  const sub_={material:'ศึกษาเนื้อหาและเอกสารประกอบ',exercise:'เขียนชื่อ-สกุล ชั้น เลขที่ และขีดเส้นใต้ก่อนส่งงานทุกครั้ง',test:'ห้ามสลับแท็บระหว่างสอบ มิฉะนั้นจะถูกตัดสิทธิ์',project:'ส่งชิ้นงานพร้อมตรวจเวลาส่งอัตโนมัติ'}[type];
  return head(T.e+' '+T.n,sub_,add(type==='test'?'openTest()':`itemForm('${type}')`,'+ เพิ่ม'))+list.map(it=>`<div class="card p-5 border-2 border-${T.c}-200 space-y-3">
-  <div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-${T.c}-100">${T.n}${it.max&&role==='teacher'?` • เต็ม ${it.max}`:''}${it.time?` • ${it.time} นาที`:''}${it.time?` • ${it.time} นาที`:''}</span><h3 class="font-bold text-sm mt-1.5">${esc(it.title)}</h3></div>${role==='teacher'?`<span class="flex gap-2 shrink-0"><button onclick="${type==='test'?`openTest('${it.id}')`:`itemForm('${type}','${it.id}')`}">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div>
+  <div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-${T.c}-100">${T.n}${it.max&&role==='teacher'?` • เต็ม • ${it.time} นาที`:''}${it.time?` • ${it.time} นาที`:''}</span><h3 class="font-bold text-sm mt-1.5">${esc(it.title)}</h3></div>${role==='teacher'?`<span class="flex gap-2 shrink-0"><button onclick="${type==='test'?`openTest('${it.id}')`:`itemForm('${type}','${it.id}')`}">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div>
   <p class="text-xs text-slate-500">${esc(it.desc)}</p>
   ${it.due?`<div class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">⏰ กำหนดส่ง: ${esc(it.due.replace('T',' '))}</div>`:''}${it.openAt?`<div class="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded-xl p-2">🕒 เปิด: ${esc(it.openAt.replace('T',' '))}</div>`:''}
-  ${role!=='teacher'&&!isOpen(it)?lockBox(it):type==='material'?matView(it):role==='teacher'?teacherList(it):studentBox(it)}
+  ${role!=='teacher'&&!isOpen(it)?lockBox(it):type==='material'?matView(it):role==='teacher'?teacherList(it):studentBox(it)}</div>`).join('')}
 function teacherList(it){return`<div class="border-t pt-2 space-y-1.5">${S.students.map(s=>`<div class="flex justify-between items-center bg-slate-50 rounded-xl p-2 text-xs"><span>${s.no}. ${esc(s.name)}</span><span class="flex items-center gap-2">${badge(sub(it.id,s.id),it)}<button onclick="openGrade('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-purple-100 rounded-lg font-bold">ตรวจ</button></span></div>`).join('')}</div>`}
 function studentBox(it){
  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
  const s=sub(it.id,me.id);
  const status=`<div class="flex justify-between text-xs"><b>สถานะ:</b>${badge(s,it)}</div>${s?.feedback?`<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 ${esc(s.feedback)}</div>`:''}${markHtml(s)}`;
- •	'📨 ส่งแล้ว รอครูตรวจข้อเขียน' → '📨 ส่งแล้ว รอผลคะแนน'
-	•	`✅ ส่งแบบทดสอบแล้ว` → `✅ ส่งแล้ว ได้ ${fmt(s.score)}/${fmt(it.max)} คะแนน`
+  if(it.type==='test'){
+  const fmt=n=>Math.round((+n||0)*100)/100,box=x=>`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}${x}</div>`;
+  if(s?.status==='cheated')return box('');
+  if(s)return box(`<div class="text-xs font-bold">${s.status==='graded'?`✅ ส่งแล้ว ได้ ${fmt(s.score)}/${fmt(it.max)} คะแนน`:'📨 ส่งแล้ว รอผลคะแนน'}</div>`);
+  return box(`<button onclick="startTest('${it.id}')" class="bb w-full py-2 bg-purple-400 text-white rounded-xl text-xs font-bold">▶️ เริ่มทำแบบทดสอบ</button>`)}
  return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<textarea id="t_${it.id}" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อความส่งงาน...">${esc(s?.text)}</textarea><input id="u_${it.id}" value="${esc(s?.url)}" placeholder="ลิงก์ผลงาน (ถ้ามี)" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs">${attHtml(s?.att,`rmSubAtt('${it.id}',`)}<input id="fl_${it.id}" type="file" multiple class="w-full text-xs"><div class="flex gap-2"><button onclick="send('${it.id}')" class="bb flex-1 py-2 bg-pink-400 text-white rounded-xl text-xs font-bold">${s?'บันทึกการแก้ไข':'ส่งงาน'}</button>${s?`<button onclick="delSub('${it.id}')" class="bb px-4 py-2 bg-rose-100 text-rose-600 rounded-xl text-xs font-bold">ลบงาน</button>`:''}</div></div>`}
 const attHtml=(l,rm)=>(l||[]).map((f,i)=>`<div class="flex items-center gap-2 text-xs">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-36 rounded-xl border">`:`<a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a>`}${rm?`<button onclick="${rm}${i})">✕</button>`:''}</div>`).join('');
 async function send(id){
  const it=S.items.find(i=>i.id===id),old=sub(id,me.id),late=old?old.late:!!(it.due&&new Date()>new Date(it.due));
  if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
- const text=$('t_'+id).value,...
  const text=$('t_'+id).value,url=$('u_'+id).value,att=[...(old?.att||[])],fs=[...$('fl_'+id).files];
  for(const f of fs){try{att.push(await upFile(f))}catch(e){return toast(f.name+': '+e.message)}}
  (S.subs[id]??={})[me.id]={at:new Date().toISOString(),text,url,att,status:'submitted',late,score:0,feedback:''};
@@ -255,7 +257,6 @@ function startTest(id){
  const it=S.items.find(i=>i.id===id);if(!it.questions?.length)return toast('แบบทดสอบนี้ยังไม่มีข้อสอบ');
  if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
  if(it.due&&new Date()>new Date(it.due))return toast('หมดเวลารับแบบทดสอบแล้ว');
- activeTest=id;...
  activeTest=id;let left=(it.time||15)*60;const ic='w-full border-2 border-slate-200 rounded-xl p-2 text-xs';
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div class="flex justify-between items-center"><h3 class="mali font-bold">${esc(it.title)}</h3><span id="tm" class="bg-yellow-100 rounded-xl px-3 py-1 text-xs font-bold"></span></div><div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs font-bold text-amber-800">⚠️ ห้ามสลับแท็บ — ระบบจะตัดสิทธิ์ทันที</div>${it.questions.map((q,i)=>`<div class="text-xs space-y-1"><p class="font-bold">ข้อ ${i+1}: ${esc(q.q)} </p>${qt(q)==='essay'?`<textarea id="a${i}" rows="3" class="${ic}"></textarea>`:qt(q)==='fill'?`<input id="a${i}" class="${ic}" placeholder="คำตอบ">`:(q.opts||[]).map(o=>`<label class="block"><input type="radio" name="q${i}" value="${esc(o)}"> ${esc(o)}</label>`).join('')}</div>`).join('')}<button onclick="finishTest()" class="bb w-full py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">ส่งคำตอบ</button></div>`;
  $('modal').classList.remove('hidden');
@@ -347,7 +348,7 @@ const GAS_URL='https://script.google.com/macros/s/AKfycbxO8aiY8CzFZbNCOhkK12Dywc
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 let KEY='',pend=null,inflight=0,unsaved=false;try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
 const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
-async function api(b){return(await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''))
+async function api(b){const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})});return r.json()}
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
 async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await fetch(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));return!!r.ok}
 async function pull(){
@@ -380,7 +381,6 @@ const _sr=setRole;
 setRole=function(r){
  if(r==='teacher'&&online()&&!KEY){openForm('🔑 รหัสครู',[['k','รหัสผ่านครู (ตั้งไว้ใน Code.gs)','']],async v=>{const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(v.k)).then(r=>r.json()).catch(()=>({}));if(!x.ok)return toast('รหัสไม่ถูกต้อง');KEY=v.k;try{localStorage.setItem('lms_key',KEY)}catch(e){}_sr('teacher');pull();return true});return}
  _sr(r)};
-if(online()&&!KEY){role='student';_sr('student')}
 if(online())$('st').textContent='⏳ กำลังเชื่อมต่อ Google Drive...';
 addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsaved)){stash();try{navigator.sendBeacon(GAS_URL,JSON.stringify({action:'saveCore',key:KEY,core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}}))}catch(e){}}});
 if(unsaved&&KEY)setTimeout(flush,1200);
