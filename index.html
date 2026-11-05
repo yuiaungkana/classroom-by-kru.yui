@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.5</span></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.6</span></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -44,7 +44,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 
 <script>
 /* ===== ตั้งค่า Google Apps Script ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbw6QN-hOATqTULOoa2nukHRGSvFK1AJY8oPwhE_AowyrJQQsS-2AdmKtazWh2n1JMro/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbz9_oLlKEujOe44DHy-owe8N0ksjYePlfGkBDh4WsKAb0eSfK3AULP4lnn8wl6FZ_5I/exec';
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 
 const $=id=>document.getElementById(id);
@@ -248,11 +248,23 @@ function delStudent(id){openForm('ลบนักเรียนนี้?',[],(
 function vList(type){
  const T=TY[type],list=S.items.filter(i=>i.type===type);
  const sub_={material:'ศึกษาเนื้อหาและเอกสารประกอบ',exercise:'เขียนชื่อ-สกุล ชั้น เลขที่ และขีดเส้นใต้ก่อนส่งงานทุกครั้ง',test:'ห้ามสลับแท็บระหว่างสอบ มิฉะนั้นจะถูกตัดสิทธิ์',project:'ส่งชิ้นงานพร้อมตรวจเวลาส่งอัตโนมัติ'}[type];
- return head(T.e+' '+T.n,sub_,add(type==='test'?'openTest()':`itemForm('${type}')`,'+ เพิ่ม'))+list.map(it=>`<div class="card p-5 border-2 border-${T.c}-200 space-y-3">
-  <div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-${T.c}-100">${T.n}${it.max&&role==='teacher'?` • เต็ม ${it.max}`:''}${it.time?` • ${it.time} นาที`:''}</span><h3 class="font-bold text-sm mt-1.5">${esc(it.title)}</h3></div>${role==='teacher'?`<span class="flex gap-2 shrink-0"><button onclick="${type==='test'?`openTest('${it.id}')`:`itemForm('${type}','${it.id}')`}">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div>
+ return head(T.e+' '+T.n,sub_,add(type==='test'?'openTest()':`itemForm('${type}')`,'+ เพิ่ม'))+list.map((it,idx)=>`<div class="card p-5 border-2 border-${T.c}-200 space-y-3">
+  <div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-${T.c}-100">${T.n}${it.max&&role==='teacher'?` • เต็ม ${it.max}`:''}${it.time?` • ${it.time} นาที`:''}</span><h3 class="font-bold text-sm mt-1.5">${esc(it.title)}</h3></div>${role==='teacher'?`<span class="flex gap-1.5 shrink-0 items-center"><button onclick="moveItem('${it.id}',-1)" ${idx===0?'disabled class="opacity-30"':''} title="เลื่อนขึ้น">⬆️</button><button onclick="moveItem('${it.id}',1)" ${idx===list.length-1?'disabled class="opacity-30"':''} title="เลื่อนลง">⬇️</button><button onclick="${type==='test'?`openTest('${it.id}')`:`itemForm('${type}','${it.id}')`}" class="ml-1">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div>
   <p class="text-xs text-slate-500">${esc(it.desc)}</p>
   ${it.due?`<div class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">⏰ กำหนดส่ง: ${esc(it.due.replace('T',' '))}</div>`:''}${it.openAt?`<div class="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded-xl p-2">🕒 เปิด: ${esc(it.openAt.replace('T',' '))}</div>`:''}
   ${role!=='teacher'&&!isOpen(it)?lockBox(it):type==='material'?matView(it):role==='teacher'?teacherList(it):studentBox(it)}</div>`).join('')}
+
+function moveItem(id,dir){
+ const idx=S.items.findIndex(i=>i.id===id);
+ if(idx===-1)return;
+ const targetIdx=idx+dir;
+ if(targetIdx<0||targetIdx>=S.items.length)return;
+ const temp=S.items[idx];
+ S.items[idx]=S.items[targetIdx];
+ S.items[targetIdx]=temp;
+ save();render();toast('สลับลำดับเรียบร้อย');
+}
+
 function teacherList(it){return`<div class="border-t pt-2 space-y-1.5">${S.students.map(s=>{const x=sub(it.id,s.id);return`<div class="flex justify-between items-center bg-slate-50 rounded-xl p-2 text-xs"><span>${s.no}. ${esc(s.name)}</span><span class="flex items-center gap-2">${badge(x,it)}${it.type==='test'&&x?`<button onclick="resetSub('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg font-bold">🔄 สอบใหม่</button>`:''}<button onclick="openGrade('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-purple-100 rounded-lg font-bold">ตรวจ</button></span></div>`}).join('')}</div>`}
 function studentBox(it){
  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
