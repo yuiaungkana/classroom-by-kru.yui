@@ -196,7 +196,7 @@ function render(){
 const head=(t,d,btn)=>`<div class="flex justify-between items-center gap-2"><div><h1 class="mali font-bold text-xl">${t}</h1><p class="text-xs text-slate-500">${d}</p></div>${btn||''}</div>`;
 const add=(f,l)=>role==='teacher'?`<button onclick="${f}" class="bb bg-pink-400 text-white px-4 py-2 rounded-2xl text-xs font-bold shrink-0">${l}</button>`:'';
 function badge(s,i){
- if(!s)return'<span class="px-2 py-0.5 rounded-lg bg-rose-100 text-rose-600 text-[10px] font-bold">ยังไม่ส่ง</span>';
+ if(s.status==='started')return'<span class="px-2 py-0.5 rounded-lg bg-rose-200 text-rose-700 text-[10px] font-bold">ออกกลางคัน</span>';
  if(s.status==='cheated')return'<span class="px-2 py-0.5 rounded-lg bg-rose-200 text-rose-700 text-[10px] font-bold">ตัดสิทธิ์</span>';
  if(s.status==='graded')return role==='teacher'?`<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">ตรวจแล้ว ${s.score}/${i.max}</span>`:'<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">ตรวจแล้ว</span>';
  if(s.status==='revision')return'<span class="px-2 py-0.5 rounded-lg bg-orange-100 text-orange-700 text-[10px] font-bold">แก้ไข</span>';
@@ -230,7 +230,7 @@ function studentBox(it){
  const status=`<div class="flex justify-between text-xs"><b>สถานะ:</b>${badge(s,it)}</div>${s?.feedback?`<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 ${esc(s.feedback)}</div>`:''}${markHtml(s)}`;
  if(it.type==='test'){
   const fmt=n=>Math.round((+n||0)*100)/100,box=x=>`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}${x}</div>`;
-  if(s?.status==='cheated')return box('');
+  if(s?.status==='cheated'||(s?.status==='started'&&activeTest!==it.id))return box('');
   if(s)return box(`<div class="text-xs font-bold">${s.status==='graded'?`✅ ส่งแล้ว ได้ ${fmt(s.score)}/${fmt(it.max)} คะแนน`:'📨 ส่งแล้ว รอผลคะแนน'}</div>`);
   return box(`<button onclick="startTest('${it.id}')" class="bb w-full py-2 bg-purple-400 text-white rounded-xl text-xs font-bold">▶️ เริ่มทำแบบทดสอบ</button>`)}
  return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<textarea id="t_${it.id}" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อความส่งงาน...">${esc(s?.text)}</textarea><input id="u_${it.id}" value="${esc(s?.url)}" placeholder="ลิงก์ผลงาน (ถ้ามี)" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs">${attHtml(s?.att,`rmSubAtt('${it.id}',`)}<input id="fl_${it.id}" type="file" multiple class="w-full text-xs"><div class="flex gap-2"><button onclick="send('${it.id}')" class="bb flex-1 py-2 bg-pink-400 text-white rounded-xl text-xs font-bold">${s?'บันทึกการแก้ไข':'ส่งงาน'}</button>${s?`<button onclick="delSub('${it.id}')" class="bb px-4 py-2 bg-rose-100 text-rose-600 rounded-xl text-xs font-bold">ลบงาน</button>`:''}</div></div>`}
