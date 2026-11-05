@@ -125,7 +125,7 @@ async function pull(){
   try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
   if(!busy()&&$('modal').classList.contains('hidden'))render();
   $('st').textContent='☁️ เชื่อมต่อ Google Drive แล้ว '+tm();
- }catch(e){$('st').textContent='⚠️ เชื่อมต่อ Apps Script ไม่ได้ ตรวจ URL, สิทธิ์ Anyone และ Deploy เวอร์ชันใหม่'}
+ }catch(e){$('st').textContent='⚠️ เชื่อมต่อ Apps Script ไม่ได้: '+((e&&e.message)||e)}
  finally{pulling=false}}
 function save(){
  stash();lastSig=sigOf();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
