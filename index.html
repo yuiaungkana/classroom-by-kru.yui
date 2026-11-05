@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v8.3</span></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v8.4</span></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -44,7 +44,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 
 <script>
 /* ===== ตั้งค่า Google Apps Script ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbwsj5YuC1M767X9iru7aupiOWDR-FYj56s-5YUOnb93jeNP_Exaw15GpwfOIkSo3yJZ/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbwoanqpeixB9q-5Z_HY5rMELiYp3J-DsjAnJF01775uL5bVri1mB6NOHEoNEBMRacyr/exec';
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 
 const $=id=>document.getElementById(id);
@@ -56,7 +56,7 @@ let S={
  items:[
   {id:'m1',type:'material',title:'บทที่ 1: การเขียนโปรแกรมเบื้องต้น',desc:'ใบความรู้ตัวแปรและฟังก์ชัน',url:''},
   {id:'e1',type:'exercise',title:'แบบฝึกทักษะ: การประกาศตัวแปร',desc:'เขียนโค้ดคำนวณพื้นที่สามเหลี่ยม',max:10,due:'2026-11-15T23:59'},
-  {id:'t1',type:'test',title:'แบบทดสอบย่อย บทที่ 1',desc:'ปรนัย (จับเวลา)',max:10,time:15,questions:[{q:'ข้อใดคือชนิดข้อมูลจำนวนเต็มใน Python?',opts:['int','float','str','bool'],ans:'int'},{q:'คำสั่งแสดงผลใน Python คือข้อใด?',opts:['echo','print','show','out'],ans:'print'}]},
+  {id:'t1',type:'test',title:'แบบทดสอบย่อย บทที่ 1',desc:'ปรนัย (จับเวลา)',max:10,time:15,questions:[{q:'ข้อใดคือชนิดข้อมูลจำนวนเต็มใน Python?',opts:['int','float','str','bool'],ans:'int',pts:5},{q:'คำสั่งแสดงผลใน Python คือข้อใด?',opts:['echo','print','show','out'],ans:'print',pts:5}]},
   {id:'p1',type:'project',title:'โครงงานที่ 1: เกม Scratch',desc:'ส่งลิงก์ผลงาน Scratch',max:20,due:'2026-11-20T23:59'}],
  students:[{id:'s1',code:'6601',no:1,name:'นายสมชาย ใจดี'},{id:'s2',code:'6602',no:2,name:'นางสาวสมหญิง รักเรียน'},{id:'s3',code:'6603',no:3,name:'เด็กชายมานพ รักเรียน'}],
  subs:{},notifs:[]};
@@ -95,8 +95,14 @@ const DR=(()=>{try{return JSON.parse(sessionStorage.getItem('lms_dr')||'{}')}cat
 const saveDR=()=>{try{sessionStorage.setItem('lms_dr',JSON.stringify(DR))}catch(e){}};
 function clearDraft(id){delete DR['t_'+id];delete DR['u_'+id];saveDR()}
 document.addEventListener('input',e=>{const id=(e.target&&e.target.id)||'';if(/^[tu]_/.test(id)){DR[id]=e.target.value;saveDR()}});
-const qt=q=>q.type||'mc',pts=(q,it)=>q.pts??Math.round(it.max/it.questions.length*10)/10;
-const ok=(q,a)=>qt(q)==='mc'?a===q.ans:qt(q)==='fill'&&String(q.ans).split('|').some(x=>x.trim().toLowerCase()===a.toLowerCase());
+const qt=q=>q.type||'mc',pts=(q,it)=>q.pts??Math.round((it.max/(it.questions?.length||1))*10)/10;
+const ok=(q,a)=>{
+ const userAns=String(a||'').trim();
+ if(!userAns)return false;
+ if(qt(q)==='mc')return userAns===String(q.ans).trim();
+ if(qt(q)==='fill')return String(q.ans).split('|').some(x=>x.trim().toLowerCase()===userAns.toLowerCase());
+ return false;
+};
 const notifs=()=>{const r=[];Object.entries(S.subs).forEach(([i,o])=>Object.entries(o).forEach(([d,x])=>{const t=Date.parse(x.at);if(t>seen&&['submitted','cheated'].includes(x.status)){const it=S.items.find(k=>k.id===i),st=S.students.find(k=>k.id===d);r.push({t:(x.status==='cheated'?'🚨 ถูกตัดสิทธิ์: ':'ส่งงาน: ')+(st?.name||d)+' – '+(it?.title||''),time:new Date(t).toLocaleTimeString('th-TH'),k:t})}}));return r.sort((a,b)=>b.k-a.k).slice(0,30)};
 const TY={material:{n:'สื่อการเรียน',e:'📖',c:'sky'},exercise:{n:'แบบฝึกทักษะ',e:'✏️',c:'pink'},test:{n:'แบบทดสอบ',e:'📝',c:'purple'},project:{n:'ชิ้นงาน/โครงงาน',e:'🧩',c:'emerald'}};
 const tasks=()=>S.items.filter(i=>i.type!=='material');
