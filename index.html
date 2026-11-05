@@ -275,7 +275,7 @@ function resetSub(iid,sid){
   finally{inflight--}
   return true})}
 function rmSubAtt(id,i){sub(id,me.id).att.splice(i,1);putSub(id,me.id);render()}
-function autoDue(){const d=new Date();d.setDate(d.getDate()+7);const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T23:59`}
+function autoDue(){const d=new Date(Date.now()+7*864e5+7*36e5),p=n=>String(n).padStart(2,'0');return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T23:59`}
 function itemForm(type,id){
  const o=S.items.find(i=>i.id===id)||{};
  const f=[['title','ชื่อหัวข้อ',o.title||''],['desc','รายละเอียด',o.desc||'','area']];
@@ -310,7 +310,7 @@ function vRoom(){stash();setTimeout(loadUsage,50);const c=S.cfg;
  return head('🏫 ห้องเรียน','สร้าง แก้ไข ลบห้องเรียน และแชร์ให้นักเรียน',`<button onclick="addRoom()" class="bb bg-pink-400 text-white px-4 py-2 rounded-2xl text-xs font-bold shrink-0">+ สร้างห้องเรียน</button>`)+`<div class="card p-4 space-y-2"><b class="text-xs">ห้องเรียนทั้งหมด</b>${rooms}</div><div class="card p-5 space-y-2 text-sm"><b>ห้องที่เปิดอยู่</b><div>📅 ภาคเรียนที่ <b>${esc(c.term)}</b> ปีการศึกษา <b>${esc(c.year)}</b></div><div>🏫 ระดับชั้น <b>${esc(c.level)}</b> ห้อง <b>${esc(c.room)}</b></div><div>📘 วิชา <b>${esc(c.sname)}</b> รหัสวิชา <b>${esc(c.scode)||'-'}</b></div><div>🔑 รหัสผ่านเข้าห้อง: <b>${esc(c.pw)||'ไม่ได้ตั้ง'}</b></div></div><div class="card p-5 space-y-2 text-xs"><b>ลิงก์สำหรับนักเรียน (ห้องที่เปิดอยู่)</b><div class="break-all bg-slate-50 rounded-xl p-2">${esc(roomLink())}</div><button onclick="copyLink()" class="bb px-3 py-1.5 bg-sky-100 rounded-xl font-bold">📋 คัดลอกลิงก์</button>${qrHtml()}<p class="text-slate-500">นักเรียนเปิดลิงก์ → กรอกรหัสนักเรียนและรหัสผ่านห้อง</p></div><div id="usage" class="card p-5 space-y-2 text-xs">กำลังตรวจพื้นที่...</div>`}
 const EXT={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',mp4:'video/mp4',webm:'video/webm',pdf:'application/pdf',csv:'text/csv',md:'text/markdown',json:'application/json',txt:'text/plain'};
 async function upFile(f0){
- const f=await shrink(f0),ext=(f.name.split('.').pop()||'').toLowerCase(),type=EXT[ext]||f.type;
+ const f=await shrink(f0);if(f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB'};const
  try{const r=await ASSETS.upload(new File([f],f.name,{type}));return{name:f0.name,url:r.url,ct:r.contentType||type}}catch(e){throw{message:'อัปโหลดไม่สำเร็จ ('+((e&&(e.code||e.message))||'ไม่ทราบสาเหตุ')+')'}}}
 async function shrink(f){if(!f||!/^image\/(?!gif|svg)/.test(f.type)||(f.size<300000&&/^image\/(jpeg|png|webp)$/.test(f.type)))return f;try{const b=await createImageBitmap(f),k=Math.min(1,1600/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=Math.round(b.width*k);c.height=Math.round(b.height*k);c.getContext('2d').drawImage(b,0,0,c.width,c.height);const o=await new Promise(r=>c.toBlob(r,'image/jpeg',.82));return o&&o.size<f.size?new File([o],f.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):f}catch(e){return f}}
 function loadUsage(){const el=$('usage');if(!el)return;
@@ -403,7 +403,7 @@ async function startTest(id){
  if(blocked())return;
  const it=S.items.find(i=>i.id===id);if(!it.questions?.length)return toast('แบบทดสอบนี้ยังไม่มีข้อสอบ');
  if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
- if(it.due&&new Date()>new Date(it.due))return toast('หมดเวลารับแบบทดสอบแล้ว');
+ if(it.due&&new Date()>th(it.due))return toast('หมดเวลารับแบบทดสอบแล้ว');
  (S.subs[id]??={})[me.id]={status:'started',at:new Date().toISOString()};
 toast('กำลังเริ่มสอบ...');
  if(!(await putSub(id,me.id,null))){await pull();render();return}
@@ -419,8 +419,10 @@ async function finishTest(){
  const answers=it.questions.map((q,i)=>{const a=qt(q)==='mc'?(document.querySelector(`input[name=q${i}]:checked`)?.value||''):$('a'+i).value.trim();if(qt(q)==='essay')es=true;else if(ok(q,a))sc+=pts(q,it);return a});
  (S.subs[it.id]??={})[me.id]={status:(es||online())?'submitted':'graded',score:Math.round(sc*10)/10,answers,at:new Date().toISOString(),feedback:''};
  endTest();toast('กำลังส่งแบบทดสอบ...');
- const done=await putSub(it.id,me.id,null);
- save();render();if(done)toast('ส่งแบบทดสอบแล้ว');else pull()}
+  let done=false;
+ for(let n=0;n<4&&!done;n++){if(n)await new Promise(r=>setTimeout(r,2000*n));done=await putSub(it.id,me.id)}
+ if(!done)await pullNow();
+ save();render();if(done)toast('ส่งแบบทดสอบแล้ว')}
 
 /* grading */
 let gt=null,draw=false;
@@ -515,7 +517,8 @@ function copyCsv(){
    if(!u)return drawGate('กรอกชื่อผู้ใช้หรือรหัสประจำตัว');
    if(TEACHER_USERS.includes(u.toLowerCase())){
     if(!online())return drawGate('ยังไม่ได้ตั้งค่า GAS_URL');
-    const x=await fetch(GAS_URL+'?action=auth&key='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));
+    const x=await gj(GAS_URL+'?action=auth&key='+encodeURIComponent(KEY)).catch(()=>null)
+    if(x.err)return drawGate('⚠️ '+x.err);
     if(!x.ok)return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     KEY=p;try{localStorage.setItem('lms_key',KEY)}catch(e){}
     AUTH=true;me=null;_sr('teacher');pull();
