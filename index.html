@@ -78,6 +78,18 @@ let lastSig=sigOf();
 let KEY='',pend=null,inflight=0,unsaved=false,pulling=false,AUTH=false,retry=0,saving=false,subVer=0;
 try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
 const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
+/* เวลาไทย (UTC+7) ให้ตรงกับ parseLocal ใน Code.gs ไม่ว่าเครื่องจะอยู่เขตเวลาไหน */
+const th=s=>{const m=String(s||'').match(/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/);return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4]-7,+m[5])):new Date(0)};
+async function gj(url,opt){
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);
+ try{
+  const r=await fetch(url,{...opt,signal:c.signal}),x=await r.text();
+  try{return JSON.parse(x)}catch(e){throw new Error('Apps Script ไม่ได้ตอบเป็น JSON (ตรวจ Deploy: Execute as Me / Access Anyone และใช้ URL /exec ล่าสุด)')}
+ }catch(e){
+  if(e&&e.name==='AbortError')throw new Error('หมดเวลารอเซิร์ฟเวอร์');
+  if(/Load failed|Failed to fetch|NetworkError/i.test((e&&e.message)||''))throw new Error('ติดต่อ Apps Script ไม่ได้ ('+e.message+') ตรวจอินเทอร์เน็ตและการ Deploy เป็น "Anyone"');
+  throw e
+ }finally{clearTimeout(t)}}
 const busy=()=>(/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'')&&$('view').contains(document.activeElement))||[...document.querySelectorAll('#view input[type=file]')].some(i=>i.files&&i.files.length);
 const DR=(()=>{try{return JSON.parse(sessionStorage.getItem('lms_dr')||'{}')}catch(e){return{}}})();
 const saveDR=()=>{try{sessionStorage.setItem('lms_dr',JSON.stringify(DR))}catch(e){}};
@@ -88,7 +100,7 @@ const ok=(q,a)=>qt(q)==='mc'?a===q.ans:qt(q)==='fill'&&String(q.ans).split('|').
 const notifs=()=>{const r=[];Object.entries(S.subs).forEach(([i,o])=>Object.entries(o).forEach(([d,x])=>{const t=Date.parse(x.at);if(t>seen&&['submitted','cheated'].includes(x.status)){const it=S.items.find(k=>k.id===i),st=S.students.find(k=>k.id===d);r.push({t:(x.status==='cheated'?'🚨 ถูกตัดสิทธิ์: ':'ส่งงาน: ')+(st?.name||d)+' – '+(it?.title||''),time:new Date(t).toLocaleTimeString('th-TH'),k:t})}}));return r.sort((a,b)=>b.k-a.k).slice(0,30)};
 const TY={material:{n:'สื่อการเรียน',e:'📖',c:'sky'},exercise:{n:'แบบฝึกทักษะ',e:'✏️',c:'pink'},test:{n:'แบบทดสอบ',e:'📝',c:'purple'},project:{n:'ชิ้นงาน/โครงงาน',e:'🧩',c:'emerald'}};
 const tasks=()=>S.items.filter(i=>i.type!=='material');
-const isOpen=it=>!it.openAt||new Date()>=new Date(it.openAt);
+const isOpen=it=>!it.openAt||new Date()>=th(it.openAt);
 const lockBox=it=>`<div class="text-xs font-bold text-slate-500 bg-slate-100 rounded-xl p-3">🔒 จะเปิดวันที่ ${esc(it.openAt.replace('T',' '))}</div>`;
 const sub=(i,s)=>(S.subs[i]||{})[s];
 const tm=()=>new Date().toLocaleTimeString('th-TH');
@@ -102,15 +114,14 @@ function setRole(r){role=r;if(r==='student'&&!me){openForm('🎓 เข้าส
 function go(t){tab=t;render()}
 
 /* ===== Google Apps Script backend ===== */
-async function api(b){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);try{const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY}),signal:c.signal});return await r.json()}finally{clearTimeout(t)}}
+const api=b=>gj(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})});
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
-async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await fetch(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).then(r=>r.json()).catch(()=>({}));return!!r.ok}
+async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await gj(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).catch(()=>({}));return!!r.ok}
 const pullNow=async()=>{for(let i=0;i<60&&pulling;i++)await new Promise(r=>setTimeout(r,200));return pull()};
 async function pull(){
  if(!online()||pulling)return;pulling=true;const v0=subVer;
  try{
-  const c=new AbortController(),tt=setTimeout(()=>c.abort(),20000);let r;
-  try{r=await(await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''),{signal:c.signal})).json()}finally{clearTimeout(tt)}
+  const r=await gj(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''));
   if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}
   const d=r.data||{};
   if(!d.items){if(role==='teacher'&&KEY)save();return}
