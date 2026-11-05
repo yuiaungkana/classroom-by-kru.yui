@@ -204,7 +204,7 @@ function badge(s,i){
 function vDash(){
  const T=tasks();let ok=0,late=0,miss=0;
  const rows=(role==='teacher'?S.students:S.students.filter(s=>s.id===me?.id));
- rows.forEach(s=>T.forEach(t=>{const x=sub(t.id,s.id);if(!x||x.status==='cheated')miss++;else if(x.late)late++;else ok++}));
+ rows.forEach(s=>T.forEach(t=>{const x=sub(t.id,s.id);if(!x||x.status==='cheated'||x.status==='started')miss++;else if(x.late)late++;else ok++}));
  const box=(e,l,n,c)=>`<div class="card p-4 flex items-center gap-3 border-2 border-${c}-200"><span class="text-2xl">${e}</span><div><div class="text-[11px] text-slate-500 font-bold">${l}</div><div class="text-xl font-bold">${n}</div></div></div>`;
  return head('ติดตามสถานะการส่งงาน',role==='teacher'?'ภาพรวมการส่งงานของนักเรียน':'สถานะงานของคุณ')+`<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">${box('📋','งานทั้งหมด',rows.length*T.length,'sky')}${box('✅','ตรงเวลา',ok,'emerald')}${box('⏰','ส่งล่าช้า',late,'yellow')}${box('🚨','ยังไม่ส่ง',miss,'pink')}</div>
  <div class="card overflow-x-auto"><table class="w-full text-xs text-left"><thead class="bg-pink-50 font-bold"><tr><th class="p-3">เลขที่</th><th class="p-3">ชื่อ-นามสกุล</th>${T.map(t=>`<th class="p-3 text-center">${esc(t.title.split(':')[0])}</th>`).join('')}</tr></thead><tbody class="divide-y">${rows.map(s=>`<tr><td class="p-3 font-bold">${s.no}</td><td class="p-3">${esc(s.name)}</td>${T.map(t=>`<td class="p-3 text-center">${badge(sub(t.id,s.id),t)}</td>`).join('')}</tr>`).join('')||'<tr><td class="p-4 text-slate-400" colspan="9">เข้าสู่ระบบนักเรียนเพื่อดูสถานะ</td></tr>'}</tbody></table></div>`}
@@ -223,7 +223,7 @@ function vList(type){
   <p class="text-xs text-slate-500">${esc(it.desc)}</p>
   ${it.due?`<div class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">⏰ กำหนดส่ง: ${esc(it.due.replace('T',' '))}</div>`:''}${it.openAt?`<div class="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded-xl p-2">🕒 เปิด: ${esc(it.openAt.replace('T',' '))}</div>`:''}
   ${role!=='teacher'&&!isOpen(it)?lockBox(it):type==='material'?matView(it):role==='teacher'?teacherList(it):studentBox(it)}</div>`).join('')}
-function teacherList(it){return`<div class="border-t pt-2 space-y-1.5">${S.students.map(s=>`<div class="flex justify-between items-center bg-slate-50 rounded-xl p-2 text-xs"><span>${s.no}. ${esc(s.name)}</span><span class="flex items-center gap-2">${badge(sub(it.id,s.id),it)}<button onclick="openGrade('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-purple-100 rounded-lg font-bold">ตรวจ</button></span></div>`).join('')}</div>`}
+function teacherList(it){return`<div class="border-t pt-2 space-y-1.5">${S.students.map(s=>{const x=sub(it.id,s.id);return`<div class="flex justify-between items-center bg-slate-50 rounded-xl p-2 text-xs"><span>${s.no}. ${esc(s.name)}</span><span class="flex items-center gap-2">${badge(x,it)}${it.type==='test'&&x?`<button onclick="resetSub('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg font-bold">🔄 สอบใหม่</button>`:''}<button onclick="openGrade('${it.id}','${s.id}')" class="bb px-2.5 py-1 bg-purple-100 rounded-lg font-bold">ตรวจ</button></span></div>`}).join('')}</div>`}
 function studentBox(it){
  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
  const s=sub(it.id,me.id);
@@ -247,6 +247,18 @@ async function send(id){
  if(done)clearDraft(id);
  save();render();if(done)toast(old?'แก้ไขงานแล้ว':'ส่งงานเรียบร้อย!')}
 function delSub(id){openForm('ลบงานที่ส่งนี้?',[],()=>{clearDraft(id);delete S.subs[id][me.id];if(online()){inflight++;api({action:'delSub',iid:id,sid:me.id}).finally(()=>inflight--)}save();render();return true})}
+function resetSub(iid,sid){
+ const st=S.students.find(s=>s.id===sid);
+ openForm('เปิดสิทธิ์สอบใหม่ให้ '+esc(st?.name||'')+'? (ผลสอบเดิมจะถูกลบ)',[],async()=>{
+  if(role!=='teacher')return true;
+  inflight++;
+  try{
+   if(online()){const r=await api({action:'delSub',iid,sid});if(!r.ok){toast('⚠️ '+(r.error||'ไม่สำเร็จ'));return true}}
+   if(S.subs[iid])delete S.subs[iid][sid];
+   render();toast('เปิดสิทธิ์สอบใหม่แล้ว');
+  }catch(e){toast('⚠️ เชื่อมต่อไม่ได้ ลองใหม่')}
+  finally{inflight--}
+  return true})}
 function rmSubAtt(id,i){sub(id,me.id).att.splice(i,1);putSub(id,me.id);render()}
 function autoDue(){const d=new Date();d.setDate(d.getDate()+7);const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T23:59`}
 function itemForm(type,id){
@@ -377,6 +389,9 @@ async function startTest(id){
  const it=S.items.find(i=>i.id===id);if(!it.questions?.length)return toast('แบบทดสอบนี้ยังไม่มีข้อสอบ');
  if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
  if(it.due&&new Date()>new Date(it.due))return toast('หมดเวลารับแบบทดสอบแล้ว');
+ (S.subs[id]??={})[me.id]={status:'started',at:new Date().toISOString()};
+toast('กำลังเริ่มสอบ...');
+ if(!(await putSub(id,me.id,null))){await pull();render();return}
  activeTest=id;let left=(it.time||15)*60;const ic='w-full border-2 border-slate-200 rounded-xl p-2 text-xs';
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div class="flex justify-between items-center"><h3 class="mali font-bold">${esc(it.title)}</h3><span id="tm" class="bg-yellow-100 rounded-xl px-3 py-1 text-xs font-bold"></span></div><div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs font-bold text-amber-800">⚠️ ห้ามสลับแท็บ — ระบบจะตัดสิทธิ์ทันที</div>${it.questions.map((q,i)=>`<div class="text-xs space-y-1"><p class="font-bold">ข้อ ${i+1}: ${esc(q.q)} </p>${qt(q)==='essay'?`<textarea id="a${i}" rows="3" class="${ic}"></textarea>`:qt(q)==='fill'?`<input id="a${i}" class="${ic}" placeholder="คำตอบ">`:(q.opts||[]).map(o=>`<label class="block"><input type="radio" name="q${i}" value="${esc(o)}"> ${esc(o)}</label>`).join('')}</div>`).join('')}<button onclick="finishTest()" class="bb w-full py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">ส่งคำตอบ</button></div>`;
  $('modal').classList.remove('hidden');
@@ -385,7 +400,7 @@ async function startTest(id){
 function endTest(){clearInterval(timer);document.removeEventListener('visibilitychange',cheat);closeModal();activeTest=null}
 function cheat(){if(!document.hidden||!activeTest)return;const it=S.items.find(i=>i.id===activeTest);(S.subs[it.id]??={})[me.id]={status:'cheated',score:0,at:new Date().toISOString()};notify(`🚨 ${me.name} ถูกตัดสิทธิ์สอบ "${it.title}" (สลับหน้าจอ)`);putSub(it.id,me.id);endTest();save();render();toast('🚨 ตรวจพบการสลับหน้าจอ ถูกตัดสิทธิ์')}
 async function finishTest(){
- if(!activeTest)return;const it=S.items.find(i=>i.id===activeTest);let sc=0,es=false;
+ if(!activeTest)return;const prev=sub(activeTest,me.id)||null;const it=S.items.find(i=>i.id===activeTest);let sc=0,es=false;
  const answers=it.questions.map((q,i)=>{const a=qt(q)==='mc'?(document.querySelector(`input[name=q${i}]:checked`)?.value||''):$('a'+i).value.trim();if(qt(q)==='essay')es=true;else if(ok(q,a))sc+=pts(q,it);return a});
  (S.subs[it.id]??={})[me.id]={status:(es||online())?'submitted':'graded',score:Math.round(sc*10)/10,answers,at:new Date().toISOString(),feedback:''};
  endTest();toast('กำลังส่งแบบทดสอบ...');
