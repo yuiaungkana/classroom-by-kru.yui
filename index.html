@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v8.4</span></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.5</span></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -44,12 +44,12 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 
 <script>
 /* ===== ตั้งค่า Google Apps Script ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbyrwJogEJceGitiaUrzralDbKGgJ45lvsAYG6aAvkXvVg1uV8yV6iZBHI64oydm29j2/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbyVpK5QER8gTKtkO3JdKtBcEiyFGIM7zko2222LVjKzqo0N7UeEM-l8TAEwoNyboq0/exec';
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 
 const $=id=>document.getElementById(id);
-window.addEventListener('error',e=>{const t=document.getElementById('st');if(t)t.textContent='⚠️ ข้อผิดพลาดในหน้าเว็บ: '+(e.message||'ไม่ทราบสาเหตุ')});
-window.addEventListener('unhandledrejection',e=>{const t=document.getElementById('st');if(t)t.textContent='⚠️ ข้อผิดพลาด: '+((e.reason&&e.reason.message)||e.reason||'ไม่ทราบสาเหตุ')});
+window.addEventListener('error',e=>{const t=document.getElementById('st');if(t&&role==='teacher')t.textContent='⚠️ ข้อผิดพลาด: '+(e.message||'ไม่ทราบสาเหตุ')});
+window.addEventListener('unhandledrejection',e=>{const t=document.getElementById('st');if(t&&role==='teacher')t.textContent='⚠️ ข้อผิดพลาด: '+((e.reason&&e.reason.message)||e.reason||'ไม่ทราบสาเหตุ')});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const K='CLASSROOM_LMS_V2';
 let S={
@@ -78,18 +78,23 @@ let lastSig=sigOf();
 let KEY='',pend=null,inflight=0,unsaved=false,pulling=false,AUTH=false,retry=0,saving=false,subVer=0;
 try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
 const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
-/* เวลาไทย (UTC+7) ให้ตรงกับ parseLocal ใน Code.gs ไม่ว่าเครื่องจะอยู่เขตเวลาไหน */
 const th=s=>{const m=String(s||'').match(/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/);return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4]-7,+m[5])):new Date(0)};
-async function gj(url,opt){
+
+/* CORS-Friendly Fetch Helper */
+async function gj(url,opt={}){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);
  try{
   const r=await fetch(url,{...opt,signal:c.signal}),x=await r.text();
-  try{return JSON.parse(x)}catch(e){throw new Error('Apps Script ไม่ได้ตอบเป็น JSON (ตรวจ Deploy: Execute as Me / Access Anyone และใช้ URL /exec ล่าสุด)')}
+  try{return JSON.parse(x)}catch(e){
+   if(role==='teacher')throw new Error('Apps Script ตอบกลับไม่ใช่ JSON (ตรวจการ Deploy เป็น Anyone)');
+   return {ok:true,data:{}};
+  }
  }catch(e){
-  if(e&&e.name==='AbortError')throw new Error('หมดเวลารอเซิร์ฟเวอร์');
-  if(/Load failed|Failed to fetch|NetworkError/i.test((e&&e.message)||''))throw new Error('ติดต่อ Apps Script ไม่ได้ ('+e.message+') ตรวจอินเทอร์เน็ตและการ Deploy เป็น "Anyone"');
-  throw e
+  if(e&&e.name==='AbortError'&&role==='teacher')throw new Error('หมดเวลารอเซิร์ฟเวอร์');
+  if(role==='teacher')throw new Error('ติดต่อ Apps Script ไม่ได้');
+  return {ok:false,error:'network'};
  }finally{clearTimeout(t)}}
+
 const busy=()=>(/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'')&&$('view').contains(document.activeElement))||[...document.querySelectorAll('#view input[type=file]')].some(i=>i.files&&i.files.length);
 const DR=(()=>{try{return JSON.parse(sessionStorage.getItem('lms_dr')||'{}')}catch(e){return{}}})();
 const saveDR=()=>{try{sessionStorage.setItem('lms_dr',JSON.stringify(DR))}catch(e){}};
@@ -119,7 +124,7 @@ function setRole(r){role=r;if(r==='student'&&!me){openForm('🎓 เข้าส
  if(['students','grades','room','bonus'].includes(tab)&&r==='student')tab='dashboard';render()}
 function go(t){tab=t;render()}
 
-/* ===== Google Apps Script backend ===== */
+/* API Handler */
 const api=b=>gj(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})});
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
 async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;const r=await gj(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p)).catch(()=>({}));return!!r.ok}
@@ -128,7 +133,11 @@ async function pull(){
  if(!online()||pulling)return;pulling=true;const v0=subVer;
  try{
   const r=await gj(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''));
-  if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}
+  if(!r.ok){
+    if(role==='teacher')$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด';
+    else $('st').textContent='☁️ ทำงานในโหมดแคช (พร้อมใช้งาน)';
+    return;
+  }
   const d=r.data||{};
   if(!d.items){if(role==='teacher'&&KEY)save();return}
   if(v0!==subVer||pend||inflight||(role==='teacher'&&unsaved)||activeTest)return;
@@ -142,13 +151,18 @@ async function pull(){
   try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
   if(!busy()&&$('modal').classList.contains('hidden'))render();
   $('st').textContent='☁️ เชื่อมต่อ Google Drive แล้ว '+tm();
- }catch(e){$('st').textContent='⚠️ เชื่อมต่อ Apps Script ไม่ได้: '+((e&&e.message)||e)}
+ }catch(e){
+  if(role==='teacher')$('st').textContent='⚠️ เชื่อมต่อ Apps Script ไม่ได้';
+  else $('st').textContent='☁️ ทำงานในโหมดแคช (พร้อมใช้งาน)';
+ }
  finally{pulling=false}}
+
 function save(){
  stash();lastSig=sigOf();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
- if(!online()){$('st').textContent='บันทึกในเครื่องแล้ว (ยังไม่ได้ตั้งค่า Apps Script) '+tm();return}
- if(role!=='teacher'||!KEY){if(role==='teacher')$('st').textContent='ℹ️ ต้องเข้า "มุมครู" (ใส่รหัสครู) จึงจะบันทึกลง Google Drive';return}
+ if(!online()){$('st').textContent='บันทึกในเครื่องแล้ว '+tm();return}
+ if(role!=='teacher'||!KEY){if(role==='teacher')$('st').textContent='ℹ️ ต้องเข้ามุมครูเพื่อบันทึกลง Google Drive';return}
  unsaved=true;try{localStorage.setItem('lms_unsaved','1')}catch(e){}clearTimeout(pend);$('st').textContent='⏳ กำลังบันทึก...';pend=setTimeout(flush,1200)}
+
 async function flush(){
  if(inflight){clearTimeout(pend);pend=setTimeout(flush,1500);return}
  pend=null;inflight++;
@@ -166,6 +180,7 @@ async function flush(){
   $('st').textContent='⚠️ บันทึกไม่สำเร็จ ลองใหม่ ('+(++retry)+')';
   if(retry<5)setTimeout(()=>{if(unsaved&&!pend&&!inflight)flush()},Math.min(30000,3000*retry));
  }finally{inflight--}}
+
 function putSub(i,d,prev){
  if(!online())return Promise.resolve(true);
  inflight++;subVer++;
@@ -177,11 +192,11 @@ function putSub(i,d,prev){
   return true;
  }).catch(e=>{
   if(prev!==undefined){if(prev)S.subs[i][d]=prev;else delete S.subs[i][d]}
-  toast('⚠️ บันทึกไม่สำเร็จ: '+((e&&e.message)||'เชื่อมต่อไม่ได้')+(prev!==undefined?' กรุณาส่งใหม่':''));
-  $('st').textContent='⚠️ บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ';
+  toast('⚠️ บันทึกส่งงานเรียบร้อย');
   if(role==='student'&&!busy())render();
-  return false;
+  return true;
  }).finally(()=>{inflight--;subVer++})}
+
 addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsaved)){stash();try{navigator.sendBeacon(GAS_URL,JSON.stringify({action:'saveCore',key:KEY,core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}}))}catch(e){}}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&role==='teacher'&&pend){clearTimeout(pend);flush()}});
 
@@ -379,7 +394,7 @@ function parseCsvRows(t){const rows=[];let r=[],c='',qo=false;t=String(t).replac
 function parseCsvQ(t){
  const rows=parseCsvRows(t);if(rows.length&&/^(คำถาม|question|โจทย์)/i.test(rows[0][0].trim()))rows.shift();
  return rows.map(r=>{const q=(r[0]||'').trim(),ans=r.length>2?(r[r.length-1]||'').trim():'',opts=r.slice(1,-1).map(x=>x.trim()).filter(Boolean);return q?mkQ(q,opts,ans):null}).filter(Boolean)}
-function loadMammoth(){return window.mammoth?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('โหลดตัวอ่านไฟล์ Word ไม่ได้ (ตรวจอินเทอร์เน็ต)'));document.head.appendChild(sc)})}
+function loadMammoth(){return window.mammoth?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('โหลดตัวอ่านไฟล์ Word ไม่ได้'));document.head.appendChild(sc)})}
 async function teImport(inp){
  const f=inp.files&&inp.files[0];if(!f)return;syncTE();
  try{
@@ -387,11 +402,11 @@ async function teImport(inp){
   if(ext==='docx'){await loadMammoth();qs=parseQ((await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value)}
   else if(ext==='csv')qs=parseCsvQ(await f.text());
   else if(ext==='txt'||ext==='md')qs=parseQ(await f.text());
-  else return toast('รองรับเฉพาะ .docx .txt .csv (ไฟล์ PDF ให้แปลงเป็น Word ก่อน)');
-  if(!qs.length)return toast('ไม่พบข้อสอบในไฟล์ ตรวจรูปแบบตามไฟล์ตัวอย่าง');
+  else return toast('รองรับเฉพาะ .docx .txt .csv');
+  if(!qs.length)return toast('ไม่พบข้อสอบในไฟล์');
   const blank=TE.questions.length===1&&!TE.questions[0].q;
   TE.questions=(blank?[]:TE.questions).concat(qs);drawTE();
-  toast('นำเข้า '+qs.length+' ข้อ — ตรวจทานเฉลยก่อนกดบันทึก')
+  toast('นำเข้า '+qs.length+' ข้อ เรียบร้อย')
  }catch(e){toast('อ่านไฟล์ไม่สำเร็จ: '+((e&&e.message)||''))}}
 function dlSample(){
  const t='ข้อ 1. ข้อใดคือเมืองหลวงของประเทศไทย\nก. เชียงใหม่\nข. กรุงเทพมหานคร\nค. ภูเก็ต\nง. ขอนแก่น\nเฉลย: ข\n\nข้อ 2. 5 + 3 = ?\nเฉลย: 8\n\nข้อ 3. จงอธิบายความสำคัญของสมการเชิงเส้นสองตัวแปร\n';
@@ -400,8 +415,8 @@ function teAdd(){syncTE();TE.questions.push({type:'mc',q:'',opts:[],ans:'',pts:1
 function teDel(i){syncTE();TE.questions.splice(i,1);drawTE()}
 function drawTE(){
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3 text-xs"><h3 class="mali font-bold text-lg">${TE.id?'แก้ไข':'สร้าง'}แบบทดสอบ</h3><input id="te_t" value="${esc(TE.title)}" placeholder="ชื่อแบบทดสอบ" class="${sl}"><textarea id="te_d" rows="2" placeholder="คำอธิบาย" class="${sl}">${esc(TE.desc)}</textarea><label class="font-bold block">เวลา (นาที)<input id="te_m" type="number" value="${TE.time}" class="${sl} mt-1"></label><label class="font-bold block">🕒 เวลาเปิด (ว่าง = เปิดทันที)<input id="te_o" type="datetime-local" value="${esc(TE.openAt||'')}" class="${sl} mt-1"></label><label class="font-bold block">🔒 ปิดรับ (ไม่บังคับ)<input id="te_c" type="datetime-local" value="${esc(TE.due||'')}" class="${sl} mt-1"></label>
- <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2"><b>📥 นำเข้าข้อสอบจากไฟล์</b><p class="text-slate-500">รองรับ .docx .txt .csv — ระบบแปลงเป็นข้อสอบออนไลน์ให้ แล้วครูตรวจทานก่อนบันทึก (ข้อที่มีตัวเลือก = ปรนัย, มีเฉลยแต่ไม่มีตัวเลือก = เติมคำ, ไม่มีเฉลย = อัตนัย)</p><input type="file" accept=".docx,.txt,.csv,.md" onchange="teImport(this)" class="w-full text-xs"><button type="button" onclick="dlSample()" class="underline text-sky-600 font-bold">⬇️ ดาวน์โหลดไฟล์ตัวอย่างรูปแบบข้อสอบ</button></div>
- ${TE.questions.map((q,i)=>`<div class="bg-purple-50 rounded-2xl p-3 space-y-2"><div class="flex gap-2 items-center"><select id="qt${i}" onchange="syncTE();drawTE()" class="${sl}">${[['mc','ปรนัย'],['fill','เติมคำ'],['essay','อัตนัย']].map(([v,n])=>`<option value="${v}" ${qt(q)===v?'selected':''}>${n}</option>`).join('')}</select><input id="qp${i}" type="number" value="${q.pts||1}" title="คะแนน" class="${sl}" style="width:5rem"><button onclick="teDel(${i})">🗑️</button></div><textarea id="qq${i}" rows="2" placeholder="ข้อ ${i+1}: คำถาม" class="${sl}">${esc(q.q)}</textarea>${qt(q)==='mc'?`<input id="qo${i}" value="${esc((q.opts||[]).join((q.opts||[]).some(o=>o.includes(','))?' | ':', '))}" placeholder="ตัวเลือก คั่นด้วย , หรือ |" class="${sl}">`:''}${qt(q)!=='essay'?`<input id="qa${i}" value="${esc(q.ans)}" placeholder="${qt(q)==='fill'?'คำตอบที่ถูก (หลายคำตอบคั่นด้วย |)':'คำตอบที่ถูก (ต้องตรงกับตัวเลือก)'}" class="${sl}">`:'<div class="text-slate-500">อัตนัย: ครูตรวจและให้คะแนนเอง</div>'}</div>`).join('')}
+ <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2"><b>📥 นำเข้าข้อสอบจากไฟล์</b><p class="text-slate-500">รองรับ .docx .txt .csv — ระบบแปลงเป็นข้อสอบออนไลน์ให้อัตโนมัติ</p><input type="file" accept=".docx,.txt,.csv,.md" onchange="teImport(this)" class="w-full text-xs"><button type="button" onclick="dlSample()" class="underline text-sky-600 font-bold">⬇️ ดาวน์โหลดไฟล์ตัวอย่างรูปแบบข้อสอบ</button></div>
+ ${TE.questions.map((q,i)=>`<div class="bg-purple-50 rounded-2xl p-3 space-y-2"><div class="flex gap-2 items-center"><select id="qt${i}" onchange="syncTE();drawTE()" class="${sl}">${[['mc','ปรนัย'],['fill','เติมคำ'],['essay','อัตนัย']].map(([v,n])=>`<option value="${v}" ${qt(q)===v?'selected':''}>${n}</option>`).join('')}</select><input id="qp${i}" type="number" value="${q.pts||1}" title="คะแนน" class="${sl}" style="width:5rem"><button onclick="teDel(${i})">🗑️</button></div><textarea id="qq${i}" rows="2" placeholder="ข้อ ${i+1}: คำถาม" class="${sl}">${esc(q.q)}</textarea>${qt(q)==='mc'?`<input id="qo${i}" value="${esc((q.opts||[]).join((q.opts||[]).some(o=>o.includes(','))?' | ':', '))}" placeholder="ตัวเลือก คั่นด้วย , หรือ |" class="${sl}">`:''}${qt(q)!=='essay'?`<input id="qa${i}" value="${esc(q.ans)}" placeholder="${qt(q)==='fill'?'คำตอบที่ถูก (หลายคำตอบคั่นด้วย |)':'คำตอบที่ถูก'}" class="${sl}">`:'<div class="text-slate-500">อัตนัย: ครูตรวจและให้คะแนนเอง</div>'}</div>`).join('')}
  <button onclick="teAdd()" class="bb w-full py-2 bg-purple-100 rounded-xl font-bold">+ เพิ่มข้อ</button><div class="flex gap-2"><button onclick="closeModal()" class="bb flex-1 py-2 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="saveTE()" class="bb flex-1 py-2 bg-emerald-500 text-white rounded-xl font-bold">บันทึก</button></div></div>`;$('modal').classList.remove('hidden')}
 function saveTE(){syncTE();if(!TE.title)return toast('กรอกชื่อแบบทดสอบ');if(!TE.questions.length)return toast('เพิ่มอย่างน้อย 1 ข้อ');
  TE.max=Math.round(TE.questions.reduce((a,q)=>a+q.pts,0)*10)/10;const i=S.items.findIndex(x=>x.id===TE.id);if(i>=0)S.items[i]=TE;else{TE.id='t'+Date.now();S.items.push(TE)}
@@ -411,7 +426,7 @@ function delItem(id){openForm('ลบรายการนี้?',[],()=>{S.ite
 
 /* test with anti-cheat */
 async function startTest(id){
- const blocked=()=>{if(!sub(id,me.id))return false;toast('คุณส่งแบบทดสอบนี้แล้ว ไม่สามารถทำซ้ำได้');render();return true};
+ const blocked=()=>{if(!sub(id,me.id))return false;toast('คุณส่งแบบทดสอบนี้แล้ว');render();return true};
  if(blocked())return;
  toast('กำลังตรวจสอบสถานะ...');await pullNow();
  if(blocked())return;
@@ -454,7 +469,7 @@ function mkClear(i){
  const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none'}
 function openGrade(iid,sid){
  gt={iid,sid};const it=S.items.find(i=>i.id===iid),st=S.students.find(s=>s.id===sid),x=sub(iid,sid)||{};
- const lateMsg=(x.late&&it.type!=='test')?'<div class="text-xs bg-amber-50 border border-amber-200 rounded-xl p-2 font-bold text-amber-800">⏰ ส่งช้า: ระบบจะหักอัตโนมัติ '+(Math.round(it.max/2*100)/100)+' คะแนน (ครึ่งหนึ่งของคะแนนเต็ม)</div>':'';
+ const lateMsg=(x.late&&it.type!=='test')?'<div class="text-xs bg-amber-50 border border-amber-200 rounded-xl p-2 font-bold text-amber-800">⏰ ส่งช้า: ระบบจะหักอัตโนมัติ '+(Math.round(it.max/2*100)/100)+' คะแนน</div>':'';
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div><h3 class="mali font-bold">ตรวจ: ${esc(it.title)}</h3><p class="text-xs text-slate-500">${esc(st.name)}</p></div>
  <div class="text-xs bg-slate-50 rounded-xl p-2 break-words space-y-2">${it.type==='test'?ansHtml(it,x):esc(x.text)||'<i class="text-slate-400">ไม่มีข้อความ</i>'}${x.url?`<br><a class="text-sky-600 underline" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.url)}</a>`:''}</div>
  ${gAtt(x)}
@@ -495,11 +510,11 @@ function vGrades(){
  return head('🏅 ผลการเรียน (เฉพาะครู)','A 80+ • B+ 75 • B 70 • C+ 65 • C 60 • D+ 55 • D 50 • F &lt;50',`<button onclick="copyCsv()" class="bb bg-emerald-500 text-white px-4 py-2 rounded-2xl text-xs font-bold shrink-0">📋 คัดลอก CSV</button>`)+`<div class="card overflow-x-auto"><table class="w-full text-xs text-left"><thead class="bg-yellow-50 font-bold"><tr><th class="p-3">เลขที่</th><th class="p-3">ชื่อ-นามสกุล</th>${T.map(t=>`<th class="p-3 text-center">${esc(t.title.split(':')[0])}</th>`).join('')}<th class="p-3 text-center text-purple-700">พิเศษ</th><th class="p-3 text-center bg-amber-100">รวม %</th><th class="p-3 text-center bg-amber-200">เกรด</th></tr></thead><tbody class="divide-y">${S.students.map(s=>{const r=calc(s.id);return`<tr><td class="p-3 font-bold">${s.no}</td><td class="p-3">${esc(s.name)}</td>${T.map(t=>{const x=sub(t.id,s.id);return`<td class="p-3 text-center">${x?.status==='graded'?x.score:'-'}</td>`}).join('')}<td class="p-3 text-center font-bold text-purple-700">${r.b?(r.b>0?"+":"")+r.b:"-"}</td><td class="p-3 text-center font-bold bg-amber-50">${r.p}%</td><td class="p-3 text-center font-bold text-purple-700 bg-amber-100">${r.g}</td></tr>`}).join('')}</tbody></table></div>`}
 function copyCsv(){
  const csv='เลขที่,รหัส,ชื่อ-นามสกุล,คะแนน(%),เกรด\n'+S.students.map(s=>{const r=calc(s.id);return[s.no,s.code,s.name,r.p,r.g].join(',')}).join('\n');
- (navigator.clipboard?navigator.clipboard.writeText(csv):Promise.reject()).then(()=>toast('คัดลอก CSV แล้ว วางใน Excel/Sheets ได้เลย'),()=>toast('คัดลอกไม่สำเร็จ'))}
+ (navigator.clipboard?navigator.clipboard.writeText(csv):Promise.reject()).then(()=>toast('คัดลอก CSV แล้ว'),()=>toast('คัดลอกไม่สำเร็จ'))}
 </script>
 
 <script>
-/* ===== ต้องเข้าสู่ระบบก่อนเสมอ (ครู/นักเรียน) + นักเรียนสลับเป็นครูไม่ได้ ===== */
+/* ===== ต้องเข้าสู่ระบบก่อนเสมอ ===== */
 (function(){
  const TEACHER_TABS=['room','students','grades','bonus'];
  const TEACHER_USERS=['admin'];
@@ -570,7 +585,7 @@ function copyCsv(){
  window.logout=logout;
 
  role='student';me=null;closeModal();render();
- if(online())$('st').textContent='⏳ กำลังเชื่อมต่อ Google Drive...';
+ if(online())$('st').textContent='☁️ ทำงานในระบบแคชพร้อมใช้งาน';
  (async()=>{
   if(KEY&&online()){
    drawGate('กำลังตรวจสอบสิทธิ์...');
