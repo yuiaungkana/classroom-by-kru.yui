@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v9</span> <button onclick="diag()" class="underline ml-1">ตรวจการเชื่อมต่อ</button></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v9</span> <button id="dg" onclick="diag()" class="underline ml-1">ตรวจการเชื่อมต่อ</button></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -208,7 +208,7 @@ function closeModal(){$('modal').classList.add('hidden');$('modal').innerHTML=''
 
 /* views */
 function render(){
- const N=role==='teacher'?notifs():[];const c=S.cfg;$('hs').textContent=`${c.sname} ${c.scode} • ${c.level}/${c.room} • ภาคเรียน ${c.term}/${c.year}`;$('bk').classList.toggle('hidden',role!=='teacher');$('rs').classList.toggle('hidden',role!=='teacher');$('roomSel').innerHTML=S.rooms.map(r=>`<option value="${r.id}" ${r.id===S.cur?'selected':''}>${esc(r.level)}/${esc(r.room)} ${esc(r.sname)}</option>`).join('');$('roomSel').classList.toggle('hidden',role!=='teacher');
+ const N=role==='teacher'?notifs():[];const c=S.cfg;$('hs').textContent=`${c.sname} ${c.scode} • ${c.level}/${c.room} • ภาคเรียน ${c.term}/${c.year}`;$('bk').classList.toggle('hidden',role!=='teacher');$('rs').classList.toggle('hidden',role!=='teacher');$('dg').classList.toggle('hidden',role!=='teacher');$('roomSel').innerHTML=S.rooms.map(r=>`<option value="${r.id}" ${r.id===S.cur?'selected':''}>${esc(r.level)}/${esc(r.room)} ${esc(r.sname)}</option>`).join('');$('roomSel').classList.toggle('hidden',role!=='teacher');
  const nav=[['dashboard','📊','ภาพรวม'],['room','🏫','ห้องเรียน',1],['students','👥','รายชื่อ',1],['material','📖','สื่อ'],['exercise','✏️','แบบฝึกทักษะ'],['test','📝','แบบทดสอบ'],['project','🧩','ชิ้นงาน'],['grades','🏅','ผลการเรียน',1],['bonus','⭐','คะแนนพิเศษ',1]];
  $('nav').innerHTML=nav.filter(n=>!n[3]||role==='teacher').map(n=>`<button onclick="go('${n[0]}')" class="bb shrink-0 w-auto md:w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-2xl text-xs font-bold mb-1 ${tab===n[0]?'nav-on':'hover:bg-pink-50'}">${n[1]} ${n[2]}</button>`).join('');
  $('r-teacher').className='px-3 py-1.5 rounded-xl '+(role==='teacher'?'bg-pink-400 text-white':'');
