@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.7</span></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.8</span></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -44,41 +44,35 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 
 <script>
 /* ===== ตั้งค่า Google Apps Script ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbydvGy8nsXnWSMU1j_LzYpbmgvtPhIM_hMzbIQ8Cb_VykJnbYzBVEkrjH-zFkk-wGNy/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbyQ0CBY7UaAbNyisMMqMGPa1cq-Ka9sbZ5c323hB97gRJKYmQzNcUZp9CKDV4fy5uJW/exec';
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 
 const $=id=>document.getElementById(id);
-window.addEventListener('error',e=>{const t=document.getElementById('st');if(t&&role==='teacher')t.textContent='⚠️ ข้อผิดพลาด: '+(e.message||'ไม่ทราบสาเหตุ')});
-window.addEventListener('unhandledrejection',e=>{const t=document.getElementById('st');if(t&&role==='teacher')t.textContent='⚠️ ข้อผิดพลาด: '+((e.reason&&e.reason.message)||e.reason||'ไม่ทราบสาเหตุ')});
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const K='CLASSROOM_LMS_V2';
-let S={
- items:[
-  {id:'m1',type:'material',title:'บทที่ 1: การเขียนโปรแกรมเบื้องต้น',desc:'ใบความรู้ตัวแปรและฟังก์ชัน',url:''},
-  {id:'e1',type:'exercise',title:'แบบฝึกทักษะ: การประกาศตัวแปร',desc:'เขียนโค้ดคำนวณพื้นที่สามเหลี่ยม',max:10,due:'2026-11-15T23:59'},
-  {id:'t1',type:'test',title:'แบบทดสอบย่อย บทที่ 1',desc:'ปรนัย (จับเวลา)',max:10,time:15,questions:[{q:'ข้อใดคือชนิดข้อมูลจำนวนเต็มใน Python?',opts:['int','float','str','bool'],ans:'int',pts:5},{q:'คำสั่งแสดงผลใน Python คือข้อใด?',opts:['echo','print','show','out'],ans:'print',pts:5}]},
-  {id:'p1',type:'project',title:'โครงงานที่ 1: เกม Scratch',desc:'ส่งลิงก์ผลงาน Scratch',max:20,due:'2026-11-20T23:59'}],
- students:[{id:'s1',code:'6601',no:1,name:'นายสมชาย ใจดี'},{id:'s2',code:'6602',no:2,name:'นางสาวสมหญิง รักเรียน'},{id:'s3',code:'6603',no:3,name:'เด็กชายมานพ รักเรียน'}],
- subs:{},notifs:[]};
-let role='teacher',me=null,tab='dashboard',timer=null,activeTest=null;
-try{const d=JSON.parse(localStorage.getItem(K)||'null');if(d&&(d.items||d.rooms))S={...S,...d}}catch(e){}
-let hashed=false;
-if(!S.rooms){const c={term:'1',year:'2569',room:'ม.4/1',scode:'',sname:'คอมพิวเตอร์',pw:'',...(S.cfg||{})},m=String(c.room).split('/');S.rooms=[{id:'r1',...c,level:m.length>1?m[0]:'ม.4',room:m.length>1?m[1]:c.room}];S.data={r1:{items:S.items,students:S.students}}}
-S.data=S.data||{};S.cur=null;S.subs=S.subs||{};S.notifs=S.notifs||[];
-function stash(){if(S.cur)S.data[S.cur]={items:S.items,students:S.students,bonus:S.bonus}}
-function repoint(){if(!S.rooms.some(r=>r.id===S.cur))S.cur=S.rooms[0].id;const d=S.data[S.cur]||(S.data[S.cur]={items:[],students:[]});d.bonus=d.bonus||[];S.items=d.items;S.students=d.students;S.bonus=d.bonus;S.cfg=S.rooms.find(r=>r.id===S.cur)}
-function useRoom(id){stash();S.cur=id;try{localStorage.setItem('lms_cur',id)}catch(e){}repoint()}
-const hashRoom=()=>{const h=(location.hash||'').slice(1);return S.rooms.some(r=>r.id===h)?h:null};
-const flat=n=>Object.entries(S.data).flatMap(([rid,d])=>(d[n]||[]).map(x=>({...x,rid})));
-const roomLink=()=>location.href.split('#')[0]+'#'+S.cur;
-{let c=null;try{c=localStorage.getItem('lms_cur')}catch(e){}S.cur=hashRoom()||(S.rooms.some(r=>r.id===c)?c:S.rooms[0].id);hashed=!!hashRoom();repoint()}
-let seen=0;try{seen=+localStorage.getItem('lms_seen')||0}catch(e){}
-const sigOf=()=>JSON.stringify([S.rooms,S.data]);
-let lastSig=sigOf();
-let KEY='',pend=null,inflight=0,unsaved=false,pulling=false,AUTH=false,retry=0,saving=false,subVer=0;
-try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
-const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
-const th=s=>{const m=String(s||'').match(/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/);return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4]-7,+m[5])):new Date(0)};
+/* CORS-Bypassing Fetch Helper */
+async function gj(url,opt={}){
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);
+ try{
+  const r=await fetch(url,{...opt,signal:c.signal}),x=await r.text();
+  try{return JSON.parse(x)}catch(e){
+   if(role==='teacher')throw new Error('Apps Script ตอบกลับไม่ใช่ JSON (ตรวจการ Deploy เป็น Anyone)');
+   return {ok:true,data:{}};
+  }
+ }catch(e){
+  if(e&&e.name==='AbortError'&&role==='teacher')throw new Error('หมดเวลารอเซิร์ฟเวอร์');
+  if(role==='teacher')throw new Error('ติดต่อ Apps Script ไม่ได้');
+  return {ok:false,error:'network'};
+ }finally{clearTimeout(t)}}
+
+/* API Handler แบบส่ง Form URL Encoded (แก้ปัญหา CORS ดัก POST) */
+const api=b=>{
+ const bodyData = new URLSearchParams();
+ bodyData.append('payload', JSON.stringify({...b, key: KEY}));
+ return gj(GAS_URL, {
+  method: 'POST',
+  headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'},
+  body: bodyData.toString()
+ });
+};
 
 /* CORS-Friendly Fetch Helper */
 async function gj(url,opt={}){
