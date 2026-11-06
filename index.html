@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.6</span></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">กำลังเชื่อมต่อ...</span> <span class="opacity-60">• v8.7</span></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -44,7 +44,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 
 <script>
 /* ===== ตั้งค่า Google Apps Script ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbwl72HUOnCZc-L-VW0PXgFXzz6zTxQGm_b8SViBQknov-gHq050mYNsF8CGgFIOkL2p/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbydvGy8nsXnWSMU1j_LzYpbmgvtPhIM_hMzbIQ8Cb_VykJnbYzBVEkrjH-zFkk-wGNy/exec';
 const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 
 const $=id=>document.getElementById(id);
@@ -163,7 +163,14 @@ async function pull(){
   const g={items:{},students:{},bonus:{}};
   ['items','students','bonus'].forEach(n=>(d[n]||[]).forEach(x=>(g[n][x.rid||S.rooms[0].id]??=[]).push(x)));
   new Set([...Object.keys(S.data),...Object.keys(g.items),...Object.keys(g.students),...Object.keys(g.bonus)]).forEach(rid=>S.data[rid]={items:g.items[rid]||[],students:g.students[rid]||[],bonus:g.bonus[rid]||[]});
-  S.subs=d.subs||{};
+  
+  // ซิงค์งานที่ส่งของนักเรียน โดยผสานกับงานเดิมไม่ให้หาย
+  if(d.subs){
+   Object.keys(d.subs).forEach(itemId => {
+    S.subs[itemId] = Object.assign({}, S.subs[itemId] || {}, d.subs[itemId]);
+   });
+  }
+
   const h=hashRoom();if(h&&!hashed){hashed=true;S.cur=h}
   repoint();lastSig=sigOf();
   try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
@@ -200,17 +207,18 @@ async function flush(){
  }finally{inflight--}}
 
 function putSub(i,d,prev){
+ stash();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
  if(!online())return Promise.resolve(true);
  inflight++;subVer++;
  return api({action:'putSub',iid:i,sid:d,sub:S.subs[i][d]}).then(r=>{
   if(!r.ok)throw new Error(r.error||'ไม่ทราบสาเหตุ');
   if(r.sub&&role==='student')S.subs[i][d]=r.sub;
+  try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
   $('st').textContent='☁️ บันทึกลง Google Drive แล้ว '+tm();
   if(role==='student'&&!busy())render();
   return true;
  }).catch(e=>{
-  if(prev!==undefined){if(prev)S.subs[i][d]=prev;else delete S.subs[i][d]}
-  toast('⚠️ บันทึกส่งงานเรียบร้อย');
+  toast('☁️ บันทึกงานส่งไว้ในเครื่องแล้ว (รอเชื่อมต่อเพื่อซิงค์ขึ้น Drive)');
   if(role==='student'&&!busy())render();
   return true;
  }).finally(()=>{inflight--;subVer++})}
@@ -294,8 +302,23 @@ function studentBox(it){
   if(s?.status==='started'&&activeTest!==it.id)return box('<div class="text-xs font-bold text-orange-600">⚠️ ออกจากการสอบกลางคัน: ไม่ได้ส่งคำตอบ ต้องให้ครูอนุญาตจึงสอบใหม่ได้</div>');
   if(s)return box(`<div class="text-xs font-bold">${s.status==='graded'?`✅ ส่งแล้ว ได้ ${fmt(s.score)}/${fmt(it.max)} คะแนน`:'📨 ส่งแล้ว รอผลคะแนน'}</div>`);
   return box(`<button onclick="startTest('${it.id}')" class="bb w-full py-2 bg-purple-400 text-white rounded-xl text-xs font-bold">▶️ เริ่มทำแบบทดสอบ</button>`)}
- if(s?.status==='graded')return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<div class="text-xs bg-white rounded-xl p-2 break-words">${esc(s.text)||'<i class="text-slate-400">ไม่มีข้อความ</i>'}${s.url?`<br><a class="text-sky-600 underline" target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.url)}</a>`:''}</div>${attHtml(s.att,null)}<div class="text-[11px] text-slate-500">🔒 ครูตรวจแล้ว ไม่สามารถแก้ไขได้</div></div>`;
+ 
+ // ถ้านักเรียนเคยส่งงานแล้ว (สถานะ submitted หรือ graded) ให้แสดงข้อมูลงานที่ส่งไว้อย่างถาวร
+ if(s&&['submitted','graded','revision'].includes(s.status)&&s.status!=='revision'){
+  return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<div class="text-xs bg-white rounded-xl p-2 break-words"><b>งานที่ส่งแล้ว:</b><br>${esc(s.text)||'<i class="text-slate-400">ไม่มีข้อความ</i>'}${s.url?`<br><a class="text-sky-600 underline" target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.url)}</a>`:''}</div>${attHtml(s.att,null)}<div class="flex gap-2">${s.status==='graded'?'<div class="text-[11px] text-slate-500">🔒 ครูตรวจแล้ว ไม่สามารถแก้ไขได้</div>':`<button onclick="editSubForm('${it.id}')" class="bb px-4 py-2 bg-pink-100 text-pink-700 rounded-xl text-xs font-bold">✏️ แก้ไขงานที่ส่ง</button><button onclick="delSub('${it.id}')" class="bb px-4 py-2 bg-rose-100 text-rose-600 rounded-xl text-xs font-bold">ลบงาน</button>`}</div></div>`;
+ }
+
  return`<div class="p-3 bg-slate-50 rounded-2xl space-y-2">${status}<textarea id="t_${it.id}" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อความส่งงาน...">${esc(s?.text)}</textarea><input id="u_${it.id}" value="${esc(s?.url)}" placeholder="ลิงก์ผลงาน (ถ้ามี)" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs">${attHtml(s?.att,`rmSubAtt('${it.id}',`)}<input id="fl_${it.id}" type="file" multiple class="w-full text-xs"><div class="flex gap-2"><button onclick="send('${it.id}')" class="bb flex-1 py-2 bg-pink-400 text-white rounded-xl text-xs font-bold">${s?'บันทึกการแก้ไข':'ส่งงาน'}</button>${s?`<button onclick="delSub('${it.id}')" class="bb px-4 py-2 bg-rose-100 text-rose-600 rounded-xl text-xs font-bold">ลบงาน</button>`:''}</div></div>`}
+
+function editSubForm(id){
+ const s=sub(id,me.id);
+ if(!s)return;
+ openForm('แก้ไขงานที่ส่ง',[['text','ข้อความส่งงาน',s.text||'','area'],['url','ลิงก์ผลงาน',s.url||'']],async v=>{
+  s.text=v.text;s.url=v.url;s.at=new Date().toISOString();
+  putSub(id,me.id,s);save();render();toast('บันทึกการแก้ไขเรียบร้อย');return true;
+ });
+}
+
 const attHtml=(l,rm)=>(l||[]).map((f,i)=>`<div class="flex items-center gap-2 text-xs">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-36 rounded-xl border">`:`<a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a>`}${rm?`<button onclick="${rm}${i})">✕</button>`:''}</div>`).join('');
 async function send(id){
  const it=S.items.find(i=>i.id===id),old=sub(id,me.id),late=old?old.late:!!(it.due&&new Date()>th(it.due));
