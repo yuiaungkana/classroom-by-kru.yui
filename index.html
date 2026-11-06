@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Classroom by KRU.yui</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@600;700&family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fdf4ff;--tx:#334155;--cd:#fff;--bd:#fbcfe8;--mu:#f1f5f9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1e1b2e;--tx:#e2e8f0;--cd:#2a2640;--bd:#6b3a5a;--mu:#3a3555;color-scheme:dark}}
+html,body{height:auto}
+body{font-family:'Prompt',sans-serif;background:var(--bg);color:var(--tx);min-height:100%}
+.mali{font-family:'Mali','Prompt',cursive}
+.card{background:var(--cd);border:2px solid var(--bd);border-radius:1.25rem;padding:1rem}
+.mu{background:var(--mu);border-radius:.75rem;padding:.5rem}
+.b{padding:.4rem .8rem;border-radius:.9rem;font-weight:600;font-size:.75rem;background:var(--mu);transition:transform .15s}
+.b:active{transform:scale(.95)}
+.pk{background:#f472b6;color:#fff}.gn{background:#10b981;color:#fff}
+.inp{width:100%;border:2px solid var(--bd);border-radius:.75rem;padding:.45rem;font-size:.8rem;background:var(--cd);color:var(--tx);margin-top:.25rem}
+.on{background:#fbcfe8;color:#9d174d}
+</style>
+</head>
+<body>
+<div class="text-[11px] font-bold text-center py-1" style="background:var(--bd);color:var(--tx)">💾 <span id="st"></span></div>
+<header class="sticky top-0 z-30 border-b-4" style="background:var(--cd);border-color:var(--bd)">
+<div class="max-w-4xl mx-auto px-3 h-14 flex items-center justify-between">
+<b class="mali">🐥 Classroom by KRU.yui</b>
+<div class="flex gap-1.5 items-center text-xs"><select id="rs" class="hidden b" onchange="switchRoom(this.value)"></select><span id="who"></span><button id="rt" class="b" onclick="setRole()"></button></div>
+</div>
+<nav id="nav" class="max-w-4xl mx-auto px-3 pb-2 flex gap-1 overflow-x-auto text-xs font-semibold"></nav>
+</header>
+<main id="view" class="max-w-4xl mx-auto px-3 py-4 space-y-3"></main>
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,.55)"></div>
+<div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-4 py-2 rounded-2xl z-[60]" style="background:#1e293b"></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const K='LMS_KRUYUI_V1';
+let S={pw:'admin',students:[{id:'s1',no:1,code:'6601',name:'นายสมชาย ใจดี'},{id:'s2',no:2,code:'6602',name:'นางสาวสมหญิง รักเรียน'}],
+items:[
+{id:'m1',type:'material',title:'บทที่ 1: การเขียนโปรแกรมเบื้องต้น',desc:'ใบความรู้ตัวแปรและฟังก์ชัน',url:''},
+{id:'e1',type:'exercise',title:'แบบฝึกทักษะ: การประกาศตัวแปร',desc:'เขียนโค้ดคำนวณพื้นที่สามเหลี่ยม',max:10,due:'2026-12-15T23:59'},
+{id:'t1',type:'test',title:'แบบทดสอบย่อย บทที่ 1',desc:'ปรนัย (จับเวลา)',max:2,time:15,questions:[{q:'ข้อใดคือชนิดข้อมูลจำนวนเต็มใน Python?',opts:['int','float','str','bool'],ans:'int'},{q:'คำสั่งแสดงผลใน Python คือข้อใด?',opts:['echo','print','show','out'],ans:'print'}]},
+{id:'p1',type:'project',title:'โครงงานที่ 1: เกม Scratch',desc:'ส่งลิงก์ผลงาน Scratch',max:20,due:'2026-12-20T23:59'}],
+subs:{},bonus:[]};
+try{const d=JSON.parse(localStorage.getItem(K)||'null');if(d&&d.items)S=d}catch(e){}
+/* ===== Google Apps Script backend ===== */
+const GAS_URL='PASTE_YOUR_WEB_APP_URL_HERE'; // วาง URL ของ Web App (ลงท้าย /exec)
+const online=()=>GAS_URL.startsWith('https://');
+if(!S.rooms||!S.rooms.length)S.rooms=[{id:'r1',level:'ม.4',room:'1',term:'1',year:'2569',scode:'',sname:'คอมพิวเตอร์',pw:''}];
+S.subs=S.subs||{};S.bonus=S.bonus||[];
+let hashed=false;
+if(!S.D){S.D={};S.D[S.rooms[0].id]={items:S.items||[],students:S.students||[],bonus:S.bonus||[]}}
+function stash(){if(S.cur&&S.rooms.some(r=>r.id===S.cur))S.D[S.cur]={items:S.items,students:S.students,bonus:S.bonus}}
+function repoint(){if(!S.rooms.some(r=>r.id===S.cur))S.cur=S.rooms[0].id;const d=S.D[S.cur]||(S.D[S.cur]={items:[],students:[],bonus:[]});d.bonus=d.bonus||[];S.items=d.items;S.students=d.students;S.bonus=d.bonus}
+const flat=n=>{stash();return Object.entries(S.D).flatMap(([rid,d])=>(d[n]||[]).map(x=>({...x,rid})))};
+const curRoom=()=>S.rooms.find(r=>r.id===S.cur)||S.rooms[0];
+{const h=location.hash.slice(1);hashed=S.rooms.some(r=>r.id===h);S.cur=hashed?h:S.cur;repoint()}
+const busy=()=>/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||'')||[...document.querySelectorAll('#view input[type=file]')].some(i=>i.files.length)||[...document.querySelectorAll('#view textarea,#view input[id^=u_]')].some(i=>i.value!==i.defaultValue);
+let KEY='',pend=null,busyN=0,unsaved=false;
+try{KEY=localStorage.getItem('lms_key')||''}catch(e){}
+const setSt=t=>{const e=$('st');if(e)e.textContent=t};
+async function gj(url,opt){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);try{const r=await fetch(url,{...opt,signal:c.signal});return JSON.parse(await r.text())}catch(e){return{ok:false,error:'ติดต่อ Apps Script ไม่ได้'}}finally{clearTimeout(t)}}
+const api=b=>{const f=new URLSearchParams();f.append('payload',JSON.stringify({...b,key:KEY}));return gj(GAS_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=utf-8'},body:f.toString()})};
+function persist(){stash();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+function save(){persist();if(!online()||role!=='teacher'||!KEY)return;unsaved=true;setSt('⏳ กำลังบันทึก...');clearTimeout(pend);pend=setTimeout(flush,1200)}
+async function flush(){pend=null;if(busyN){pend=setTimeout(flush,1500);return}busyN++;
+const r=await api({action:'saveCore',core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}});busyN--;
+if(r.ok){if(!pend)unsaved=false;setSt('☁️ บันทึกลง Google Drive แล้ว '+new Date().toLocaleTimeString('th-TH'))}else setSt('⚠️ '+r.error)}
+async function pull(){if(!online()||busyN||unsaved||active)return;busyN++;
+const r=await gj(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent((me&&me.id)||''));busyN--;
+if(!r.ok){setSt('⚠️ '+(r.error||'ดึงข้อมูลไม่ได้'));return}
+const d=r.data||{};
+if(!(d.items||[]).length&&!(d.students||[]).length){if(role==='teacher'&&KEY)save();return}
+if(d.rooms&&d.rooms.length)S.rooms=d.rooms;
+{const h=location.hash.slice(1);if(h&&!hashed&&S.rooms.some(r=>r.id===h)){hashed=true;S.cur=h}}
+const g={};S.rooms.forEach(r=>g[r.id]={items:[],students:[],bonus:[]});
+['items','students','bonus'].forEach(n=>(d[n]||[]).forEach(x=>{(g[x.rid]||(g[x.rid]={items:[],students:[],bonus:[]}))[n].push(x)}));
+S.D=g;repoint();
+const fl={};Object.entries(d.subs||{}).forEach(([i,o])=>Object.entries(o).forEach(([sid,x])=>fl[i+'|'+sid]=x));S.subs=fl;
+persist();setSt('☁️ ซิงค์ล่าสุด '+new Date().toLocaleTimeString('th-TH'));
+if($('modal').classList.contains('hidden')&&!busy())render()}
+async function putSub(i,s,rec){
+if(!online()){S.subs[i+'|'+s]=rec;persist();return rec}
+busyN++;const r=await api({action:'putSub',iid:i,sid:s,sub:rec});busyN--;
+if(!r.ok){toast('⚠️ '+(r.error||'บันทึกไม่สำเร็จ'));return null}
+const v=r.sub||rec;S.subs[i+'|'+s]=v;persist();setSt('☁️ บันทึกแล้ว '+new Date().toLocaleTimeString('th-TH'));return v}
+async function rmSub(i,s){
+if(online()){const r=await api({action:'delSub',iid:i,sid:s});if(!r.ok){toast('⚠️ '+r.error);return false}}
+delete S.subs[i+'|'+s];persist();return true}
+const TY={material:['สื่อการเรียน','📖'],exercise:['แบบฝึกทักษะ','✏️'],test:['แบบทดสอบ','📝'],project:['ชิ้นงาน/โครงงาน','🧩']};
+let role='student',me=null,tab='dash',timer=null,active=null;
+const T=()=>role==='teacher';
+const sub=(i,s)=>S.subs[i+'|'+s];
+const tasks=()=>S.items.filter(i=>i.type!=='material');
+const toast=m=>{const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hidden'),2500)};
+const closeModal=()=>{$('modal').classList.add('hidden');$('modal').innerHTML=''};
+const fmtD=s=>String(s||'').replace('T',' ');
+const isLate=it=>it.due&&new Date()>new Date(it.due);
+const isOpen=it=>!it.openAt||new Date()>=new Date(it.openAt);
+
+function form(title,fields,cb){
+$('modal').innerHTML=`<div class="card w-full max-w-sm space-y-2 max-h-[90vh] overflow-y-auto"><h3 class="mali font-bold">${title}</h3>${fields.map(([k,l,v,t,o])=>`<label class="block text-xs font-bold">${l}${t==='area'?`<textarea id="f_${k}" rows="5" class="inp">${esc(v)}</textarea>`:t==='sel'?`<select id="f_${k}" class="inp">${o.map(([a,b])=>`<option value="${esc(a)}" ${a===v?'selected':''}>${esc(b)}</option>`).join('')}</select>`:`<input id="f_${k}" type="${t||'text'}" value="${esc(v)}" class="inp">`}</label>`).join('')}<div class="flex gap-2"><button class="b flex-1" onclick="closeModal()">ยกเลิก</button><button id="fo" class="b pk flex-1">ตกลง</button></div></div>`;
+$('modal').classList.remove('hidden');
+$('fo').onclick=()=>{const v={};fields.forEach(([k])=>{const e=$('f_'+k);v[k]=e.type==='file'?e.files[0]:e.value});if(cb(v)!==false)closeModal()}}
+const ask=(t,cb)=>{$('modal').innerHTML=`<div class="card w-full max-w-xs space-y-3 text-center"><b class="text-sm">${t}</b><div class="flex gap-2"><button class="b flex-1" onclick="closeModal()">ไม่</button><button id="fo" class="b pk flex-1">ใช่</button></div></div>`;$('modal').classList.remove('hidden');$('fo').onclick=()=>{closeModal();cb()}};
+
+function setRole(){
+if(T()||me){if(T()){KEY='';try{localStorage.removeItem('lms_key')}catch(e){}}role='student';me=null;tab='dash';return render()}
+form('เข้าสู่ระบบ',[['u','ชื่อผู้ใช้ครู (admin) หรือรหัสนักเรียน',''],['p','รหัสผ่าน (ครู = รหัสครู / นักเรียน = รหัสห้อง ถ้ามี)','','password']],v=>{login(v);return false})}
+async function login(v){
+const u=v.u.trim(),p=v.p;toast('กำลังตรวจสอบ...');
+if(['admin','ครู','teacher'].includes(u.toLowerCase())){
+if(online()){const x=await gj(GAS_URL+'?action=auth&key='+encodeURIComponent(p));if(!x.ok)return toast(x.error||'รหัสผ่านครูไม่ถูกต้อง');KEY=p;try{localStorage.setItem('lms_key',KEY)}catch(e){}}
+else if(p!==S.pw)return toast('รหัสผ่านครูไม่ถูกต้อง');
+role='teacher';me=null;tab='dash';closeModal();render();await pull();return}
+await pull();
+const f=S.students.find(x=>x.code===u);if(!f)return toast('ไม่พบรหัสนักเรียนนี้');
+if(online()){const x=await gj(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p));if(!x.ok)return toast('รหัสผ่านห้องไม่ถูกต้อง')}
+role='student';me=f;tab='dash';closeModal();await pull();render()}
+
+function render(){
+const rs=$('rs');rs.classList.toggle('hidden',!T());rs.innerHTML=S.rooms.map(r=>`<option value="${r.id}" ${r.id===S.cur?'selected':''}>${esc(r.level)}/${esc(r.room)} ${esc(r.sname)}</option>`).join('');
+$('who').textContent=T()?'👩‍🏫 ครู':me?'🎓 '+me.name:'';
+$('rt').textContent=T()||me?'🚪 ออก':'🔑 เข้าสู่ระบบ';
+const nav=[['dash','📊','ภาพรวม'],...Object.entries(TY).map(([k,v])=>[k,v[1],v[0]])];
+if(T())nav.push(['room','🏫','ห้องเรียน'],['students','👥','รายชื่อ'],['grades','🏅','ผลการเรียน'],['bonus','⭐','คะแนนพิเศษ'],['data','💾','สำรองข้อมูล']);
+if(!T()&&['room','students','grades','bonus','data'].includes(tab))tab='dash';
+$('nav').innerHTML=nav.map(([k,e,n])=>`<button onclick="tab='${k}';render()" class="b whitespace-nowrap ${tab===k?'on':''}">${e} ${n}</button>`).join('');
+$('view').innerHTML=tab==='dash'?vDash():TY[tab]?vList(tab):tab==='room'?vRoom():tab==='students'?vStu():tab==='grades'?vGrades():tab==='bonus'?vBonus():vData()}
+
+const head=(t,s,a)=>`<div class="flex justify-between items-center gap-2"><div><h2 class="mali font-bold text-lg">${t}</h2><p class="text-xs opacity-70">${s}</p></div>${a||''}</div>`;
+const add=(f,l)=>`<button class="b pk shrink-0" onclick="${f}">${l}</button>`;
+function badge(s,it){if(!s)return'<span class="text-[11px] opacity-60">ยังไม่ส่ง</span>';
+const m={graded:['ตรวจแล้ว','#d1fae5'],revision:['ให้แก้ไข','#fef3c7'],cheated:['ถูกตัดสิทธิ์','#fecdd3'],started:['ออกจากสอบกลางคัน','#ffedd5'],submitted:[s.late?'ส่งช้า':'ส่งแล้ว',s.late?'#fef3c7':'#e0f2fe']}[s.status]||['-','#eee'];
+return`<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold" style="background:${m[1]};color:#1e293b">${m[0]}</span>`}
+
+function vDash(){
+if(T())return head('ภาพรวมห้องเรียน',`นักเรียน ${S.students.length} คน • งาน ${tasks().length} รายการ`)+
+`<div class="card overflow-x-auto"><table class="w-full text-xs text-left"><thead><tr><th class="p-2">งาน</th><th class="p-2">ส่งแล้ว</th><th class="p-2">รอตรวจ</th></tr></thead><tbody>${tasks().map(t=>{const l=S.students.map(s=>sub(t.id,s.id)).filter(Boolean);return`<tr class="border-t"><td class="p-2">${esc(t.title)}</td><td class="p-2">${l.length}/${S.students.length}</td><td class="p-2">${l.filter(x=>x.status==='submitted').length}</td></tr>`}).join('')}</tbody></table></div>`;
+if(!me)return head('ยินดีต้อนรับ','เข้าสู่ระบบนักเรียนเพื่อดูงานและส่งงาน');
+return head('งานของฉัน',esc(me.name))+tasks().map(t=>`<div class="card flex justify-between items-center gap-2 text-xs"><span><b>${TY[t.type][1]} ${esc(t.title)}</b>${t.due?`<br><span class="opacity-70">กำหนดส่ง ${fmtD(t.due)}</span>`:''}</span>${badge(sub(t.id,me.id),t)}</div>`).join('')}
+
+function vList(type){
+const [n,e]=TY[type],list=S.items.filter(i=>i.type===type);
+const h=head(e+' '+n,{material:'ศึกษาเนื้อหาและเอกสารประกอบ',exercise:'เขียนชื่อ-สกุล ชั้น เลขที่ ก่อนส่งงานทุกครั้ง',test:'ห้ามสลับแท็บระหว่างสอบ มิฉะนั้นจะถูกตัดสิทธิ์',project:'ส่งชิ้นงานพร้อมตรวจเวลาส่งอัตโนมัติ'}[type],T()?add(type==='test'?'testForm()':`itemForm('${type}')`,'+ เพิ่ม'):'');
+return h+(list.map((it,i)=>`<div class="card space-y-2"><div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold opacity-70">${n}${it.max&&T()?' • เต็ม '+it.max:''}${it.time?' • '+it.time+' นาที':''}</span><h3 class="font-bold text-sm">${esc(it.title)}</h3></div>${T()?`<span class="flex gap-1.5 shrink-0"><button onclick="mv('${it.id}',-1)" ${i===0?'disabled class="opacity-30"':''}>⬆️</button><button onclick="mv('${it.id}',1)" ${i===list.length-1?'disabled class="opacity-30"':''}>⬇️</button><button onclick="${type==='test'?`testForm('${it.id}')`:`itemForm('${type}','${it.id}')`}">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div><p class="text-xs opacity-80">${esc(it.desc)}</p>${it.due?`<div class="mu text-[11px]">⏰ กำหนดส่ง ${fmtD(it.due)}</div>`:''}${it.openAt?`<div class="mu text-[11px]">🕒 เปิด ${fmtD(it.openAt)}</div>`:''}${!T()&&!isOpen(it)?`<div class="mu text-xs font-bold">🔒 จะเปิดวันที่ ${fmtD(it.openAt)}</div>`:type==='material'?matView(it):T()?tList(it):sBox(it)}</div>`).join('')||'<div class="card text-xs opacity-60 text-center">ยังไม่มีรายการ</div>')}
+
+function mv(id,d){const a=S.items,i=a.findIndex(x=>x.id===id),j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();render()}
+function delItem(id){ask('ลบรายการนี้?',()=>{S.items=S.items.filter(i=>i.id!==id);save();render()})}
+function itemForm(type,id){
+const o=S.items.find(i=>i.id===id)||{};
+const f=[['title','ชื่อหัวข้อ',o.title||''],['desc','รายละเอียด',o.desc||'','area']];
+if(type==='material')f.push(['url','ลิงก์เนื้อหา (ไม่บังคับ)',o.url||''],['file','แนบไฟล์ / รูปภาพ (ต้องเชื่อม Drive)','','file']);
+else f.push(['max','คะแนนเต็ม',o.max||10,'number'],['openAt','เวลาเปิด (ว่าง = เปิดทันที)',o.openAt||'','datetime-local'],['due','กำหนดส่ง',o.due||'','datetime-local']);
+form((id?'แก้ไข':'เพิ่ม')+TY[type][0],f,v=>{
+if(!v.title){toast('กรอกชื่อหัวข้อ');return false}
+const it=o.id?o:{id:type[0]+Date.now(),type};
+Object.assign(it,{title:v.title,desc:v.desc});
+if(type==='material')it.url=v.url;else Object.assign(it,{max:parseFloat(v.max)||10,openAt:v.openAt,due:v.due});
+if(!o.id)S.items.push(it);save();render();toast('บันทึกแล้ว');
+if(v.file){toast('กำลังอัปโหลดไฟล์...');upFile(v.file).then(a=>{(it.att=it.att||[]).push(a);save();render();toast('แนบไฟล์แล้ว')}).catch(e=>toast(e.message))}})}
+
+/* ---- test editor: one question per line: คำถาม | ตัวเลือก1, ตัวเลือก2 | เฉลย ---- */
+function testForm(id){
+const o=S.items.find(i=>i.id===id)||{};
+const qs=(o.questions||[]).map(q=>[q.q,(q.opts||[]).join(', '),q.ans].join(' | ')).join('\n');
+form((id?'แก้ไข':'สร้าง')+'แบบทดสอบ',[['title','ชื่อแบบทดสอบ',o.title||''],['desc','คำอธิบาย',o.desc||''],['time','เวลา (นาที)',o.time||15,'number'],['qs','ข้อสอบ: คำถาม | ตัวเลือก (คั่นด้วย ,) | เฉลย  — บรรทัดละข้อ ถ้าไม่มีตัวเลือกจะเป็นเติมคำ',qs,'area']],v=>{
+if(!v.title){toast('กรอกชื่อ');return false}
+const questions=v.qs.split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(p=>p[0]).map(p=>({q:p[0],opts:(p[1]||'').split(',').map(x=>x.trim()).filter(Boolean),ans:p[2]||''}));
+if(!questions.length){toast('เพิ่มอย่างน้อย 1 ข้อ');return false}
+const it=o.id?o:{id:'t'+Date.now(),type:'test'};
+Object.assign(it,{title:v.title,desc:v.desc,time:parseInt(v.time)||15,questions,max:questions.length});
+if(!o.id)S.items.push(it);save();render();toast('บันทึกแล้ว')})}
+
+const okA=(q,a)=>{a=String(a||'').trim().toLowerCase();return !!a&&String(q.ans).split('|').some(x=>x.trim().toLowerCase()===a)};
+
+function tList(it){return`<div class="border-t pt-2 space-y-1.5">${S.students.map(s=>{const x=sub(it.id,s.id);return`<div class="mu flex justify-between items-center gap-2 text-xs"><span>${s.no}. ${esc(s.name)} ${badge(x,it)} ${x&&x.status==='graded'?`<b>${x.score}/${it.max}</b>`:''}</span><span class="flex gap-1">${it.type==='test'&&x?`<button class="b" onclick="resetSub('${it.id}','${s.id}')">🔄 สอบใหม่</button>`:''}${x&&x.status!=='started'?`<button class="b" onclick="openGrade('${it.id}','${s.id}')">ตรวจ</button>`:''}</span></div>`}).join('')}</div>`}
+
+function sBox(it){
+if(!me)return'<div class="text-xs font-bold text-rose-500">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
+const s=sub(it.id,me.id),st=`<div class="flex justify-between text-xs"><b>สถานะ:</b>${badge(s,it)}</div>${s&&s.feedback?`<div class="mu text-xs">💬 ${esc(s.feedback)}</div>`:''}`;
+const box=x=>`<div class="mu space-y-2 p-3">${st}${x}</div>`;
+if(it.type==='test'){
+if(s&&s.status==='cheated')return box('<div class="text-xs font-bold text-rose-600">🚨 ถูกตัดสิทธิ์: ตรวจพบการสลับหน้าจอ หากมีเหตุผลให้แจ้งครู</div>');
+if(s&&s.status==='started')return box('<div class="text-xs font-bold text-orange-600">⚠️ ออกจากการสอบกลางคัน ต้องให้ครูอนุญาตจึงสอบใหม่ได้</div>');
+if(s)return box(`<div class="text-xs font-bold">${s.status==='graded'||it.autoShow?`✅ ส่งแล้ว ได้ ${s.score}/${it.max} คะแนน`:'📨 ส่งแล้ว'}</div>`);
+return box(`<button class="b pk w-full" onclick="startTest('${it.id}')">▶️ เริ่มทำแบบทดสอบ</button>`)}
+if(s&&s.status!=='revision')return box(`<div class="text-xs break-words"><b>งานที่ส่ง:</b><br>${esc(s.text)||'<i>ไม่มีข้อความ</i>'}${s.url?`<br><a class="underline text-sky-500" target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.url)}</a>`:''}</div>${attHtml(s.att)}${s.status==='graded'?'<div class="text-[11px] opacity-70">🔒 ครูตรวจแล้ว ไม่สามารถแก้ไขได้</div>':`<div class="flex gap-2"><button class="b" onclick="send('${it.id}',1)">✏️ แก้ไข</button><button class="b" onclick="delSub('${it.id}')">ลบงาน</button></div>`}`);
+return box(`<textarea id="t_${it.id}" rows="2" class="inp" placeholder="ข้อความส่งงาน...">${esc(s&&s.text)}</textarea><input id="u_${it.id}" class="inp" placeholder="ลิงก์ผลงาน (ถ้ามี)" value="${esc(s&&s.url)}">${attHtml(s&&s.att)}<input id="fl_${it.id}" type="file" multiple class="inp"><button class="b pk w-full" onclick="send('${it.id}')">${s?'ส่งงานอีกครั้ง':'ส่งงาน'}</button>`)}
+
+async function send(id,edit){
+const it=S.items.find(i=>i.id===id);
+if(edit){const s=sub(id,me.id);return form('แก้ไขงานที่ส่ง',[['text','ข้อความ',s.text||'','area'],['url','ลิงก์',s.url||'']],v=>{putSub(id,me.id,{...s,text:v.text,url:v.url,at:new Date().toISOString()}).then(r=>{render();if(r)toast('แก้ไขแล้ว')})})}
+const text=$('t_'+id).value.trim(),url=$('u_'+id).value.trim(),fs=[...$('fl_'+id).files],old=sub(id,me.id),att=[...((old&&old.att)||[])];
+if(!text&&!url&&!fs.length&&!att.length)return toast('กรอกข้อความ ลิงก์ หรือแนบไฟล์');
+if(fs.length)toast('กำลังอัปโหลดไฟล์...');
+for(const f of fs){try{att.push(await upFile(f))}catch(e){return toast(f.name+': '+e.message)}}
+toast('กำลังส่งงาน...');
+const v=await putSub(id,me.id,{status:'submitted',text,url,att,late:isLate(it),at:new Date().toISOString(),score:0,feedback:''});
+render();if(v)toast(v.late?'ส่งงานแล้ว (ส่งช้า)':'ส่งงานเรียบร้อย!')}
+function delSub(id){ask('ลบงานที่ส่งนี้?',async()=>{await rmSub(id,me.id);render()})}
+function resetSub(i,s){ask('เปิดสิทธิ์สอบใหม่? ผลเดิมจะถูกลบ',async()=>{if(await rmSub(i,s))toast('เปิดสิทธิ์แล้ว');render()})}
+
+/* ---- online test with anti-cheat ---- */
+async function startTest(id){
+const it=S.items.find(i=>i.id===id);
+if(sub(id,me.id))return toast('คุณส่งแบบทดสอบนี้แล้ว');
+if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
+toast('กำลังเริ่มสอบ...');if(!(await putSub(id,me.id,{status:'started',at:new Date().toISOString()}))){render();return}
+active=id;let left=(it.time||15)*60;
+$('modal').innerHTML=`<div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div class="flex justify-between items-center"><h3 class="mali font-bold">${esc(it.title)}</h3><span id="tm" class="mu text-xs font-bold"></span></div><div class="mu text-xs font-bold">⚠️ ห้ามสลับแท็บ — ระบบจะตัดสิทธิ์ทันที</div>${it.questions.map((q,i)=>`<div class="text-xs space-y-1"><p class="font-bold">ข้อ ${i+1}: ${esc(q.q)}</p>${q.opts&&q.opts.length?q.opts.map(o=>`<label class="block"><input type="radio" name="q${i}" value="${esc(o)}"> ${esc(o)}</label>`).join(''):`<input id="a${i}" class="inp" placeholder="คำตอบ">`}</div>`).join('')}<button class="b gn w-full py-2" onclick="finishTest()">ส่งคำตอบ</button></div>`;
+$('modal').classList.remove('hidden');
+const tick=()=>{$('tm').textContent='เหลือ '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');if(left--<=0)finishTest()};
+tick();timer=setInterval(tick,1000);document.addEventListener('visibilitychange',cheat)}
+function endTest(){clearInterval(timer);document.removeEventListener('visibilitychange',cheat);closeModal();active=null}
+function cheat(){if(!document.hidden||!active)return;const iid=active;endTest();putSub(iid,me.id,{status:'cheated',score:0,at:new Date().toISOString()}).then(render);toast('🚨 ตรวจพบการสลับหน้าจอ ถูกตัดสิทธิ์')}
+async function finishTest(){
+if(!active)return;const iid=active,it=S.items.find(i=>i.id===iid);let sc=0;
+const answers=it.questions.map((q,i)=>{const a=q.opts&&q.opts.length?(document.querySelector(`input[name=q${i}]:checked`)||{}).value||'':$('a'+i).value.trim();if(okA(q,a))sc++;return a});
+endTest();toast('กำลังส่งแบบทดสอบ...');
+const v=await putSub(iid,me.id,{status:online()?'submitted':'graded',score:sc,answers,at:new Date().toISOString(),feedback:''});
+render();toast(v?'ส่งแบบทดสอบแล้ว':'⚠️ ส่งไม่สำเร็จ แจ้งครู')}
+
+/* ---- grading ---- */
+function openGrade(iid,sid){
+const it=S.items.find(i=>i.id===iid),st=S.students.find(s=>s.id===sid),x=sub(iid,sid)||{};
+const pen=x.late&&it.type!=='test'?it.max/2:0;
+const body=it.type==='test'?(x.answers||[]).map((a,i)=>{const q=it.questions[i];return q?`<div><b>${i+1}. ${esc(q.q)}</b><br>${okA(q,a)?'✅':'❌'} ${esc(a)||'<i>ไม่ตอบ</i>'} <span class="opacity-60">(เฉลย: ${esc(q.ans)})</span></div>`:''}).join(''):`${esc(x.text)||'<i>ไม่มีข้อความ</i>'}${x.url?`<br><a class="underline text-sky-500" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.url)}</a>`:''}`;
+$('modal').innerHTML=`<div class="card w-full max-w-md max-h-[90vh] overflow-y-auto space-y-2"><h3 class="mali font-bold">ตรวจงาน: ${esc(st&&st.name)}</h3><div class="text-xs">${esc(it.title)}</div><div class="mu text-xs break-words space-y-1">${body}${attHtml(x.att)}</div>${pen?`<div class="mu text-xs font-bold">⏰ ส่งช้า: ระบบหัก ${pen} คะแนนอัตโนมัติ</div>`:''}<div class="grid grid-cols-2 gap-2 text-xs font-bold"><label>คะแนน (เต็ม ${it.max})<input id="gs" type="number" min="0" max="${it.max}" step="any" class="inp" value="${x.raw??x.score??0}"></label><label>สถานะ<select id="gst" class="inp"><option value="graded">ตรวจแล้ว</option><option value="revision" ${x.status==='revision'?'selected':''}>ให้แก้ไข</option></select></label></div><textarea id="gf" rows="2" class="inp" placeholder="ข้อติชม (นักเรียนเห็น)">${esc(x.feedback)}</textarea><div class="flex gap-2"><button class="b flex-1" onclick="closeModal()">ปิด</button><button class="b gn flex-1" onclick="saveGrade('${iid}','${sid}')">บันทึก</button></div></div>`;
+$('modal').classList.remove('hidden')}
+function saveGrade(iid,sid){
+const it=S.items.find(i=>i.id===iid),x=sub(iid,sid);
+const raw=Math.min(Math.max(parseFloat($('gs').value)||0,0),it.max);
+const pen=x.late&&it.type!=='test'?it.max/2:0;
+Object.assign(x,{raw,score:Math.round(Math.max(0,raw-pen)*100)/100,status:$('gst').value,feedback:$('gf').value});
+closeModal();putSub(iid,sid,x).then(()=>{render();toast('บันทึกผลการตรวจแล้ว')})}
+
+/* ---- rooms ---- */
+function useRoom(id){stash();S.cur=id;repoint();persist()}
+function switchRoom(id){useRoom(id);render()}
+function vRoom(){const l=location.href.split('#')[0]+'#'+S.cur;
+return head('🏫 ห้องเรียน','สร้าง แก้ไข ลบห้อง และแชร์ลิงก์ให้นักเรียน',add('roomForm()','+ สร้างห้อง'))+`<div class="card space-y-1.5">${S.rooms.map(r=>`<div class="mu flex flex-wrap justify-between items-center gap-1 text-xs ${r.id===S.cur?'on':''}"><span><b>${esc(r.level)}/${esc(r.room)}</b> ${esc(r.sname)} ${esc(r.scode)} • ${esc(r.term)}/${esc(r.year)} <span class="opacity-60">(${((S.D[r.id]||{}).students||[]).length} คน)</span></span><span class="flex gap-1"><button class="b" onclick="switchRoom('${r.id}')">📂 เปิด</button><button class="b" onclick="roomForm('${r.id}')">✏️</button><button class="b" onclick="delRoom('${r.id}')">🗑️</button></span></div>`).join('')}</div><div class="card text-xs space-y-2"><b>ลิงก์สำหรับนักเรียน (ห้องที่เปิดอยู่)</b><div class="mu break-all">${esc(l)}</div><button class="b" onclick="copyLink()">📋 คัดลอกลิงก์</button><div>🔑 รหัสผ่านห้อง: <b>${esc(curRoom().pw)||'ไม่ได้ตั้ง'}</b></div></div>`}
+function roomForm(id){const o=S.rooms.find(r=>r.id===id)||{};
+form(id?'แก้ไขห้องเรียน':'สร้างห้องเรียน',[['level','ระดับชั้น',o.level||'ม.4'],['room','ห้อง',o.room||'1'],['term','ภาคเรียน',o.term||'1'],['year','ปีการศึกษา',o.year||'2569'],['scode','รหัสวิชา',o.scode||''],['sname','รายวิชา',o.sname||''],['pw','รหัสผ่านเข้าห้อง (ว่าง = ไม่ตั้ง)',o.pw||'']],v=>{
+if(!v.room){toast('กรอกห้อง');return false}
+if(o.id)Object.assign(o,v);else{const r={id:'r'+Date.now(),...v};S.rooms.push(r);S.D[r.id]={items:[],students:[],bonus:[]};useRoom(r.id)}
+save();render();toast('บันทึกแล้ว')})}
+function delRoom(id){if(S.rooms.length<2)return toast('ต้องมีอย่างน้อย 1 ห้อง');
+ask('ลบห้องนี้พร้อมรายชื่อและงานทั้งหมด?',()=>{S.rooms=S.rooms.filter(r=>r.id!==id);delete S.D[id];if(S.cur===id){S.cur=null;useRoom(S.rooms[0].id)}save();render()})}
+function copyLink(){const l=location.href.split('#')[0]+'#'+S.cur;(navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).then(()=>toast('คัดลอกลิงก์แล้ว'),()=>toast('คัดลอกไม่สำเร็จ'))}
+
+/* ---- attachments ---- */
+async function shrink(f){if(!/^image\/(jpeg|png|webp)/.test(f.type)||f.size<300000)return f;try{const b=await createImageBitmap(f),k=Math.min(1,1600/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=Math.round(b.width*k);c.height=Math.round(b.height*k);c.getContext('2d').drawImage(b,0,0,c.width,c.height);const o=await new Promise(r=>c.toBlob(r,'image/jpeg',.82));return o&&o.size<f.size?new File([o],f.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):f}catch(e){return f}}
+async function upFile(f){if(!online())throw new Error('ต้องตั้งค่า GAS_URL ก่อนจึงแนบไฟล์ได้');
+f=await shrink(f);
+const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f)});
+const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});
+if(!x.ok)throw new Error(x.error||'อัปโหลดไม่สำเร็จ');
+return{id:x.id,url:x.url,name:f.name,ct:f.type}}
+const attHtml=(l,rm)=>(l||[]).map((f,i)=>`<div class="flex flex-wrap items-center gap-2 text-xs">${(f.ct||'').startsWith('image/')?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-h-40 rounded-xl border">`:(f.url||'').includes('/preview')?`<iframe src="${esc(f.url)}" class="w-full h-64 rounded-xl border"></iframe>`:''}<a class="b" href="${esc(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>${rm?`<button onclick="${rm}${i})">✕</button>`:''}</div>`).join('');
+const matView=it=>(it.url?`<a href="${esc(it.url)}" target="_blank" rel="noopener" class="b inline-block">👁️ เปิดเนื้อหา</a>`:'')+attHtml(it.att,T()?`rmAtt('${it.id}',`:null);
+function rmAtt(id,i){S.items.find(x=>x.id===id).att.splice(i,1);save();render()}
+
+/* ---- students ---- */
+function vStu(){return head('จัดการรายชื่อนักเรียน',S.students.length+' คน',`<div class="flex gap-1.5">${add('impStu()','📥 นำเข้า')}${add('stuForm()','+ เพิ่ม')}</div>`)+`<div class="card overflow-x-auto"><table class="w-full text-xs text-left"><thead><tr><th class="p-2">เลขที่</th><th class="p-2">รหัส</th><th class="p-2">ชื่อ-สกุล</th><th class="p-2"></th></tr></thead><tbody>${S.students.map(s=>`<tr class="border-t"><td class="p-2 font-bold">${s.no}</td><td class="p-2">${esc(s.code)}</td><td class="p-2">${esc(s.name)}</td><td class="p-2"><button onclick="stuForm('${s.id}')">✏️</button> <button onclick="delStu('${s.id}')">🗑️</button></td></tr>`).join('')||'<tr><td class="p-3 opacity-60" colspan="4">ยังไม่มีรายชื่อ</td></tr>'}</tbody></table></div>`}
+function stuForm(id){const o=S.students.find(x=>x.id===id)||{};
+form(id?'แก้ไขนักเรียน':'เพิ่มนักเรียน',[['no','เลขที่',o.no||S.students.length+1,'number'],['code','รหัสประจำตัว',o.code||''],['name','ชื่อ-สกุล',o.name||'']],v=>{
+if(!v.code||!v.name){toast('กรอกรหัสและชื่อ');return false}
+if(S.students.some(x=>x.code===v.code&&x.id!==id)){toast('รหัสนี้มีอยู่แล้ว');return false}
+const s=o.id?o:{id:'s'+Date.now()};Object.assign(s,{no:parseInt(v.no)||0,code:v.code,name:v.name});
+if(!o.id)S.students.push(s);S.students.sort((a,b)=>a.no-b.no);save();render()})}
+function delStu(id){ask('ลบนักเรียนนี้?',()=>{S.students=S.students.filter(s=>s.id!==id);save();render()})}
+function impStu(){form('นำเข้ารายชื่อ',[['t','บรรทัดละคน: เลขที่ รหัส ชื่อ-สกุล (คั่นด้วย Tab หรือ , หรือเว้นวรรค)','','area']],v=>{
+let n=0;v.t.split(/\r?\n/).forEach(l=>{let p=l.split(/\t|,/).map(x=>x.trim()).filter(Boolean);if(p.length<3)p=l.trim().split(/\s+/);
+if(p.length<3||isNaN(+p[0]))return;const no=+p[0],code=p[1],name=p.slice(2).join(' '),e=S.students.find(x=>x.code===code);
+if(e)Object.assign(e,{no,name});else S.students.push({id:'s'+Date.now()+n,no,code,name});n++});
+if(!n){toast('ไม่พบข้อมูลที่อ่านได้');return false}
+S.students.sort((a,b)=>a.no-b.no);save();render();toast('นำเข้า '+n+' รายชื่อ')})}
+
+/* ---- grades ---- */
+function calc(sid){let m=0,e=0;tasks().forEach(t=>{m+=t.max||10;const x=sub(t.id,sid);if(x&&x.status==='graded')e+=x.score||0});
+const b=S.bonus.filter(x=>x.sid===sid).reduce((a,x)=>a+(+x.pts||0),0);const p=m?Math.min(100,(e+b)/m*100):0;
+return{p:p.toFixed(1),g:p>=80?'A':p>=75?'B+':p>=70?'B':p>=65?'C+':p>=60?'C':p>=55?'D+':p>=50?'D':'F'}}
+function vGrades(){const t=tasks();
+return head('🏅 ผลการเรียน (เฉพาะครู)','A 80+ • B+ 75 • B 70 • C+ 65 • C 60 • D+ 55 • D 50 • F &lt;50',`<button class="b gn shrink-0" onclick="copyCsv()">📋 คัดลอก CSV</button>`)+`<div class="card overflow-x-auto"><table class="w-full text-xs text-left"><thead><tr><th class="p-2">ที่</th><th class="p-2">ชื่อ</th>${t.map(x=>`<th class="p-2 text-center">${esc(x.title.split(':')[0])}</th>`).join('')}<th class="p-2">รวม %</th><th class="p-2">เกรด</th></tr></thead><tbody>${S.students.map(s=>{const r=calc(s.id);return`<tr class="border-t"><td class="p-2 font-bold">${s.no}</td><td class="p-2">${esc(s.name)}</td>${t.map(x=>{const y=sub(x.id,s.id);return`<td class="p-2 text-center">${y&&y.status==='graded'?y.score:'-'}</td>`}).join('')}<td class="p-2 font-bold">${r.p}%</td><td class="p-2 font-bold">${r.g}</td></tr>`}).join('')}</tbody></table></div>`}
+function copyCsv(){const csv='เลขที่,รหัส,ชื่อ-นามสกุล,คะแนน(%),เกรด\n'+S.students.map(s=>{const r=calc(s.id);return[s.no,s.code,s.name,r.p,r.g].join(',')}).join('\n');
+(navigator.clipboard?navigator.clipboard.writeText(csv):Promise.reject()).then(()=>toast('คัดลอก CSV แล้ว'),()=>toast('คัดลอกไม่สำเร็จ'))}
+
+/* ---- bonus ---- */
+function vBonus(){return head('⭐ คะแนนพิเศษ','🔒 เห็นเฉพาะครู • บวกเพิ่มในคะแนนรวม (สูงสุด 100%)',add('bonusForm()','+ เพิ่ม'))+`<div class="card space-y-1.5">${S.bonus.map(b=>{const s=S.students.find(x=>x.id===b.sid);return`<div class="mu flex justify-between gap-2 text-xs"><span><b>${esc(s?s.name:'(ถูกลบ)')}</b> • ${esc(b.title)} <b>${b.pts>0?'+':''}${b.pts}</b></span><button onclick="delBonus('${b.id}')">🗑️</button></div>`}).join('')||'<div class="text-xs opacity-60 text-center">ยังไม่มีรายการ</div>'}</div>`}
+function bonusForm(){form('เพิ่มคะแนนพิเศษ',[['sid','นักเรียน',(S.students[0]||{}).id||'','sel',S.students.map(s=>[s.id,s.no+'. '+s.name])],['title','เหตุผล / กิจกรรม',''],['pts','คะแนน','1','number']],v=>{
+const p=parseFloat(v.pts);if(!v.sid||!v.title||isNaN(p)){toast('กรอกข้อมูลให้ครบ');return false}
+S.bonus.push({id:'b'+Date.now(),sid:v.sid,title:v.title,pts:p});save();render()})}
+function delBonus(id){S.bonus=S.bonus.filter(b=>b.id!==id);save();render()}
+
+/* ---- backup ---- */
+function vData(){return head('💾 สำรองข้อมูล','ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้ ควรสำรองไฟล์เป็นระยะ')+`<div class="card space-y-2 text-xs"><button class="b gn" onclick="backup()">📦 ดาวน์โหลดไฟล์สำรอง (.json)</button><button class="b" onclick="driveBackup()">☁️ สำรองลง Drive</button><button class="b" onclick="restoreList()">📜 กู้คืนจาก Drive</button><label class="block font-bold">กู้คืนจากไฟล์<input type="file" accept=".json" class="inp" onchange="restore(this)"></label><label class="block font-bold">รหัสผ่านครู<input id="npw" type="password" class="inp" placeholder="ตั้งรหัสใหม่"></label><button class="b" onclick="setPw()">เปลี่ยนรหัสผ่าน</button></div>`}
+function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='classroom-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
+async function restore(i){const f=i.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!d.items||!d.students)throw 0;S=d;if(!S.rooms)S.rooms=[{id:'r1',level:'ม.4',room:'1',term:'1',year:'2569',scode:'',sname:'',pw:''}];if(!S.D)S.D={[S.rooms[0].id]:{items:S.items,students:S.students,bonus:S.bonus||[]}};S.cur=S.rooms[0].id;repoint();save();render();toast('กู้คืนสำเร็จ')}catch(e){toast('ไฟล์ไม่ถูกต้อง')}}
+async function driveBackup(){if(!online())return toast('ยังไม่ได้ตั้งค่า GAS_URL');const r=await api({action:'backup'});toast(r.ok?'สำรองแล้ว: '+r.name:'⚠️ '+r.error)}
+async function restoreList(){if(!online())return toast('ยังไม่ได้ตั้งค่า GAS_URL');const r=await gj(GAS_URL+'?action=listBackups&key='+encodeURIComponent(KEY));if(!r.ok)return toast('⚠️ '+r.error);
+$('modal').innerHTML=`<div class="card w-full max-w-md max-h-[85vh] overflow-y-auto space-y-2"><h3 class="mali font-bold">📜 เลือกไฟล์สำรอง</h3><p class="text-xs font-bold text-rose-600">⚠️ การกู้คืนจะทับข้อมูลปัจจุบัน</p>${r.list.map(f=>`<div class="mu flex justify-between items-center text-xs"><span><b>${esc(f.name)}</b><br>${esc(f.updated)}</span><button class="b pk" onclick="doRestore('${esc(f.name)}')">กู้คืน</button></div>`).join('')||'ไม่พบไฟล์'}<button class="b w-full" onclick="closeModal()">ปิด</button></div>`;$('modal').classList.remove('hidden')}
+function doRestore(n){ask('ยืนยันกู้คืนจาก '+n+'?',async()=>{const r=await api({action:'restoreBackup',fileName:n});if(!r.ok)return toast('⚠️ '+r.error);unsaved=false;await pull();toast('กู้คืนสำเร็จ')})}
+function setPw(){const p=$('npw').value;if(!p)return toast('กรอกรหัสใหม่');S.pw=p;save();toast('เปลี่ยนรหัสผ่านแล้ว')}
+
+(async()=>{
+setSt(online()?'กำลังเชื่อมต่อ...':'โหมดในเครื่อง (ยังไม่ตั้งค่า GAS_URL)');render();
+if(KEY&&online()){const x=await gj(GAS_URL+'?action=auth&key='+encodeURIComponent(KEY));if(x.ok){role='teacher';render()}else{KEY='';try{localStorage.removeItem('lms_key')}catch(e){}}}
+await pull();
+setInterval(()=>{if(!document.hidden&&!(role==='teacher'&&(pend||unsaved)))pull()},20000);
+})();
+</script>
+</body>
+</html>
