@@ -41,7 +41,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" role="status"></div>
 <script>
 /* ===== ตั้งค่า: ใส่ URL ของ Web App (ลงท้าย /exec) ===== */
-const API = 'ใส่ URL Web App ที่นี่';
+const API = 'https://script.google.com/macros/s/AKfycbyEEnrWoAyS5BhOB6INcYZ7NaLQ9wkGdtg6SrhQqIzXVQv9rU3pUZTuv4EC2YjmOyTr/exec';
 
 const $ = s => document.querySelector(s), app = $('#app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
