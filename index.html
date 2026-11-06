@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classroom by KRU.yui</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f3;--ink:#1b2a33;--mut:#5d6f78;--pri:#0f766e;--hl:#f4b942;--card:#fff;--line:#d5dee2;--bad:#b42318}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Sarabun,"Noto Sans Thai",system-ui,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:16px}.narrow{max-width:420px;padding-top:8vh}
+h1{font-size:1.9rem;margin:0 0 16px}h1 small{font-size:.9rem;color:var(--mut);font-weight:400}
+h2{font-size:1.1rem;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 12px}
+.item{cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.item:hover{border-color:var(--pri)}
+label{display:block;margin:8px 0;font-weight:600;font-size:.92rem}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;margin-top:3px}
+textarea{min-height:90px}
+button{background:var(--pri);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer;margin:4px 6px 4px 0}
+button.alt{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+button.del{background:#fff;color:var(--bad);border:1px solid var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--hl);outline-offset:1px}
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.bar h1{margin:0;font-size:1.3rem;flex:1}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.badge{font-size:.78rem;padding:2px 9px;border-radius:99px;background:#e3eaed;white-space:nowrap}
+.badge.ok{background:#d3f1e6;color:#075e4d}.badge.warn{background:#fdecc0;color:#7a5200}.badge.bad{background:#fbdcd8;color:var(--bad)}
+.mut{color:var(--mut);font-size:.9rem}.pre{white-space:pre-wrap}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.q{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.q label{font-weight:400;display:flex;gap:8px;align-items:center;margin:4px 0}.q input[type=radio]{width:auto;margin:0}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 18px;border-radius:8px;display:none;z-index:9;max-width:90vw}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app" class="wrap">กำลังโหลด...</div>
+<div id="toast" role="status"></div>
+<script>
+/* ===== ตั้งค่า: ใส่ URL ของ Web App (ลงท้าย /exec) ===== */
+const API = 'ใส่ URL Web App ที่นี่';
+
+const $ = s => document.querySelector(s), app = $('#app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TN = {material:'เอกสาร', assignment:'งาน', test:'แบบทดสอบ'};
+const S = {d:{rooms:[],items:[],students:[],bonus:[],subs:{}}, role:null, key:'', room:null, stu:null, view:'login', tab:'items', cur:null, draft:{att:[]}, ed:null, gi:'', gr:'', sr:'', bk:[]};
+let tt;
+const toast = m => { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(tt); tt = setTimeout(() => t.style.display = 'none', 3000); };
+const get = async p => (await fetch(API + '?' + new URLSearchParams(p))).json();
+const call = async b => {
+  const r = await (await fetch(API, {method:'POST', body:new URLSearchParams({payload:JSON.stringify(Object.assign({key:S.key}, b))})})).json();
+  if (!r.ok) throw r.error || 'เกิดข้อผิดพลาด';
+  return r;
+};
+const busy = async f => { try { return await f(); } catch (e) { toast(e.message || e); } };
+async function load() {
+  const r = await get({action:'get', key:S.key, sid:S.stu ? S.stu.id : ''});
+  if (!r.ok) throw r.error;
+  S.d = r.data; S.d.subs = S.d.subs || {};
+}
+const mySub = (iid, sid) => (S.d.subs[iid] || {})[sid || (S.stu && S.stu.id)];
+const putLocal = (iid, sid, sub) => { (S.d.subs[iid] = S.d.subs[iid] || {})[sid] = sub; };
+const fmt = s => String(s || '').replace('T', ' ');
+const bar = (t, back) => `<div class="bar">${back ? `<button class="alt" onclick="${back}">กลับ</button>` : ''}<h1>${esc(t)}</h1><button class="alt" onclick="logout()">ออก</button></div>`;
+const attList = a => (a || []).map(f => `<div><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a></div>`).join('');
+const saveCore = () => call({action:'saveCore', core:{rooms:S.d.rooms, items:S.d.items, students:S.d.students, bonus:S.d.bonus || []}});
+const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function render() { ({login:vLogin, home:vHome, item:vItem, t:vT, edit:vEdit})[S.view](); window.scrollTo(0, 0); }
+function logout() { Object.assign(S, {role:null, key:'', stu:null, room:null, view:'login'}); init(); }
+
+async function upl(file) {
+  const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.onerror = no; r.readAsDataURL(file); });
+  const r = await call({action:'upload', b64, mime:file.type || 'application/octet-stream', name:file.name});
+  return {name:file.name, url:r.url};
+}
+async function pick(inp, arr) {
+  await busy(async () => {
+    toast('กำลังอัปโหลด...');
+    for (const f of inp.files) arr.push(await upl(f));
+    toast('อัปโหลดแล้ว'); render();
+  });
+}
+
+/* ---------- เข้าสู่ระบบ ---------- */
+function vLogin() {
+  app.innerHTML = `<div class="narrow wrap"><h1>Classroom <small>by KRU.yui</small></h1>
+  <div class="card"><h2>นักเรียน</h2>
+  <label>ห้องเรียน<select id="lr">${S.d.rooms.map(r => `<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('')}</select></label>
+  <label>รหัสผ่านห้อง (ถ้ามี)<input id="lp" type="password"></label>
+  <label>รหัสนักเรียน<input id="ls"></label>
+  <button onclick="stuLogin()">เข้าห้องเรียน</button></div>
+  <div class="card"><h2>ครู</h2><label>รหัสครู<input id="lk" type="password"></label>
+  <button class="alt" onclick="teaLogin()">เข้าสู่ระบบครู</button></div></div>`;
+}
+const stuLogin = () => busy(async () => {
+  const rid = $('#lr').value, id = $('#ls').value.trim();
+  if (!rid) throw 'ยังไม่มีห้องเรียน';
+  const a = await get({action:'pw', rid, p:$('#lp').value});
+  if (!a.ok) throw 'รหัสผ่านห้องไม่ถูกต้อง';
+  const st = S.d.students.find(s => String(s.id) === id && s.rid === rid);
+  if (!st) throw 'ไม่พบรหัสนักเรียนในห้องนี้';
+  S.role = 's'; S.room = S.d.rooms.find(r => r.id === rid); S.stu = st;
+  await load(); S.view = 'home'; render();
+});
+const teaLogin = () => busy(async () => {
+  const k = $('#lk').value, a = await get({action:'auth', key:k});
+  if (!a.ok) throw a.error || 'รหัสครูไม่ถูกต้อง';
+  S.role = 't'; S.key = k; await load(); S.view = 't'; render();
+});
+
+/* ---------- นักเรียน ---------- */
+const roomItems = rid => S.d.items.filter(i => !i.rid || i.rid === rid);
+function stBadge(it, sub) {
+  if (it.type === 'material') return '';
+  if (!sub) return '<span class="badge warn">ยังไม่ส่ง</span>';
+  if (sub.status === 'graded') return `<span class="badge ok">ได้ ${sub.score}/${it.max || ''}</span>`;
+  if (sub.status === 'cheated') return '<span class="badge bad">ออกจากหน้าสอบ</span>';
+  if (sub.status === 'started') return '<span class="badge warn">กำลังทำ</span>';
+  return `<span class="badge ok">ส่งแล้ว${sub.late ? ' (ช้า)' : ''}</span>`;
+}
+function vHome() {
+  const L = roomItems(S.room.id).slice().reverse();
+  app.innerHTML = bar(S.room.name + ' • ' + S.stu.name) + (L.length ? L.map(it => `<div class="card item" onclick="openItem('${it.id}')">
+    <div><b>${esc(it.title)}</b><div class="mut">${TN[it.type] || ''}${it.due ? ' • ส่งภายใน ' + fmt(it.due) : ''}</div></div>${stBadge(it, mySub(it.id))}</div>`).join('') : '<p class="mut">ยังไม่มีรายการในห้องนี้</p>');
+}
+function openItem(id) { S.cur = id; const s = mySub(id); S.draft = {att:s && s.att ? s.att.slice() : []}; S.view = 'item'; render(); }
+const goHome = () => busy(async () => { await load(); S.view = 'home'; render(); });
+function vItem() {
+  const it = S.d.items.find(i => i.id === S.cur), sub = mySub(it.id);
+  let b = `<div class="card"><div class="mut">${TN[it.type]}${it.max ? ' • เต็ม ' + it.max : ''}${it.due ? ' • ส่งภายใน ' + fmt(it.due) : ''}</div>
+  <p class="pre">${esc(it.desc)}</p>${it.url ? `<p><a href="${esc(it.url)}" target="_blank" rel="noopener">เปิดลิงก์</a></p>` : ''}${attList(it.att)}</div>`;
+  const closed = it.openAt && new Date(it.openAt) > new Date();
+  if (closed) b += `<p class="mut">เปิดให้ทำวันที่ ${fmt(it.openAt)}</p>`;
+  else if (it.type === 'assignment') {
+    if (sub && sub.status === 'graded') b += `<div class="card"><h2>ครูตรวจแล้ว: ${sub.score}/${it.max || ''}</h2><p class="pre">${esc(sub.feedback)}</p></div>`;
+    else b += `<div class="card"><h2>งานของฉัน ${stBadge(it, sub)}</h2>
+    <label>ข้อความ<textarea id="tx">${esc(sub ? sub.text : '')}</textarea></label>
+    <label>ลิงก์งาน<input id="ur" value="${esc(sub ? sub.url : '')}"></label>
+    <label>แนบไฟล์<input type="file" multiple onchange="pick(this,S.draft.att)"></label>
+    ${S.draft.att.map((f, i) => `<div>${esc(f.name)} <a href="#" onclick="S.draft.att.splice(${i},1);render();return false">ลบ</a></div>`).join('')}
+    <button onclick="subA()">${sub ? 'ส่งงานอีกครั้ง' : 'ส่งงาน'}</button>${sub ? '<button class="del" onclick="unsub()">ยกเลิกการส่ง</button>' : ''}</div>`;
+  } else if (it.type === 'test') {
+    if (!sub) b += `<div class="card"><p>เมื่อเริ่มแล้วห้ามออกจากหน้านี้ หากสลับหน้าจอ ระบบจะให้ 0 คะแนน และทำได้ครั้งเดียว</p><button onclick="startT()">เริ่มทำแบบทดสอบ</button></div>`;
+    else if (sub.status === 'started') b += `<div class="card">${(it.questions || []).map((q, i) => `<div class="q"><b>${i + 1}. ${esc(q.q)}</b>
+      ${q.type === 'fill' ? `<input id="a${i}" autocomplete="off">` : (q.choices || []).map((c, j) => `<label><input type="radio" name="a${i}" value="${j}">${esc(c)}</label>`).join('')}</div>`).join('')}
+      <button onclick="subT()">ส่งคำตอบ</button></div>`;
+    else if (sub.status === 'cheated') b += '<div class="card"><b>ออกจากหน้าสอบระหว่างทำ ได้ 0 คะแนน</b></div>';
+    else b += `<div class="card"><h2>ส่งแล้ว คะแนน ${sub.score}/${it.max || ''}</h2><p class="pre">${esc(sub.feedback)}</p></div>`;
+  }
+  app.innerHTML = bar(it.title, 'goHome()') + b;
+}
+const subA = () => busy(async () => {
+  const r = await call({action:'putSub', iid:S.cur, sid:S.stu.id, sub:{text:$('#tx').value, url:$('#ur').value, att:S.draft.att}});
+  putLocal(S.cur, S.stu.id, r.sub); toast('ส่งงานแล้ว'); render();
+});
+const unsub = () => busy(async () => {
+  await call({action:'delSub', iid:S.cur, sid:S.stu.id});
+  delete S.d.subs[S.cur][S.stu.id]; S.draft.att = []; toast('ยกเลิกการส่งแล้ว'); render();
+});
+const startT = () => busy(async () => {
+  const r = await call({action:'putSub', iid:S.cur, sid:S.stu.id, sub:{status:'started'}});
+  putLocal(S.cur, S.stu.id, r.sub); render();
+});
+const subT = () => busy(async () => {
+  const it = S.d.items.find(i => i.id === S.cur);
+  const answers = (it.questions || []).map((q, i) => {
+    if (q.type === 'fill') return $('#a' + i).value;
+    const c = document.querySelector(`input[name=a${i}]:checked`); return c ? c.value : '';
+  });
+  const r = await call({action:'putSub', iid:S.cur, sid:S.stu.id, sub:{status:'submitted', answers}});
+  putLocal(S.cur, S.stu.id, r.sub); toast('ส่งคำตอบแล้ว'); render();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden || S.role !== 's' || S.view !== 'item') return;
+  const s = mySub(S.cur), it = S.d.items.find(i => i.id === S.cur);
+  if (!it || it.type !== 'test' || !s || s.status !== 'started') return;
+  putLocal(S.cur, S.stu.id, {status:'cheated', score:0});
+  call({action:'putSub', iid:S.cur, sid:S.stu.id, sub:{status:'cheated'}}).catch(() => {});
+});
+
+/* ---------- ครู ---------- */
+const TABS = {items:'งาน/เอกสาร', grade:'ตรวจงาน', students:'นักเรียน', rooms:'ห้องเรียน', backup:'สำรองข้อมูล'};
+const roomName = id => (S.d.rooms.find(r => r.id === id) || {name:'ทุกห้อง'}).name;
+const roomOpts = (sel, all) => (all ? `<option value="">ทุกห้อง</option>` : '') + S.d.rooms.map(r => `<option value="${esc(r.id)}"${r.id === sel ? ' selected' : ''}>${esc(r.name)}</option>`).join('');
+function vT() {
+  let b = `<div class="tabs">${Object.keys(TABS).map(k => `<button class="${S.tab === k ? 'on' : ''}" onclick="S.tab='${k}';render()">${TABS[k]}</button>`).join('')}</div>`;
+  b += ({items:tItems, grade:tGrade, students:tStu, rooms:tRooms, backup:tBackup})[S.tab]();
+  app.innerHTML = bar('ครู • Classroom') + b;
+  if (S.tab === 'backup' && !S.bk.length) loadBk();
+}
+function tItems() {
+  return `<button onclick="editItem()">+ เพิ่มรายการ</button>` + S.d.items.slice().reverse().map(it => `<div class="card item"><div><b>${esc(it.title)}</b>
+  <div class="mut">${TN[it.type]} • ${esc(roomName(it.rid))}${it.due ? ' • ส่งภายใน ' + fmt(it.due) : ''}</div></div>
+  <div><button class="alt" onclick="editItem('${it.id}')">แก้ไข</button><button class="del" onclick="delItem('${it.id}')">ลบ</button></div></div>`).join('');
+}
+const qSer = qs => (qs || []).map(q => q.type === 'fill' ? `${q.q}||${String(q.ans).split('|').join('/')}` : `${q.q}|${(q.choices || []).join(';')}|${+q.ans + 1}`).join('\n');
+const qPar = t => t.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+  const [q, c, a] = l.split('|').map(x => (x || '').trim());
+  return c ? {type:'mc', q, choices:c.split(';').map(x => x.trim()), ans:String((parseInt(a) || 1) - 1)} : {type:'fill', q, ans:(a || '').split('/').map(x => x.trim()).join('|')};
+});
+function editItem(id) {
+  S.ed = id ? JSON.parse(JSON.stringify(S.d.items.find(i => i.id === id))) : {id:uid(), type:'material', title:'', desc:'', url:'', rid:'', max:10, openAt:'', due:'', att:[]};
+  S.ed.att = S.ed.att || []; S.view = 'edit'; render();
+}
+function vEdit() {
+  const e = S.ed;
+  app.innerHTML = bar(e.title || 'รายการใหม่', "S.view='t';render()") + `<div class="card">
+  <div class="row"><label>ประเภท<select id="et" onchange="edT()">${Object.keys(TN).map(k => `<option value="${k}"${e.type === k ? ' selected' : ''}>${TN[k]}</option>`).join('')}</select></label>
+  <label>ห้อง<select id="er">${roomOpts(e.rid, true)}</select></label></div>
+  <label>ชื่อรายการ<input id="ei" value="${esc(e.title)}"></label>
+  <label>รายละเอียด<textarea id="ed">${esc(e.desc)}</textarea></label>
+  <label>ลิงก์<input id="eu" value="${esc(e.url)}"></label>
+  <label>แนบไฟล์<input type="file" multiple onchange="edSync();pick(this,S.ed.att)"></label>
+  ${e.att.map((f, i) => `<div>${esc(f.name)} <a href="#" onclick="edSync();S.ed.att.splice(${i},1);render();return false">ลบ</a></div>`).join('')}
+  <div id="eo" ${e.type === 'material' ? 'hidden' : ''}><div class="row"><label>คะแนนเต็ม<input id="em" type="number" value="${e.max ?? 10}"></label>
+  <label>เปิดให้ทำ<input id="eO" type="datetime-local" value="${esc(e.openAt)}"></label></div>
+  <label>กำหนดส่ง<input id="eD" type="datetime-local" value="${esc(e.due)}"></label></div>
+  <div id="eq" ${e.type === 'test' ? '' : 'hidden'}><label>ข้อสอบ (1 บรรทัด = 1 ข้อ)
+  <textarea id="eQ" style="min-height:160px" placeholder="ปรนัย: คำถาม|ตัวเลือก1;ตัวเลือก2;ตัวเลือก3|เลขข้อที่ถูก&#10;เติมคำ: คำถาม||คำตอบ1/คำตอบ2">${esc(qSer(e.questions))}</textarea></label></div>
+  <button onclick="saveItem()">บันทึก</button></div>`;
+}
+function edSync() {
+  const e = S.ed;
+  Object.assign(e, {type:$('#et').value, rid:$('#er').value, title:$('#ei').value, desc:$('#ed').value, url:$('#eu').value, max:+$('#em').value || 0, openAt:$('#eO').value, due:$('#eD').value});
+  if (e.type === 'test') e.questions = qPar($('#eQ').value);
+}
+function edT() { edSync(); render(); }
+const saveItem = () => busy(async () => {
+  edSync(); const e = S.ed;
+  if (!e.title.trim()) throw 'กรุณาใส่ชื่อรายการ';
+  if (e.type !== 'test') delete e.questions;
+  const i = S.d.items.findIndex(x => x.id === e.id);
+  if (i < 0) S.d.items.push(e); else S.d.items[i] = e;
+  await saveCore(); toast('บันทึกแล้ว'); S.view = 't'; render();
+});
+const delItem = id => busy(async () => {
+  if (!confirm('ลบรายการนี้?')) return;
+  S.d.items = S.d.items.filter(i => i.id !== id); await saveCore(); render();
+});
+
+function tGrade() {
+  const its = S.d.items.filter(i => i.type !== 'material');
+  if (!S.gi || !its.some(i => i.id === S.gi)) S.gi = its.length ? its[its.length - 1].id : '';
+  const it = its.find(i => i.id === S.gi);
+  let b = `<label>เลือกงาน<select onchange="S.gi=this.value;render()">${its.map(i => `<option value="${i.id}"${i.id === S.gi ? ' selected' : ''}>${esc(i.title)} (${esc(roomName(i.rid))})</option>`).join('')}</select></label>`;
+  if (!it) return b + '<p class="mut">ยังไม่มีงานหรือแบบทดสอบ</p>';
+  S.gl = S.d.students.filter(s => !it.rid || s.rid === it.rid).map(s => s.id);
+  return b + S.gl.map((sid, n) => {
+    const s = S.d.students.find(x => x.id === sid), sub = mySub(it.id, sid);
+    let body = '<span class="mut">ยังไม่ส่ง</span>';
+    if (sub) {
+      body = (sub.text ? `<p class="pre">${esc(sub.text)}</p>` : '') + (sub.url ? `<div><a href="${esc(sub.url)}" target="_blank" rel="noopener">${esc(sub.url)}</a></div>` : '') + attList(sub.att);
+      if (sub.answers) body += (it.questions || []).map((q, i) => `<div class="mut">${i + 1}. ${esc(sub.answers[i] === '' || sub.answers[i] == null ? '-' : q.type === 'fill' ? sub.answers[i] : (q.choices || [])[sub.answers[i]])}</div>`).join('');
+      body += `<div class="row"><label>คะแนน<input id="sc${n}" type="number" step="0.1" value="${sub.score || 0}"></label><label>ความเห็น<input id="fb${n}" value="${esc(sub.feedback)}"></label></div><button onclick="saveG(${n})">บันทึกคะแนน</button>`;
+    }
+    return `<div class="card"><b>${esc(s.name)}</b> <span class="mut">${esc(s.id)}</span> ${stBadge(it, sub)}${body}</div>`;
+  }).join('');
+}
+const saveG = n => busy(async () => {
+  const sid = S.gl[n], old = mySub(S.gi, sid);
+  const sub = Object.assign({}, old, {status:'graded', score:+$('#sc' + n).value || 0, feedback:$('#fb' + n).value});
+  await call({action:'putSub', iid:S.gi, sid, sub}); putLocal(S.gi, sid, sub); toast('บันทึกแล้ว'); render();
+});
+
+function tStu() {
+  if (!S.sr) S.sr = (S.d.rooms[0] || {}).id || '';
+  const L = S.d.students.filter(s => s.rid === S.sr);
+  return `<label>ห้อง<select onchange="S.sr=this.value;render()">${roomOpts(S.sr)}</select></label>
+  <div class="card"><label>เพิ่มนักเรียน (1 บรรทัด: รหัส,ชื่อ)<textarea id="sb" placeholder="101,สมชาย ใจดี"></textarea></label><button onclick="addStu()">เพิ่ม</button></div>
+  ${L.map(s => `<div class="card item" style="cursor:default"><span>${esc(s.id)} • ${esc(s.name)}</span><button class="del" onclick="delStu('${esc(s.id)}')">ลบ</button></div>`).join('') || '<p class="mut">ยังไม่มีนักเรียน</p>'}`;
+}
+const addStu = () => busy(async () => {
+  if (!S.sr) throw 'กรุณาสร้างห้องก่อน';
+  $('#sb').value.split('\n').map(l => l.trim()).filter(Boolean).forEach(l => {
+    const i = l.search(/[,\t]/); if (i < 1) return;
+    const id = l.slice(0, i).trim(), name = l.slice(i + 1).trim();
+    S.d.students = S.d.students.filter(s => !(s.id === id && s.rid === S.sr)); S.d.students.push({id, name, rid:S.sr});
+  });
+  await saveCore(); toast('บันทึกแล้ว'); render();
+});
+const delStu = id => busy(async () => {
+  S.d.students = S.d.students.filter(s => !(s.id === id && s.rid === S.sr)); await saveCore(); render();
+});
+
+function tRooms() {
+  return `<div class="card"><div class="row"><label>ชื่อห้องใหม่<input id="rn"></label><label>รหัสผ่านห้อง (เว้นว่างได้)<input id="rp"></label></div><button onclick="addRoom()">เพิ่มห้อง</button></div>` +
+    S.d.rooms.map((r, i) => `<div class="card"><div class="row"><label>ชื่อ<input id="n${i}" value="${esc(r.name)}"></label><label>รหัสผ่าน<input id="p${i}" value="${esc(r.pw)}"></label></div>
+    <button onclick="saveRoom(${i})">บันทึก</button><button class="del" onclick="delRoom(${i})">ลบ</button></div>`).join('');
+}
+const addRoom = () => busy(async () => {
+  const n = $('#rn').value.trim(); if (!n) throw 'กรุณาใส่ชื่อห้อง';
+  S.d.rooms.push({id:uid(), name:n, pw:$('#rp').value.trim()}); await saveCore(); render();
+});
+const saveRoom = i => busy(async () => { S.d.rooms[i].name = $('#n' + i).value.trim(); S.d.rooms[i].pw = $('#p' + i).value.trim(); await saveCore(); toast('บันทึกแล้ว'); });
+const delRoom = i => busy(async () => {
+  if (S.d.rooms.length < 2) throw 'ต้องมีอย่างน้อย 1 ห้อง';
+  if (!confirm('ลบห้องนี้? (นักเรียนในห้องจะถูกลบด้วย)')) return;
+  const id = S.d.rooms[i].id; S.d.rooms.splice(i, 1);
+  S.d.students = S.d.students.filter(s => s.rid !== id); S.d.items = S.d.items.filter(x => x.rid !== id);
+  await saveCore(); render();
+});
+
+function tBackup() {
+  return `<button onclick="doBk()">สำรองข้อมูลตอนนี้</button><button class="alt" onclick="loadBk()">รีเฟรชรายการ</button>` +
+    (S.bk.map(f => `<div class="card item" style="cursor:default"><span>${esc(f.name)}<div class="mut">${esc(f.updated)}</div></span>
+    ${f.name.startsWith('backup-') ? `<button class="del" onclick="restore('${esc(f.name)}')">กู้คืน</button>` : ''}</div>`).join(''));
+}
+const loadBk = () => busy(async () => { const r = await get({action:'listBackups', key:S.key}); if (!r.ok) throw r.error; S.bk = r.list; if (S.view === 't') render(); });
+const doBk = () => busy(async () => { await call({action:'backup'}); toast('สำรองข้อมูลแล้ว'); loadBk(); });
+const restore = n => busy(async () => {
+  if (!confirm('กู้คืนจาก ' + n + ' ? ข้อมูลปัจจุบันจะถูกแทนที่')) return;
+  await call({action:'restoreBackup', fileName:n}); await load(); toast('กู้คืนสำเร็จ'); render();
+});
+
+/* ---------- เริ่มต้น ---------- */
+async function init() {
+  try { const r = await get({action:'get'}); if (!r.ok) throw r.error; S.d = r.data; S.d.subs = {}; }
+  catch (e) { app.innerHTML = '<p>เชื่อมต่อไม่ได้: ตรวจสอบค่า API ในไฟล์ index.html และการ Deploy เป็น Anyone</p>'; return; }
+  S.view = 'login'; render();
+}
+init();
+</script>
+</body>
+</html>
