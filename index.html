@@ -46,7 +46,7 @@ items:[
 subs:{},bonus:[]};
 try{const d=JSON.parse(localStorage.getItem(K)||'null');if(d&&d.items)S=d}catch(e){}
 /* ===== Google Apps Script backend ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbyMsSowDI6pX92mXVtyDq6IcOWqqba6KqXGewLGsyDtpV-7sHICeub6dJ68c_pw0FOq/exec'; // วาง URL ของ Web App (ลงท้าย /exec)
+const GAS_URL='https://script.google.com/macros/s/AKfycbwN2amBD9LCpY7JvTsB-ENKi5m1_6MYnijmfYFIORqqRu9eERosYgg2ZkkZjacW3NCo/exec'; // วาง URL ของ Web App (ลงท้าย /exec)
 const online=()=>GAS_URL.startsWith('https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI');
 if(!S.rooms||!S.rooms.length)S.rooms=[{id:'r1',level:'ม.4',room:'1',term:'1',year:'2569',scode:'',sname:'คอมพิวเตอร์',pw:''}];
 S.subs=S.subs||{};S.bonus=S.bonus||[];
