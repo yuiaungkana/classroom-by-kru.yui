@@ -108,7 +108,7 @@ async function net(url,opt,tries){
  for(let i=0;i<tries;i++){
   const c=new AbortController(),t=setTimeout(()=>c.abort(),30000);
   try{
-   const r=await fetch(url,{...(opt||{}),signal:c.signal,redirect:'follow',cache:'no-store',credentials:'omit'});
+   const r=await fetch(url+(opt&&opt.method==='POST'?'':(url.includes('?')?'&':'?')+'_='+Date.now()),{...(opt||{}),signal:c.signal,redirect:'follow',credentials:'omit'});
    const txt=await r.text();let j;
    try{j=JSON.parse(txt)}catch(e){throw new Error(/<html|<!doctype/i.test(txt)?'AUTH':'BADJSON')}
    return j;
