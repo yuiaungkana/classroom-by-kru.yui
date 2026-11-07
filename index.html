@@ -252,7 +252,7 @@ function editStudent(id){stuForm(id)}
 function delStudent(id){openForm('ลบนักเรียนนี้?',[],()=>{S.students=S.students.filter(s=>s.id!==id);save();render();return true})}
 
 function vList(type){
- const T=TY[type],list=S.items.filter(i=>i.type===type);
+ const T=TY[type],stamp=i=>+String(i.id).replace(/\D/g,'')||0,list=S.items.filter(i=>i.type===type).sort((a,b)=>stamp(b)-stamp(a));
  const sub_={material:'ศึกษาเนื้อหาและเอกสารประกอบ',exercise:'เขียนชื่อ-สกุล ชั้น เลขที่ และขีดเส้นใต้ก่อนส่งงานทุกครั้ง',test:'ห้ามสลับแท็บระหว่างสอบ มิฉะนั้นจะถูกตัดสิทธิ์',project:'ส่งชิ้นงานพร้อมตรวจเวลาส่งอัตโนมัติ'}[type];
  return head(T.e+' '+T.n,sub_,add(type==='test'?'openTest()':`itemForm('${type}')`,'+ เพิ่ม'))+list.map(it=>`<div class="card p-5 border-2 border-${T.c}-200 space-y-3">
   <div class="flex justify-between gap-2"><div><span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-${T.c}-100">${T.n}${it.max&&role==='teacher'?` • เต็ม ${it.max}`:''}${it.time?` • ${it.time} นาที`:''}</span><h3 class="font-bold text-sm mt-1.5">${esc(it.title)}</h3></div>${role==='teacher'?`<span class="flex gap-2 shrink-0"><button onclick="moveItem('${it.id}',-1)" title="เลื่อนขึ้น">⬆️</button><button onclick="moveItem('${it.id}',1)" title="เลื่อนลง">⬇️</button><button onclick="${type==='test'?`openTest('${it.id}')`:`itemForm('${type}','${it.id}')`}">✏️</button><button onclick="delItem('${it.id}')">🗑️</button></span>`:''}</div>
