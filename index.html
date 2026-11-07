@@ -483,6 +483,48 @@ async function finishTest(){
  const done=await putSub(it.id,me.id,null);
  save();render();if(done)toast('ส่งแบบทดสอบแล้ว');else pull()}
 
+/* ===== ปากกา สี ลายเซ็น ===== */
+const PCOL=['#ef4444','#2563eb','#16a34a','#111827','#f59e0b'],PSZ=[['บาง',.6],['กลาง',1],['หนา',1.8],['หนามาก',3]],SGW=[.12,.18,.26,.36];
+let PEN={c:'#ef4444',s:1,m:'pen'},SIG={url:'',img:null};
+try{Object.assign(PEN,JSON.parse(localStorage.getItem('lms_pen')||'{}'));SIG.url=localStorage.getItem('lms_sig')||''}catch(e){}
+PEN.m='pen';
+function sigImg(){if(SIG.url){SIG.img=new Image();SIG.img.src=SIG.url}else SIG.img=null}
+sigImg();
+function gTools(x){
+ if(!(x.att||[]).some(f=>(f.ct||'').startsWith('image/')))return'';
+ const b='bb px-2.5 py-1 rounded-lg border font-bold';
+ return`<div class="bg-slate-50 rounded-xl p-2 space-y-2 text-xs">
+ <div class="flex flex-wrap items-center gap-2"><b>สี</b>${PCOL.map(c=>`<button type="button" data-c="${c}" onclick="setPen('c','${c}')" class="gc w-7 h-7 rounded-full" style="background:${c}"></button>`).join('')}</div>
+ <div class="flex flex-wrap items-center gap-1.5"><b>ขนาด</b>${PSZ.map((z,i)=>`<button type="button" data-s="${i}" onclick="setPen('s',${i})" class="gz ${b}">${z[0]}</button>`).join('')}</div>
+ <div class="flex flex-wrap items-center gap-1.5"><button type="button" id="gm-pen" onclick="setPen('m','pen')" class="${b}">✏️ ปากกา</button><button type="button" id="gm-sig" onclick="setPen('m','sig')" class="${b}">✍️ วางลายเซ็น</button><button type="button" onclick="sigUpload()" class="${b} bg-sky-100">📤 ลายเซ็น</button><span id="gsig" class="flex items-center gap-1"></span></div>
+ <p class="text-slate-500">โหมดวางลายเซ็น: แตะบนรูปตรงที่ต้องการ ขนาดตามปุ่ม บาง–หนามาก</p></div>`}
+function setPen(k,v){PEN[k]=v;if(k!=='m'){try{localStorage.setItem('lms_pen',JSON.stringify({c:PEN.c,s:PEN.s}))}catch(e){}}paintTools()}
+function paintTools(){
+ document.querySelectorAll('#modal .gc').forEach(b=>b.style.boxShadow=b.dataset.c===PEN.c?'0 0 0 3px #f472b6':'0 0 0 1px #cbd5e1');
+ document.querySelectorAll('#modal .gz').forEach(b=>b.style.background=+b.dataset.s===PEN.s?'#fbcfe8':'#fff');
+ [['pen','gm-pen'],['sig','gm-sig']].forEach(([m,id])=>{const b=$(id);if(b)b.style.background=PEN.m===m?'#fbcfe8':'#fff'});
+ const s=$('gsig');if(s)s.innerHTML=SIG.url?`<img src="${SIG.url}" class="h-7 bg-white border rounded"><button type="button" onclick="sigDel()">🗑️</button>`:'<span class="text-slate-400">ยังไม่มีลายเซ็น</span>'}
+function sigUpload(){const i=document.createElement('input');i.type='file';i.accept='image/*';
+ i.onchange=async()=>{const f=i.files[0];if(!f)return;
+  try{SIG.url=await prepSig(f);try{localStorage.setItem('lms_sig',SIG.url)}catch(e){toast('เก็บลายเซ็นในเครื่องไม่ได้ ใช้ได้เฉพาะรอบนี้')}sigImg();PEN.m='sig';paintTools();toast('ตั้งลายเซ็นแล้ว แตะบนรูปเพื่อวาง')}
+  catch(e){toast('อ่านรูปลายเซ็นไม่สำเร็จ')}};i.click()}
+function sigDel(){SIG.url='';try{localStorage.removeItem('lms_sig')}catch(e){}sigImg();PEN.m='pen';paintTools()}
+async function prepSig(f){
+ const b=await createImageBitmap(f),k=Math.min(1,600/b.width),w=Math.max(1,Math.round(b.width*k)),h=Math.max(1,Math.round(b.height*k));
+ const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(b,0,0,w,h);
+ const d=g.getImageData(0,0,w,h),a=d.data,L=new Uint8Array(w*h),hist=new Uint32Array(256);
+ for(let i=0;i<w*h;i++){L[i]=(a[i*4]+a[i*4+1]+a[i*4+2])/3;hist[L[i]]++}
+ let s=0,bg=255;for(let v=0;v<256;v++){s+=hist[v];if(s>=w*h/2){bg=v;break}}
+ const hi=bg*.88,lo=bg*.6;let x0=w,y0=h,x1=0,y1=0;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,l=L[i];
+  const al=l>=hi?0:l<=lo?255:Math.round((hi-l)/(hi-lo)*255);a[i*4+3]=al;
+  if(al>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+ if(x1<=x0||y1<=y0)throw 0;
+ g.putImageData(d,0,0);
+ const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;
+ o.getContext('2d').drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);
+ return o.toDataURL('image/png')}
+
 /* grading */
 let gt=null,draw=false;
 function markHtml(s){
@@ -502,18 +544,26 @@ function openGrade(iid,sid){
  const lateMsg=(x.late&&it.type!=='test')?'<div class="text-xs bg-amber-50 border border-amber-200 rounded-xl p-2 font-bold text-amber-800">⏰ ส่งช้า: ระบบจะหักอัตโนมัติ '+(Math.round(it.max/2*100)/100)+' คะแนน (ครึ่งหนึ่งของคะแนนเต็ม)</div>':'';
  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div><h3 class="mali font-bold">ตรวจ: ${esc(it.title)}</h3><p class="text-xs text-slate-500">${esc(st.name)}</p></div>
  <div class="text-xs bg-slate-50 rounded-xl p-2 break-words space-y-2">${it.type==='test'?ansHtml(it,x):esc(x.text)||'<i class="text-slate-400">ไม่มีข้อความ</i>'}${x.url?`<br><a class="text-sky-600 underline" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.url)}</a>`:''}</div>
- ${gAtt(x)}
+ ${gTools(x)}${gAtt(x)}
  ${lateMsg}
  <div class="grid grid-cols-2 gap-2 text-xs font-bold"><label>คะแนนที่ตรวจได้ (เต็ม ${it.max})<input id="gs" type="number" min="0" max="${it.max}" step="any" inputmode="decimal" value="${(x.raw??x.score)||0}" class="w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal"></label><label>สถานะ<select id="gst" class="w-full border-2 border-slate-200 rounded-xl p-2 mt-1 font-normal"><option value="graded">ตรวจแล้ว</option><option value="revision">ให้แก้ไข</option></select></label></div>
  <textarea id="gf" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-2 text-xs" placeholder="ข้อติชม / คำแนะนำ (นักเรียนเห็น)">${esc(x.feedback)}</textarea>
  <div class="flex gap-2"><button onclick="closeModal()" class="bb flex-1 py-2 bg-slate-100 rounded-xl text-xs font-bold">ปิด</button><button onclick="saveGrade()" class="bb flex-1 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold">บันทึก</button></div></div>`;
  $('modal').classList.remove('hidden');
+ PEN.m='pen';paintTools();
  document.querySelectorAll('#modal canvas.mk').forEach(c=>{
   const img=c.parentElement.querySelector('img'),g=c.getContext('2d');
-  const init=()=>{const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight,1));c.width=Math.round(img.naturalWidth*k)||800;c.height=Math.round(img.naturalHeight*k)||600;g.strokeStyle='#ef4444';g.lineWidth=Math.max(3,c.width/160);g.lineCap='round';g.lineJoin='round'};
+  const init=()=>{const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight,1));c.width=Math.round(img.naturalWidth*k)||800;c.height=Math.round(img.naturalHeight*k)||600;g.lineCap='round';g.lineJoin='round'};
   if(img.complete&&img.naturalWidth)init();else img.addEventListener('load',init);
   const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
-  c.onpointerdown=e=>{e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(_){}draw=true;c.dataset.dirty='1';const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none';g.beginPath();g.moveTo(...p(e))};
+  const hideOld=()=>{c.dataset.dirty='1';const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none'};
+  c.onpointerdown=e=>{e.preventDefault();
+   if(PEN.m==='sig'){
+    if(!SIG.img||!SIG.img.complete||!SIG.img.naturalWidth)return toast('ยังไม่มีลายเซ็น กดปุ่ม 📤 ลายเซ็น ก่อน');
+    const[x,y]=p(e),w=c.width*SGW[PEN.s],h=w*SIG.img.naturalHeight/SIG.img.naturalWidth;
+    hideOld();g.drawImage(SIG.img,x-w/2,y-h/2,w,h);return}
+   try{c.setPointerCapture(e.pointerId)}catch(_){}
+   draw=true;hideOld();g.strokeStyle=PEN.c;g.lineWidth=Math.max(2,c.width/160*PSZ[PEN.s][1]);g.beginPath();g.moveTo(...p(e))};
   c.onpointermove=e=>{if(draw){g.lineTo(...p(e));g.stroke()}};
   c.onpointerup=c.onpointercancel=()=>draw=false})}
 async function saveGrade(){
