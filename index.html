@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v11</span> <button id="dg" onclick="diag()" class="underline ml-1">ตรวจการเชื่อมต่อ</button></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v12</span> <button id="dg" onclick="diag()" class="underline ml-1">ตรวจการเชื่อมต่อ</button></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -147,7 +147,7 @@ const pullNow=async()=>{for(let i=0;i<60&&pulling;i++)await new Promise(r=>setTi
 async function pull(){
  if(!online()||pulling)return;pulling=true;const v0=subVer;
  try{
-  const r=await net(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&sid='+encodeURIComponent(me?.id||''),{},3);
+  const r=await net(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&stu='+encodeURIComponent(me?.id||''),{},3);
   if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}
   const d=r.data||{};
   if(!d.items){if(role==='teacher'&&KEY)save();return}
