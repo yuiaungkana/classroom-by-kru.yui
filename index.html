@@ -633,9 +633,10 @@ function copyCsv(){
     AUTH=true;me=null;_sr('teacher');pull();
    }else{
     await pull();
-    const f=S.students.find(x=>x.code===u);
-    if(!f||!(await pwOk(p)))return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    me=f;role='student';try{sessionStorage.setItem('lms_stu',JSON.stringify({code:f.code,rid:S.cur}))}catch(e){}await pullNow();
+    const x=await net(GAS_URL+'?action=login&rid='+encodeURIComponent(S.cur)+'&cd='+encodeURIComponent(u)+'&p='+encodeURIComponent(p),{},2).catch(e=>({err:e}));
+    if(x.err)return drawGate('⚠️ '+errMsg(x.err));
+    if(!x.ok)return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    me=x.student;role='student';try{sessionStorage.setItem('lms_stu',JSON.stringify({rid:S.cur,me:x.student}))}catch(e){}await pullNow();
    }
    closeModal();render();
   }finally{busyLogin=false}}
@@ -677,8 +678,8 @@ function copyCsv(){
    if(ss&&!AUTH&&online()){
     await pull();
     if(!hashRoom()&&ss.rid&&S.rooms.some(r=>r.id===ss.rid))useRoom(ss.rid);
-    const f=S.students.find(x=>x.code===ss.code);
-    if(f){me=f;role='student';await pullNow();render()}
+    const f=ss.me;
+    if(f&&S.cur===ss.rid){me=f;role='student';await pullNow();render()}
    }
   }catch(e){}
   if(!me)pull();
