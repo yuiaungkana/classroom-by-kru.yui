@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<body style="font:14px sans-serif;padding:12px"><pre id="o"></pre>
+<script>
+const U='https://script.google.com/macros/s/AKfycbwO13uHpPQ7WCOfhTqHGGQzTaVG43UL9pg8_8eoZu7nd3JKsNCTl2HCEfOITu2b8Jcz/exec';
+fetch(U+'?action=get&key=&stu=').then(r=>r.json()).then(j=>{o.textContent='จำนวนนักเรียนที่เซิร์ฟเวอร์ส่งให้คนที่ไม่ได้ล็อกอิน: '+((j.data||{}).students||[]).length}).catch(e=>o.textContent='ERR '+e);
+</script></body>
