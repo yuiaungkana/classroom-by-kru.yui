@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<body style="font:14px sans-serif;padding:12px"><pre id="o" style="white-space:pre-wrap"></pre>
+<script>
+const U='https://script.google.com/macros/s/AKfycbwO13uHpPQ7WCOfhTqHGGQzTaVG43UL9pg8_8eoZu7nd3JKsNCTl2HCEfOITu2b8Jcz/exec';
+const log=t=>o.textContent+=t+'\n';
+log('เริ่ม '+new Date().toLocaleTimeString());
+fetch(U+'?action=ping').then(r=>r.text()).then(t=>log('A fetch ping: '+t.slice(0,70))).catch(e=>log('A fetch ping ERR: '+e));
+fetch(U+'?action=get&key=&sid=').then(r=>r.text()).then(t=>log('B fetch get: ยาว '+t.length+' '+t.slice(0,50))).catch(e=>log('B fetch get ERR: '+e));
+function jp(n,url){window['cb'+n]=d=>log(n+' jsonp OK '+JSON.stringify(d).slice(0,50));const s=document.createElement('script');s.onerror=()=>log(n+' jsonp ERR');s.src=url+'&callback=cb'+n;document.head.appendChild(s)}
+jp('C',U+'?action=ping');
+jp('D',U+'?action=get&key=&sid=');
+</script></body>
