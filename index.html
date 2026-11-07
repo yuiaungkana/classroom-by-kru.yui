@@ -21,7 +21,7 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 </style>
 </head>
 <body class="antialiased">
-<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v10</span> <button id="dg" onclick="diag()" class="underline ml-1">ตรวจการเชื่อมต่อ</button></div>
+<div class="bg-pink-200/90 text-[11px] font-bold py-1 text-center">💾 <span id="st">บันทึกอัตโนมัติในเบราว์เซอร์</span> <span class="opacity-60">• v11</span> <button id="dg" onclick="diag()" class="underline ml-1">ตรวจการเชื่อมต่อ</button></div>
 <header class="bg-white/80 backdrop-blur border-b-4 border-pink-200 sticky top-0 z-30">
  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
   <div class="flex items-center gap-2"><span class="text-3xl">🐥</span><div><b class="mali text-lg leading-none block">Classroom by KRU.yui</b><span id="hs" class="text-[10px] text-slate-500"></span></div></div>
@@ -102,12 +102,22 @@ function setRole(r){role=r;if(r==='student'&&!me){openForm('🎓 เข้าส
  if(['students','grades','room','bonus'].includes(tab)&&r==='student')tab='dashboard';render()}
 function go(t){tab=t;render()}
 
+ function jsonp(url,ms){return new Promise((res,rej)=>{
+ const cb='_cb'+Date.now()+Math.floor(Math.random()*1e6),s=document.createElement('script');
+ const clean=()=>{clearTimeout(t);delete window[cb];s.remove()};
+ const t=setTimeout(()=>{clean();rej(new Error('abort'))},ms);
+ window[cb]=d=>{clean();res(d)};
+ s.onerror=()=>{clean();rej(new Error('Load failed'))};
+ s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+ document.head.appendChild(s)})}
+ 
 /* ===== Google Apps Script backend ===== */
 async function net(url,opt,tries){
  tries=tries||1;let last;
  for(let i=0;i<tries;i++){
   const c=new AbortController(),t=setTimeout(()=>c.abort(),30000);
   try{
+   if(!(opt&&opt.method))return await jsonp(url,30000);
    const r=await fetch(url+(opt&&opt.method==='POST'?'':(url.includes('?')?'&':'?')+'_='+Date.now()),{...(opt||{}),signal:c.signal,redirect:'follow',credentials:'omit'});
    const txt=await r.text();let j;
    try{j=JSON.parse(txt)}catch(e){throw new Error(/<html|<!doctype/i.test(txt)?'AUTH':'BADJSON')}
