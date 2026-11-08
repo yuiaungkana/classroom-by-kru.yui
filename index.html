@@ -893,5 +893,18 @@ function copyCsv(){
  $('nl').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)goNotif(b.dataset.i,b.dataset.s)});
 })();
 </script>
+<style>
+#modal .relative,#modal canvas.mk,#modal canvas.pk,#modal canvas.pb,#modal .relative img{
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
+#modal .relative img{pointer-events:none}
+</style>
+<script>
+(function(){
+ const guard=e=>{
+  const t=e.target&&e.target.nodeType===1?e.target:(e.target&&e.target.parentElement);
+  if(t&&t.closest&&t.closest('#modal .relative'))e.preventDefault()};
+ ['selectstart','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,guard,true));
+})();
+</script>
 </body>
 </html>
