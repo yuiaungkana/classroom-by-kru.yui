@@ -168,7 +168,7 @@ function save(){
  stash();lastSig=sigOf();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
  if(!online()){$('st').textContent='บันทึกในเครื่องแล้ว (ยังไม่ได้ตั้งค่า Apps Script) '+tm();return}
  if(role!=='teacher'||!KEY){if(role==='teacher')$('st').textContent='ℹ️ ต้องเข้า "มุมครู" (ใส่รหัสครู) จึงจะบันทึกลง Google Drive';return}
- unsaved=true;try{localStorage.setItem('lms_unsaved','1')}catch(e){}clearTimeout(pend);$('st').textContent='⏳ กำลังบันทึก...';pend=setTimeout(flush,1200)}
+ unsaved=true;try{localStorage.setItem('lms_unsaved','1')}catch(e){}clearTimeout(pend);$('st').textContent='⏳ กำลังบันทึก...';pend=setTimeout(flush,500)}
 async function flush(){
  if(inflight){clearTimeout(pend);pend=setTimeout(flush,1500);return}
  pend=null;inflight++;
@@ -586,14 +586,17 @@ async function pdfOpen(i,btn){
   if(doc.numPages>n)toast('แสดง 30 หน้าแรกจากทั้งหมด '+doc.numPages+' หน้า')
  }catch(e){btn.disabled=false;btn.textContent='🖍️ เปิดเพื่อเขียนตรวจ';toast('เปิด PDF ไม่ได้: '+((e&&e.message)||''))}}
 async function pdfSave(iid,sid,marks){
+ const jobs=[];
  for(const [i,list] of Object.entries(PDFS))for(const o of list){
   if(o.mk.dataset.dirty!=='1')continue;
-  const t=document.createElement('canvas');t.width=o.base.width;t.height=o.base.height;
-  const g=t.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,t.width,t.height);g.drawImage(o.base,0,0);g.drawImage(o.mk,0,0);
-  const b=await new Promise(r=>t.toBlob(r,'image/jpeg',.85));
-  const r=await ASSETS.upload(new File([b],'pdfmark-'+iid+'-'+sid+'-'+i+'-'+o.pg+'.jpg',{type:'image/jpeg'}));
-  marks=marks.filter(m=>!(m.i===+i&&m.pg===o.pg));
-  marks.push({i:+i,pg:o.pg,flat:true,url:r.url,name:'หน้า '+(o.pg+1),ct:'image/jpeg'})}
+  jobs.push((async()=>{
+   const t=document.createElement('canvas');t.width=o.base.width;t.height=o.base.height;
+   const g=t.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,t.width,t.height);g.drawImage(o.base,0,0);g.drawImage(o.mk,0,0);
+   const b=await new Promise(r=>t.toBlob(r,'image/jpeg',.8));
+   const r=await ASSETS.upload(new File([b],'pdfmark-'+iid+'-'+sid+'-'+i+'-'+o.pg+'.jpg',{type:'image/jpeg'}));
+   return{i:+i,pg:o.pg,flat:true,url:r.url,name:'หน้า '+(o.pg+1),ct:'image/jpeg'}})())}
+ const res=await Promise.all(jobs);
+ res.forEach(m=>{marks=marks.filter(x=>!(x.i===m.i&&x.pg===m.pg));marks.push(m)});
  return marks}
 function mkClear(i){
  const c=document.querySelector('#modal canvas.mk[data-i="'+i+'"]');if(!c)return;
@@ -744,7 +747,7 @@ function copyCsv(){
    }
   }catch(e){}
   if(!me)pull();
-  setInterval(()=>{if(document.hidden)return;if(role==='teacher'&&(pend||inflight||unsaved))return;pull()},role==='teacher'?30000:20000);
+  setInterval(()=>{if(document.hidden)return;if(role==='teacher'&&(pend||inflight||unsaved))return;pull()},role==='teacher'?4500);
  })();
 })();
 </script>
