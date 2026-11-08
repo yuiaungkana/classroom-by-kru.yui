@@ -747,7 +747,7 @@ function copyCsv(){
    }
   }catch(e){}
   if(!me)pull();
-  setInterval(()=>{if(document.hidden)return;if(role==='teacher'&&(pend||inflight||unsaved))return;pull()},role==='teacher'?4500);
+  setInterval(()=>{if(document.hidden)return;if(role==='teacher'&&(pend||inflight||unsaved))return;pull()},4500);
  })();
 })();
 </script>
