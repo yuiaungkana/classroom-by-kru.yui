@@ -872,7 +872,8 @@ function copyCsv(){
    if(!(t>seen)||!['submitted','cheated'].includes(x.status))return;
    rows.push({i:i,d:d,t:t,x:x,it:items[i],st:studs[d]})}));
   rows.sort((a,b)=>b.t-a.t);
-  nl.innerHTML=rows.slice(0,30).map(n=>{
+  const nb=$('nb');if(nb){nb.classList.toggle('hidden',!rows.length);nb.textContent=rows.length>99?'99+':String(rows.length);nb.style.width='auto';nb.style.minWidth='16px';nb.style.padding='0 3px'}
+  nl.innerHTML=rows.slice(0,60).map(n=>{
    const rm=n.it&&S.rooms.find(r=>r.id===n.it.rid);
    const tag=rm&&S.rooms.length>1?' <span class="text-slate-400">('+esc(rm.level)+'/'+esc(rm.room)+')</span>':'';
    return '<button type="button" data-i="'+esc(n.i)+'" data-s="'+esc(n.d)+'" class="block w-full text-left p-2 bg-slate-50 hover:bg-pink-50 rounded-xl">'
