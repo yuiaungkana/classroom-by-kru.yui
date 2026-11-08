@@ -491,7 +491,7 @@ PEN.m='pen';
 function sigImg(){if(SIG.url){SIG.img=new Image();SIG.img.src=SIG.url}else SIG.img=null}
 sigImg();
 function gTools(x){
- if(!(x.att||[]).some(f=>(f.ct||'').startsWith('image/')))return'';
+ if(!(x.att||[]).some(f=>(f.ct||'').startsWith('image/')||isPdf(f)))return'';
  const b='bb px-2.5 py-1 rounded-lg border font-bold';
  return`<div class="bg-slate-50 rounded-xl p-2 space-y-2 text-xs">
  <div class="flex flex-wrap items-center gap-2"><b>สี</b>${PCOL.map(c=>`<button type="button" data-c="${c}" onclick="setPen('c','${c}')" class="gc w-7 h-7 rounded-full" style="background:${c}"></button>`).join('')}</div>
@@ -529,12 +529,69 @@ async function prepSig(f){
 let gt=null,draw=false;
 function markHtml(s){
  if(!s||!s.marks||!s.marks.length||!['graded','revision'].includes(s.status))return'';
- return'<div class="space-y-2"><b class="text-xs">🖍️ งานที่ครูตรวจ</b>'+s.marks.map(m=>{const f=(s.att||[])[m.i];return f?`<div class="relative"><img src="${esc(f.url)}" class="w-full rounded-xl border block"><img src="${esc(m.url)}" class="absolute inset-0 w-full h-full pointer-events-none"></div>`:''}).join('')+'</div>'}
+ const L=[...s.marks].sort((a,b)=>(a.i-b.i)||((a.pg||0)-(b.pg||0)));
+ return'<div class="space-y-2"><b class="text-xs">🖍️ งานที่ครูตรวจ</b>'+L.map(m=>{const f=(s.att||[])[m.i];if(!f)return'';
+const isPdf=f=>(f.ct||'')==='application/pdf'||/\.pdf$/i.test(f.name||'');
+const fileId=u=>{const m=String(u||'').match(/(?:\/d\/|id=)([\w-]{10,})/);return m?m[1]:''};
 function gAtt(x){
+ PDFS={};
  return (x.att||[]).map((f,i)=>{
-  if(!(f.ct||'').startsWith('image/'))return`<div><a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a> <span class="text-slate-400">(เขียนตรวจได้เฉพาะรูปภาพ)</span></div>`;
+  if(isPdf(f)&&fileId(f.url))return`<div class="space-y-1 pdfbox"><div class="text-[11px] font-bold">📄 ${esc(f.name)} <a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">เปิดดู</a></div><button type="button" onclick="pdfOpen(${i},this)" class="bb px-3 py-1.5 bg-purple-100 rounded-xl text-xs font-bold">🖍️ เปิดเพื่อเขียนตรวจ</button><div class="pdfpages space-y-3"></div></div>`;
+  if(!(f.ct||'').startsWith('image/'))return`<div><a href="${esc(f.url)}" target="_blank" rel="noopener" class="underline text-sky-600">📎 ${esc(f.name)}</a> <span class="text-slate-400">(เขียนตรวจได้เฉพาะรูปภาพและ PDF)</span></div>`;
   const m=(x.marks||[]).find(k=>k.i===i);
   return`<div class="space-y-1"><div class="text-[11px] font-bold">🖍️ ${esc(f.name)} <button type="button" onclick="mkClear(${i})" class="bg-slate-100 rounded-lg px-2 py-0.5">ล้างรอยเขียน</button></div><div class="relative"><img src="${esc(f.url)}" class="w-full rounded-xl border block">${m?`<img src="${esc(m.url)}" class="mo absolute inset-0 w-full h-full pointer-events-none">`:''}<canvas class="mk absolute inset-0 w-full h-full touch-none" data-i="${i}"></canvas></div></div>`}).join('')}
+async function loadPdfjs(){
+ if(window.pdfjsLib)return;
+ await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=ok;s.onerror=()=>no(new Error('โหลดตัวอ่าน PDF ไม่ได้'));document.head.appendChild(s)});
+ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
+async function pdfBytes(fid){
+ const r=await fetch(GAS_URL+'?action=file&fid='+encodeURIComponent(fid)+'&key='+encodeURIComponent(KEY));
+ const j=await r.json();if(!j.ok)throw new Error(j.error||'ดึงไฟล์ไม่ได้');
+ const b=atob(j.b64),u=new Uint8Array(b.length);for(let k=0;k<b.length;k++)u[k]=b.charCodeAt(k);return u}
+function mkDraw(c){
+ const g=c.getContext('2d');g.lineCap='round';g.lineJoin='round';
+ const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+ c.onpointerdown=e=>{e.preventDefault();
+  if(PEN.m==='sig'){
+   if(!SIG.img||!SIG.img.complete||!SIG.img.naturalWidth)return toast('ยังไม่มีลายเซ็น กดปุ่ม 📤 ลายเซ็น ก่อน');
+   const[x,y]=p(e),w=c.width*SGW[PEN.s],h=w*SIG.img.naturalHeight/SIG.img.naturalWidth;
+   c.dataset.dirty='1';g.drawImage(SIG.img,x-w/2,y-h/2,w,h);return}
+  try{c.setPointerCapture(e.pointerId)}catch(_){}
+  draw=true;c.dataset.dirty='1';g.strokeStyle=PEN.c;g.lineWidth=Math.max(2,c.width/160*PSZ[PEN.s][1]);g.beginPath();g.moveTo(...p(e))};
+ c.onpointermove=e=>{if(draw){g.lineTo(...p(e));g.stroke()}};
+ c.onpointerup=c.onpointercancel=()=>draw=false}
+async function pdfOpen(i,btn){
+ const host=btn.closest('.pdfbox').querySelector('.pdfpages'),x=sub(gt.iid,gt.sid)||{},f=(x.att||[])[i];
+ btn.disabled=true;btn.textContent='กำลังโหลด PDF...';
+ try{
+  await loadPdfjs();
+  const doc=await pdfjsLib.getDocument({data:await pdfBytes(fileId(f.url))}).promise;
+  const n=Math.min(doc.numPages,30);host.innerHTML='';PDFS[i]=[];
+  for(let pg=0;pg<n;pg++){
+   const page=await doc.getPage(pg+1),v0=page.getViewport({scale:1}),vp=page.getViewport({scale:Math.min(2,1100/v0.width)});
+   const old=(x.marks||[]).find(m=>m.i===i&&m.pg===pg&&m.flat);
+   const w=document.createElement('div');w.style.cssText='width:92%;margin:0 auto';
+   w.innerHTML=`<div class="text-[11px] font-bold py-1">หน้า ${pg+1}/${doc.numPages} <button type="button" class="bg-slate-100 rounded-lg px-2 py-0.5">ล้างรอยที่เพิ่งเขียน</button>${old?` <a href="${esc(old.url)}" target="_blank" rel="noopener" class="underline text-sky-600">ดูผลเดิม</a> <span class="text-slate-400">(เขียนใหม่จะแทนผลเดิมของหน้านี้)</span>`:''}</div><div class="relative"><canvas class="pb w-full rounded-xl border block"></canvas><canvas class="pk absolute inset-0 w-full h-full touch-none"></canvas></div>`;
+   host.appendChild(w);
+   const base=w.querySelector('.pb'),mk=w.querySelector('.pk');
+   base.width=mk.width=Math.round(vp.width);base.height=mk.height=Math.round(vp.height);
+   await page.render({canvasContext:base.getContext('2d'),viewport:vp}).promise;
+   mkDraw(mk);
+   w.querySelector('button').onclick=()=>{mk.getContext('2d').clearRect(0,0,mk.width,mk.height);mk.dataset.dirty=''};
+   PDFS[i].push({pg,base,mk})}
+  btn.textContent='✅ โหลดแล้ว (เลื่อนหน้าโดยลากที่ขอบซ้าย-ขวา)';
+  if(doc.numPages>n)toast('แสดง 30 หน้าแรกจากทั้งหมด '+doc.numPages+' หน้า')
+ }catch(e){btn.disabled=false;btn.textContent='🖍️ เปิดเพื่อเขียนตรวจ';toast('เปิด PDF ไม่ได้: '+((e&&e.message)||''))}}
+async function pdfSave(iid,sid,marks){
+ for(const [i,list] of Object.entries(PDFS))for(const o of list){
+  if(o.mk.dataset.dirty!=='1')continue;
+  const t=document.createElement('canvas');t.width=o.base.width;t.height=o.base.height;
+  const g=t.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,t.width,t.height);g.drawImage(o.base,0,0);g.drawImage(o.mk,0,0);
+  const b=await new Promise(r=>t.toBlob(r,'image/jpeg',.85));
+  const r=await ASSETS.upload(new File([b],'pdfmark-'+iid+'-'+sid+'-'+i+'-'+o.pg+'.jpg',{type:'image/jpeg'}));
+  marks=marks.filter(m=>!(m.i===+i&&m.pg===o.pg));
+  marks.push({i:+i,pg:o.pg,flat:true,url:r.url,name:'หน้า '+(o.pg+1),ct:'image/jpeg'})}
+ return marks}
 function mkClear(i){
  const c=document.querySelector('#modal canvas.mk[data-i="'+i+'"]');if(!c)return;
  c.getContext('2d').clearRect(0,0,c.width,c.height);c.dataset.dirty='1';
@@ -574,6 +631,7 @@ async function saveGrade(){
  const score=Math.round(Math.max(0,raw-pen)*100)/100;
  const status=$('gst').value,feedback=$('gf').value;
  let marks=[...(prev.marks||[])];
+ try{if(Object.keys(PDFS).length)toast('กำลังบันทึกหน้า PDF...');marks=await pdfSave(iid,sid,marks)}catch(e){return toast('บันทึกรอยเขียน PDF ไม่สำเร็จ: '+((e&&e.message)||''))}
  const cs=[...document.querySelectorAll('#modal canvas.mk')].filter(c=>c.dataset.dirty==='1');
  if(cs.length)toast('กำลังบันทึกรอยเขียน...');
  try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));if(b.size>8*1024*1024)throw new Error('รอยเขียนใหญ่เกิน 8 MB');const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}}
