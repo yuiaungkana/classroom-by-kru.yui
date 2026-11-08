@@ -748,5 +748,146 @@ function copyCsv(){
  })();
 })();
 </script>
+<script>
+(function(){
+ const HOLD=600,snap=document.createElement('canvas');
+ const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ function pdist(p,a,b){const l=dist(a,b);if(l<1e-6)return dist(p,a);return Math.abs((b[0]-a[0])*(a[1]-p[1])-(a[0]-p[0])*(b[1]-a[1]))/l}
+ function rdp(pts,eps){
+  if(pts.length<3)return pts.slice();
+  let mx=0,ix=0;
+  for(let i=1;i<pts.length-1;i++){const d=pdist(pts[i],pts[0],pts[pts.length-1]);if(d>mx){mx=d;ix=i}}
+  if(mx<=eps)return[pts[0],pts[pts.length-1]];
+  const L=rdp(pts.slice(0,ix+1),eps),R=rdp(pts.slice(ix),eps);
+  return L.slice(0,-1).concat(R)}
+ function cleanPoly(v){
+  let ch=true;
+  while(ch&&v.length>3){
+   ch=false;
+   for(let i=0;i<v.length;i++){
+    const p0=v[(i+v.length-1)%v.length],p1=v[i],p2=v[(i+1)%v.length];
+    const ax=p1[0]-p0[0],ay=p1[1]-p0[1],bx=p2[0]-p1[0],by=p2[1]-p1[1];
+    const la=Math.hypot(ax,ay),lb=Math.hypot(bx,by);
+    if(la<1e-6||lb<1e-6){v.splice(i,1);ch=true;break}
+    const ang=Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/(la*lb))));
+    if(ang<0.3){v.splice(i,1);ch=true;break}}}
+  return v}
+ function lineEnd(a,q){
+  const dx=q[0]-a[0],dy=q[1]-a[1],ang=Math.atan2(Math.abs(dy),Math.abs(dx));
+  if(ang<0.09)return[q[0],a[1]];
+  if(ang>Math.PI/2-0.09)return[a[0],q[1]];
+  return q}
+ function recognize(pts,k){
+  if(pts.length<4)return null;
+  let L=0;for(let i=1;i<pts.length;i++)L+=dist(pts[i-1],pts[i]);
+  const a=pts[0],b=pts[pts.length-1],D=dist(a,b);
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  pts.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])});
+  const w=x1-x0,h=y1-y0,diag=Math.hypot(w,h);
+  if(diag<28*k)return null;
+  if(D>0.8*L&&D>28*k){
+   let dev=0;pts.forEach(p=>{dev=Math.max(dev,pdist(p,a,b))});
+   if(dev<0.08*D)return{t:'line',a:a,b:lineEnd(a,b)};
+   return null}
+  if(D<0.25*L){
+   const q=pts.slice();q[q.length-1]=q[0].slice();
+   let v=rdp(q,0.05*diag);v.pop();
+   v=cleanPoly(v);
+   const n=v.length;
+   if(n===3)return{t:'poly',v:v};
+   if(n===4){
+    const cs=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]],tol=0.22*Math.max(w,h);
+    const ok=cs.every(c=>v.some(p=>dist(p,c)<tol));
+    return ok?{t:'rect',x:x0,y:y0,w:w,h:h}:{t:'poly',v:v}}
+   const cx=(x0+x1)/2,cy=(y0+y1)/2,rx=w/2,ry=h/2;
+   if(rx>4*k&&ry>4*k){
+    const r=pts.map(p=>Math.hypot((p[0]-cx)/rx,(p[1]-cy)/ry));
+    const m=r.reduce((s,x)=>s+x,0)/r.length;
+    const sd=Math.sqrt(r.reduce((s,x)=>s+(x-m)*(x-m),0)/r.length);
+    if(Math.abs(m-1)<0.12&&sd<0.09){
+     if(Math.abs(rx-ry)<0.15*Math.max(rx,ry)){const rr=(rx+ry)/2;return{t:'ellipse',cx:cx,cy:cy,rx:rr,ry:rr}}
+     return{t:'ellipse',cx:cx,cy:cy,rx:rx,ry:ry}}}
+   if(n>=5&&n<=6)return{t:'poly',v:v}}
+  return null}
+ function drawShape(g,s){
+  g.beginPath();
+  if(s.t==='line'){g.moveTo(s.a[0],s.a[1]);g.lineTo(s.b[0],s.b[1])}
+  else if(s.t==='rect'){g.rect(s.x,s.y,s.w,s.h)}
+  else if(s.t==='ellipse'){g.ellipse(s.cx,s.cy,s.rx,s.ry,0,0,Math.PI*2)}
+  else{s.v.forEach((p,i)=>{if(i)g.lineTo(p[0],p[1]);else g.moveTo(p[0],p[1])});g.closePath()}
+  g.stroke()}
+ function bindPen(c,onDraw){
+  const g=c.getContext('2d');
+  let on=false,pts=[],timer=null,anchor=null,shape=null,k=1;
+  const p=e=>{const r=c.getBoundingClientRect();k=c.width/r.width;return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  const style=()=>{g.strokeStyle=PEN.c;g.lineWidth=Math.max(2,c.width/160*PSZ[PEN.s][1]);g.lineCap='round';g.lineJoin='round'};
+  const restore=()=>{g.clearRect(0,0,c.width,c.height);g.drawImage(snap,0,0)};
+  const hold=()=>{
+   if(!on||shape)return;
+   const s=recognize(pts,k);if(!s)return;
+   restore();style();drawShape(g,s);shape=s};
+  const end=()=>{on=false;clearTimeout(timer);shape=null;pts=[]};
+  c.onpointerdown=e=>{
+   e.preventDefault();
+   if(PEN.m==='sig'){
+    if(!SIG.img||!SIG.img.complete||!SIG.img.naturalWidth)return toast('ยังไม่มีลายเซ็น กดปุ่ม 📤 ลายเซ็น ก่อน');
+    const q=p(e),w=c.width*SGW[PEN.s],h=w*SIG.img.naturalHeight/SIG.img.naturalWidth;
+    onDraw();g.drawImage(SIG.img,q[0]-w/2,q[1]-h/2,w,h);return}
+   try{c.setPointerCapture(e.pointerId)}catch(_){}
+   on=true;shape=null;onDraw();style();
+   snap.width=c.width;snap.height=c.height;
+   snap.getContext('2d').drawImage(c,0,0);
+   const a=p(e);pts=[a];anchor=a;
+   g.beginPath();g.moveTo(a[0],a[1]);
+   clearTimeout(timer);timer=setTimeout(hold,HOLD)};
+  c.onpointermove=e=>{
+   if(!on)return;
+   const q=p(e);
+   if(shape){
+    if(shape.t==='line'){shape.b=lineEnd(shape.a,q);restore();style();drawShape(g,shape)}
+    return}
+   pts.push(q);g.lineTo(q[0],q[1]);g.stroke();g.beginPath();g.moveTo(q[0],q[1]);
+   if(dist(q,anchor)>8*k){anchor=q;clearTimeout(timer);timer=setTimeout(hold,HOLD)}};
+  c.onpointerup=c.onpointercancel=end}
+
+ const _og=window.openGrade;
+ window.openGrade=function(){
+  _og.apply(this,arguments);
+  document.querySelectorAll('#modal canvas.mk').forEach(c=>{
+   bindPen(c,()=>{c.dataset.dirty='1';const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none'})})};
+ window.mkDraw=function(c){bindPen(c,()=>{c.dataset.dirty='1'})};
+
+ function paintNotifs(){
+  if(role!=='teacher')return;
+  const nl=$('nl');if(!nl)return;
+  const items={},studs={};
+  flat('items').forEach(x=>{items[x.id]=x});
+  flat('students').forEach(x=>{studs[x.id]=x});
+  const rows=[];
+  Object.entries(S.subs||{}).forEach(([i,o])=>Object.entries(o||{}).forEach(([d,x])=>{
+   const t=Date.parse(x.at);
+   if(!(t>seen)||!['submitted','cheated'].includes(x.status))return;
+   rows.push({i:i,d:d,t:t,x:x,it:items[i],st:studs[d]})}));
+  rows.sort((a,b)=>b.t-a.t);
+  nl.innerHTML=rows.slice(0,30).map(n=>{
+   const rm=n.it&&S.rooms.find(r=>r.id===n.it.rid);
+   const tag=rm&&S.rooms.length>1?' <span class="text-slate-400">('+esc(rm.level)+'/'+esc(rm.room)+')</span>':'';
+   return '<button type="button" data-i="'+esc(n.i)+'" data-s="'+esc(n.d)+'" class="block w-full text-left p-2 bg-slate-50 hover:bg-pink-50 rounded-xl">'
+    +(n.x.status==='cheated'?'🚨 ถูกตัดสิทธิ์: ':'📨 ส่งงาน: ')+'<b>'+esc(n.st?n.st.name:n.d)+'</b>'+tag+' – '+esc(n.it?n.it.title:'')
+    +'<div class="text-[9px] text-slate-400">'+new Date(n.t).toLocaleTimeString('th-TH')+' • แตะเพื่อไปตรวจ</div></button>'}).join('')
+   ||'<div class="text-center text-slate-400 py-3">ไม่มีการแจ้งเตือน</div>'}
+ const _r=window.render;
+ window.render=function(){_r.apply(this,arguments);paintNotifs()};
+ window.goNotif=function(iid,sid){
+  $('nd').classList.add('hidden');
+  const it=flat('items').find(x=>x.id===iid);
+  if(!it)return toast('ไม่พบรายการนี้ (อาจถูกลบแล้ว)');
+  if(it.rid&&it.rid!==S.cur)useRoom(it.rid);
+  if(!S.students.some(s=>s.id===sid))return toast('ไม่พบนักเรียนคนนี้ในห้อง');
+  go(it.type);
+  openGrade(iid,sid)};
+ $('nl').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)goNotif(b.dataset.i,b.dataset.s)});
+})();
+</script>
 </body>
 </html>
