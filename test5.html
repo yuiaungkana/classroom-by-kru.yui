@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<body style="font:14px sans-serif;padding:12px"><pre id="o" style="white-space:pre-wrap">กำลังตรวจ...</pre>
+<script>
+fetch('index.html?'+Date.now()).then(r=>r.text()).then(t=>{
+ const re=/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;let m,n=0,out=[];
+ while(m=re.exec(t)){n++;
+  const start=t.slice(0,m.index+m[0].indexOf('>')+1).split('\n').length;
+  try{new Function(m[1]);out.push('สคริปต์ที่ '+n+': ไม่พบข้อผิดพลาด')}
+  catch(e){out.push('สคริปต์ที่ '+n+': '+e.name+': '+e.message+'\nบรรทัดใน index.html ≈ '+(e.line?(start+e.line-3):'ไม่ทราบ')+' (±3)')}}
+ o.textContent=out.join('\n\n')||'ไม่พบสคริปต์'}).catch(e=>o.textContent='ERR '+e);
+</script></body>
