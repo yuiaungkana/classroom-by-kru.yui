@@ -530,7 +530,10 @@ let gt=null,draw=false;
 function markHtml(s){
  if(!s||!s.marks||!s.marks.length||!['graded','revision'].includes(s.status))return'';
  const L=[...s.marks].sort((a,b)=>(a.i-b.i)||((a.pg||0)-(b.pg||0)));
- return'<div class="space-y-2"><b class="text-xs">🖍️ งานที่ครูตรวจ</b>'+L.map(m=>{const f=(s.att||[])[m.i];if(!f)return'';
+ const one=m=>{const f=(s.att||[])[m.i];if(!f)return'';
+  if(m.flat)return`<div><div class="text-[10px] text-slate-500">${esc(f.name)} • หน้า ${(m.pg||0)+1}</div><img src="${esc(m.url)}" class="w-full rounded-xl border block"></div>`;
+  return`<div class="relative"><img src="${esc(f.url)}" class="w-full rounded-xl border block"><img src="${esc(m.url)}" class="absolute inset-0 w-full h-full pointer-events-none"></div>`};
+ return'<div class="space-y-2"><b class="text-xs">🖍️ งานที่ครูตรวจ</b>'+L.map(one).join('')+'</div>'}
 const isPdf=f=>(f.ct||'')==='application/pdf'||/\.pdf$/i.test(f.name||'');
 const fileId=u=>{const m=String(u||'').match(/(?:\/d\/|id=)([\w-]{10,})/);return m?m[1]:''};
 function gAtt(x){
