@@ -133,6 +133,7 @@ function errMsg(e){const m=(e&&e.message)||String(e||'');
  return'ติดต่อเซิร์ฟเวอร์ไม่ได้ ('+m+')'}
 /* POST ไม่ retry เพื่อกันบันทึกซ้ำ (เช่น เริ่มสอบซ้ำ) */
 async function api(b){return net(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})},1)}
+async function apiRetry(b){return net(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})},3)}
 async function diag(){
  toast('กำลังตรวจการเชื่อมต่อ...');
  let msg;
@@ -174,7 +175,7 @@ async function flush(){
  pend=null;inflight++;
  const sig=sigOf();
  try{
-  const r=await api({action:'saveCore',core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}});
+  const r=await apiRetry({action:'saveCore',core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}});
   if(r.ok){retry=0;
    if(sigOf()===sig){unsaved=false;try{localStorage.removeItem('lms_unsaved')}catch(e){}$('st').textContent='☁️ บันทึกลง Google Drive แล้ว '+tm()}
    else{lastSig='';$('st').textContent='⏳ กำลังบันทึกส่วนที่แก้เพิ่ม...';if(!pend)pend=setTimeout(flush,800)}
