@@ -986,6 +986,13 @@ function copyCsv(){
     else if(mode==='gray'){const v=Math.max(0,Math.min(255,255*(n-0.3)/0.65));D[i]=v;D[i+1]=v;D[i+2]=v}
     else{const s=255/bg;for(let c=0;c<3;c++)D[i+c]=Math.max(0,Math.min(255,(D[i+c]*s-14)*1.08))}}}
   cg.putImageData(im,0,0)}
+ function sharpen(cv){
+  const w=cv.width,h=cv.height,g=cv.getContext('2d'),im=g.getImageData(0,0,w,h),
+   O=new Uint8ClampedArray(im.data),D=im.data,k=0.55;
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+   const i=(y*w+x)*4;
+   for(let c=0;c<3;c++)D[i+c]=O[i+c]*(1+4*k)-k*(O[i-4+c]+O[i+4+c]+O[i-w*4+c]+O[i+w*4+c])}
+  g.putImageData(im,0,0)}
  function autoCrop(P){
   const s=Math.min(1,320/Math.max(P.src.width,P.src.height)),w=Math.max(8,Math.round(P.src.width*s)),h=Math.max(8,Math.round(P.src.height*s));
   const c=document.createElement('canvas');c.width=w;c.height=h;
@@ -1055,7 +1062,7 @@ function copyCsv(){
   cv.onpointerup=cv.onpointercancel=()=>{drag=-1}}
  function scDrawEdit(){
   const P=SC.pages[SC.cur];
-  const modes=[['color','สี'],['gray','เทา'],['bw','ขาวดำ'],['orig','ต้นฉบับ']].map(m=>'<button type="button" data-a="mode" data-v="'+m[0]+'" class="'+btn+' '+(P.mode===m[0]?'bg-pink-200':'bg-slate-100')+'">'+m[1]+'</button>').join('');
+  const modes=[['color','สีปรับให้คมชัด'],['orig','สีต้นฉบับ'],['gray','เทา'],['bw','ขาวดำ']].map(m=>'<button type="button" data-a="mode" data-v="'+m[0]+'" class="'+btn+' '+(P.mode===m[0]?'bg-pink-200':'bg-slate-100')+'">'+m[1]+'</button>').join('');
   $('modal').innerHTML='<div class="card border-4 border-sky-200 p-4 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3"><h3 class="mali font-bold text-lg">✂️ ปรับกรอบหน้า '+(SC.cur+1)+'</h3><p class="text-xs text-slate-500">ลากมุมทั้งสี่ให้ตรงขอบกระดาษ</p><div class="bg-slate-100 rounded-xl p-1"><canvas id="scEd" class="touch-none block rounded-lg" style="max-width:100%;max-height:62vh;margin:0 auto"></canvas></div><div class="flex flex-wrap items-center gap-1.5 text-xs"><b>โหมด</b>'+modes+'</div><div class="flex flex-wrap gap-1.5"><button type="button" data-a="rot" class="'+btn+' bg-slate-100">⟳ หมุน 90°</button><button type="button" data-a="auto" class="'+btn+' bg-slate-100">✨ ตัดขอบอัตโนมัติ</button><button type="button" data-a="reset" class="'+btn+' bg-slate-100">↺ ทั้งภาพ</button></div><div class="flex gap-2"><button type="button" data-a="back" class="'+btn+' flex-1 bg-slate-100">'+(P.out?'ยกเลิก':'ลบหน้านี้')+'</button><button type="button" data-a="ok" class="'+btn+' flex-1 bg-emerald-500 text-white">ตกลง</button></div></div>';
   drawEditCanvas();bindEdit()}
  function scDraw(){
@@ -1073,7 +1080,7 @@ function copyCsv(){
     const im=await loadImg(f),k=Math.min(1,1800/Math.max(im.naturalWidth,im.naturalHeight));
     const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    SC.pages.push({src:c,q:fullQuad(c),mode:'gray',out:null,thumb:'',s:1});
+    SC.pages.push({src:c,q:fullQuad(c),mode:'orig',out:null,thumb:'',s:1});
     SC.cur=SC.pages.length-1;SC.view='edit';SC.bak=null;scDrawEdit()
    }catch(err){toast('เปิดรูปไม่สำเร็จ: '+((err&&err.message)||''))}};
   inp.click()}
@@ -1293,6 +1300,75 @@ function copyCsv(){
   if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
   try{return await _up.call(this,f)}
   finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
+})();
+</script>
+<script>
+(function(){
+ /* 1) ซ่อนสื่อ/แบบฝึกทักษะ/ชิ้นงานที่ยังไม่ถึงเวลาเปิด (มุมนักเรียน) */
+ const hidden=i=>['material','exercise','project'].includes(i.type)&&!isOpen(i);
+ const wrap=fn=>function(){
+  if(role!=='student')return fn.apply(this,arguments);
+  const bak=S.items;S.items=bak.filter(i=>!hidden(i));
+  try{return fn.apply(this,arguments)}finally{S.items=bak}};
+ window.vList=wrap(vList);
+ window.vDash=wrap(vDash);
+
+ /* 2+3) คะแนนเริ่มต้นอัตโนมัติ: ตรงเวลา=เต็ม, ส่งช้า=ครึ่งหนึ่ง (ครูแก้ได้เสมอ) */
+ const _og=window.openGrade;
+ window.openGrade=function(iid,sid){
+  _og.apply(this,arguments);
+  const it=S.items.find(i=>i.id===iid),x=(S.subs[iid]||{})[sid]||{};
+  if(!it)return;
+  const pen=$('gm-pen');
+  if(pen&&!$('gm-er')){pen.insertAdjacentHTML('afterend','<button type="button" id="gm-er" onclick="setPen(\'m\',\'eraser\')" class="bb px-2.5 py-1 rounded-lg border font-bold">🧽 ยางลบ</button>');paintTools()}
+  if(it.type==='test')return;
+  const gs=$('gs');if(!gs)return;
+  const half=Math.round(it.max/2*100)/100;
+  if(['graded','revision'].includes(x.status))gs.value=x.score??0;
+  else if(x.status==='submitted')gs.value=x.late?half:it.max;
+  document.querySelectorAll('#modal div.bg-amber-50').forEach(d=>{
+   if(d.textContent.includes('ส่งช้า'))d.textContent='⏰ ส่งช้า: ระบบให้คะแนนเริ่มต้น '+half+' (ครึ่งหนึ่งของเต็ม) ครูปรับคะแนนได้'});
+  if(x.status==='submitted'&&!x.late){
+   const m=document.createElement('div');
+   m.className='text-xs bg-emerald-50 border border-emerald-200 rounded-xl p-2 font-bold text-emerald-800';
+   m.textContent='✅ ส่งตรงเวลา: ระบบให้คะแนนเต็ม '+it.max+' ครูปรับคะแนนได้';
+   gs.closest('.grid').before(m)}};
+
+ /* บันทึกคะแนนตามที่ครูกรอก (ไม่หักซ้ำ) */
+ window.saveGrade=async function(){
+  const{iid,sid}=gt,it=S.items.find(i=>i.id===iid);
+  const prev=(S.subs[iid]||{})[sid]||{};
+  const raw=Math.round(Math.min(Math.max(parseFloat($('gs').value)||0,0),it.max)*100)/100;
+  const score=raw,status=$('gst').value,feedback=$('gf').value;
+  let marks=[...(prev.marks||[])];
+  try{if(Object.keys(PDFS).length)toast('กำลังบันทึกหน้า PDF...');marks=await pdfSave(iid,sid,marks)}catch(e){return toast('บันทึกรอยเขียน PDF ไม่สำเร็จ: '+((e&&e.message)||''))}
+  const cs=[...document.querySelectorAll('#modal canvas.mk')].filter(c=>c.dataset.dirty==='1');
+  if(cs.length)toast('กำลังบันทึกรอยเขียน...');
+  try{for(const c of cs){const i=+c.dataset.i;const b=await new Promise(r=>c.toBlob(r,'image/png'));if(b.size>8*1024*1024)throw new Error('รอยเขียนใหญ่เกิน 8 MB');const f=new File([b],'mark-'+iid+'-'+sid+'-'+i+'.png',{type:'image/png'});const r=await ASSETS.upload(f);marks=marks.filter(m=>m.i!==i);marks.push({i,url:r.url,name:f.name,ct:'image/png'})}}
+  catch(e){return toast('บันทึกรอยเขียนไม่สำเร็จ: '+((e&&e.message)||''))}
+  const x=(S.subs[iid]??={});
+  x[sid]={at:new Date().toISOString(),...x[sid],status,raw,score,feedback,marks};
+  putSub(iid,sid);save();closeModal();render();toast('บันทึกผลการตรวจแล้ว')};
+
+ /* 4) ยางลบ */
+ const _pt=paintTools;
+ window.paintTools=function(){_pt();const b=$('gm-er');if(b)b.style.background=PEN.m==='eraser'?'#fbcfe8':'#fff'};
+ const _sp=setPen;
+ window.setPen=function(k,v){if(k==='c'&&PEN.m==='eraser')PEN.m='pen';_sp(k,v)};
+ let er=null,warned=false;
+ const pt=(c,e)=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+ const cut=(c,a,b)=>{const g=c.getContext('2d');g.save();g.globalCompositeOperation='destination-out';g.lineCap='round';g.lineJoin='round';g.lineWidth=Math.max(10,c.width/160*PSZ[PEN.s][1]*5);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.restore()};
+ document.addEventListener('pointerdown',e=>{
+  const c=e.target;
+  if(PEN.m!=='eraser'||!c.matches||!c.matches('#modal canvas.mk,#modal canvas.pk'))return;
+  e.preventDefault();e.stopPropagation();
+  if(c.dataset.dirty!=='1'){if(!warned){warned=true;toast('ยางลบลบได้เฉพาะรอยที่เพิ่งเขียนในรอบนี้')}return}
+  try{c.setPointerCapture(e.pointerId)}catch(_){}
+  const p=pt(c,e);er={c,last:p};cut(c,p,p)},true);
+ document.addEventListener('pointermove',e=>{
+  if(!er||e.target!==er.c)return;
+  e.stopPropagation();const p=pt(er.c,e);cut(er.c,er.last,p);er.last=p},true);
+ ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,()=>{er=null},true));
 })();
 </script>
 </body>
