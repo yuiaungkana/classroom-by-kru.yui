@@ -115,7 +115,7 @@ function go(t){tab=t;render()}
 async function net(url,opt,tries){
  tries=tries||1;let last;
  for(let i=0;i<tries;i++){
-  const c=new AbortController(),t=setTimeout(()=>c.abort(),30000);
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),60000);
   try{
    if(!(opt&&opt.method))return await jsonp(url,30000);
    const r=await fetch(url+(opt&&opt.method==='POST'?'':(url.includes('?')?'&':'?')+'_='+Date.now()),{...(opt||{}),signal:c.signal,redirect:'follow',credentials:'omit'});
