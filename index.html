@@ -1203,5 +1203,97 @@ function copyCsv(){
  window.openGrade=function(){_og.apply(this,arguments);try{addToolbars()}catch(e){}};
 })();
 </script>
+<script>
+(function(){
+ window.matView=function(it){
+  const isImg=f=>(f.ct||'').startsWith('image/');
+  const a=(it.att||[]).map((f,i)=>
+   '<div class="flex flex-wrap items-center gap-2">'
+   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
+   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
+   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
+   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
+   +'</div>').join('');
+  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
+ const _up=window.upFile;
+ window.upFile=async function(f){
+  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
+  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
+  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
+  t.classList.remove('hidden');clearTimeout(t._t);
+  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
+  try{return await _up.call(this,f)}
+  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
+})();
+</script>
+<script>
+(function(){
+ window.matView=function(it){
+  const isImg=f=>(f.ct||'').startsWith('image/');
+  const a=(it.att||[]).map((f,i)=>
+   '<div class="flex flex-wrap items-center gap-2">'
+   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
+   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
+   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
+   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
+   +'</div>').join('');
+  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
+ const _up=window.upFile;
+ window.upFile=async function(f){
+  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
+  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
+  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
+  t.classList.remove('hidden');clearTimeout(t._t);
+  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
+  try{return await _up.call(this,f)}
+  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
+})();
+</script>
+<script>
+(function(){
+ window.matView=function(it){
+  const isImg=f=>(f.ct||'').startsWith('image/');
+  const a=(it.att||[]).map((f,i)=>
+   '<div class="flex flex-wrap items-center gap-2">'
+   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
+   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
+   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
+   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
+   +'</div>').join('');
+  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
+ const _up=window.upFile;
+ window.upFile=async function(f){
+  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
+  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
+  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
+  t.classList.remove('hidden');clearTimeout(t._t);
+  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
+  try{return await _up.call(this,f)}
+  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
+})();
+</script>
+<script>
+(function(){
+ window.matView=function(it){
+  const isImg=f=>(f.ct||'').startsWith('image/');
+  const a=(it.att||[]).map((f,i)=>
+   '<div class="flex flex-wrap items-center gap-2">'
+   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
+   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
+   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
+   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
+   +'</div>').join('');
+  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
+ const _up=window.upFile;
+ window.upFile=async function(f){
+  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
+  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
+  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
+  t.classList.remove('hidden');clearTimeout(t._t);
+  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
+  try{return await _up.call(this,f)}
+  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
+})();
+</script>
 </body>
 </html>
