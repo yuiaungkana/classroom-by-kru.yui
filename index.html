@@ -1391,9 +1391,17 @@ function copyCsv(){
      ch.push(sid)});
     it.max=nm;
     save();render();
-    toast('แก้คะแนนเต็มแล้ว กำลังซิงก์...');
-    for(const sid of ch)await putSub(id,sid);
-    toast('แก้คะแนนเต็มเป็น '+nm+' เรียบร้อย ('+ch.length+' งาน)');
+    toast('กำลังซิงก์...');
+    let good=true;
+    if(online()&&ch.length){
+     inflight++;subVer++;
+     try{
+      const r=await api({action:'putSubs',list:ch.map(sid=>({iid:id,sid,sub:o[sid]}))});
+      if(!r.ok){good=false;toast('⚠️ '+(r.error||'ไม่สำเร็จ'))}
+     }catch(e){good=false;toast('⚠️ '+errMsg(e))}
+     finally{inflight--;subVer++}
+    }
+    if(good)toast('แก้คะแนนเต็มเป็น '+nm+' เรียบร้อย ('+ch.length+' งาน)');
     return true})};
 
  const _r=window.render;
