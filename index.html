@@ -1024,7 +1024,7 @@ function copyCsv(){
   const H=s.height,m=p=>[H-p[1],p[0]],q=P.q;
   P.q=[m(q[3]),m(q[0]),m(q[1]),m(q[2])];P.src=c}
  function buildOut(P){
-  const o=warp(P.src,P.q);enhance(o,P.mode);P.out=o;
+  const o=warp(P.src,P.q);enhance(o,P.mode);if(P.mode==='color')sharpen(o);P.out=o;
   const t=document.createElement('canvas'),k=Math.min(1,320/Math.max(o.width,o.height));
   t.width=Math.round(o.width*k);t.height=Math.round(o.height*k);
   t.getContext('2d').drawImage(o,0,0,t.width,t.height);P.thumb=t.toDataURL('image/jpeg',.7)}
@@ -1080,7 +1080,7 @@ function copyCsv(){
     const im=await loadImg(f),k=Math.min(1,1800/Math.max(im.naturalWidth,im.naturalHeight));
     const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    SC.pages.push({src:c,q:fullQuad(c),mode:'orig',out:null,thumb:'',s:1});
+    SC.pages.push({src:c,q:fullQuad(c),mode:'color',out:null,thumb:'',s:1});
     SC.cur=SC.pages.length-1;SC.view='edit';SC.bak=null;scDrawEdit()
    }catch(err){toast('เปิดรูปไม่สำเร็จ: '+((err&&err.message)||''))}};
   inp.click()}
