@@ -1371,5 +1371,43 @@ function copyCsv(){
  ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,()=>{er=null},true));
 })();
 </script>
+<script>
+(function(){
+ window.maxForm=function(id){
+  if(role!=='teacher')return;
+  const it=S.items.find(i=>i.id===id);if(!it)return;
+  openForm('🎯 แก้คะแนนเต็ม: '+esc(it.title),
+   [['max','คะแนนเต็มใหม่ (ตอนนี้ '+it.max+')',it.max],
+    ['mode','คะแนนที่ตรวจแล้ว','scale','sel',[['scale','ปรับตามสัดส่วน'],['keep','คงคะแนนเดิม (ไม่เกินเต็มใหม่)']]]],
+   async v=>{
+    const nm=Math.round((parseFloat(v.max)||0)*100)/100;
+    if(nm<=0)return toast('กรอกคะแนนเต็มเป็นตัวเลขมากกว่า 0');
+    const old=+it.max||10,f=nm/old,r2=n=>Math.round(n*100)/100,o=S.subs[id]||{},ch=[];
+    Object.keys(o).forEach(sid=>{
+     const x=o[sid];if(typeof x.score!=='number')return;
+     if(!['graded','revision','submitted'].includes(x.status))return;
+     if(v.mode==='scale'){x.score=r2(x.score*f);if(typeof x.raw==='number')x.raw=r2(x.raw*f)}
+     else{x.score=Math.min(x.score,nm);if(typeof x.raw==='number')x.raw=Math.min(x.raw,nm)}
+     ch.push(sid)});
+    it.max=nm;
+    save();render();
+    toast('แก้คะแนนเต็มแล้ว กำลังซิงก์...');
+    for(const sid of ch)await putSub(id,sid);
+    toast('แก้คะแนนเต็มเป็น '+nm+' เรียบร้อย ('+ch.length+' งาน)');
+    return true})};
+
+ const _r=window.render;
+ window.render=function(){
+  _r.apply(this,arguments);
+  if(role!=='teacher')return;
+  document.querySelectorAll('#view button[onclick^="delItem("]').forEach(b=>{
+   const id=/delItem\('([^']+)'\)/.exec(b.getAttribute('onclick'))?.[1];
+   if(!id||b.previousElementSibling?.dataset.mx)return;
+   const m=document.createElement('button');
+   m.dataset.mx='1';m.title='แก้คะแนนเต็ม';m.textContent='🎯';
+   m.onclick=()=>maxForm(id);
+   b.parentNode.insertBefore(m,b)})};
+})();
+</script>
 </body>
 </html>
