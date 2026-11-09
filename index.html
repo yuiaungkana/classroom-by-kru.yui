@@ -906,5 +906,302 @@ function copyCsv(){
  ['selectstart','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,guard,true));
 })();
 </script>
+<script>
+(function(){
+ const btn='bb px-3 py-1.5 rounded-xl text-xs font-bold';
+ const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ let SC=null;
+ async function loadImg(f){
+  const url=URL.createObjectURL(f),im=new Image();
+  im.src=url;
+  try{await im.decode()}catch(e){await new Promise((ok,no)=>{if(im.complete&&im.naturalWidth)return ok();im.onload=ok;im.onerror=()=>no(new Error('อ่านรูปไม่ได้'))})}
+  URL.revokeObjectURL(url);return im}
+ const fullQuad=c=>{const w=c.width,h=c.height;return[[w*.02,h*.02],[w*.98,h*.02],[w*.98,h*.98],[w*.02,h*.98]]};
+ function solve(A,b){
+  const n=b.length;
+  for(let i=0;i<n;i++){
+   let m=i;
+   for(let r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[m][i]))m=r;
+   const tA=A[i];A[i]=A[m];A[m]=tA;const tb=b[i];b[i]=b[m];b[m]=tb;
+   const d=A[i][i];if(Math.abs(d)<1e-12)return null;
+   for(let r=i+1;r<n;r++){
+    const f=A[r][i]/d;
+    for(let c=i;c<n;c++)A[r][c]-=f*A[i][c];
+    b[r]-=f*b[i]}}
+  const x=new Array(n).fill(0);
+  for(let i=n-1;i>=0;i--){
+   let s=b[i];
+   for(let c=i+1;c<n;c++)s-=A[i][c]*x[c];
+   x[i]=s/A[i][i]}
+  return x}
+ function homography(dst,src){
+  const A=[],b=[];
+  for(let i=0;i<4;i++){
+   const u=dst[i][0],v=dst[i][1],x=src[i][0],y=src[i][1];
+   A.push([u,v,1,0,0,0,-u*x,-v*x]);b.push(x);
+   A.push([0,0,0,u,v,1,-u*y,-v*y]);b.push(y)}
+  return solve(A,b)}
+ function warp(src,q){
+  let w=Math.max(dist(q[0],q[1]),dist(q[3],q[2])),h=Math.max(dist(q[0],q[3]),dist(q[1],q[2]));
+  const k=Math.min(1,1600/Math.max(w,h,1));
+  w=Math.max(16,Math.round(w*k));h=Math.max(16,Math.round(h*k));
+  const H=homography([[0,0],[w,0],[w,h],[0,h]],q);
+  const out=document.createElement('canvas');out.width=w;out.height=h;
+  const og=out.getContext('2d');
+  if(!H){og.drawImage(src,0,0,w,h);return out}
+  const sw=src.width,sh=src.height,SRC=src.getContext('2d').getImageData(0,0,sw,sh).data;
+  const od=og.createImageData(w,h),OUT=od.data;
+  const a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],hh=H[7];
+  for(let v=0;v<h;v++){
+   for(let u=0;u<w;u++){
+    const den=g*u+hh*v+1,x=(a*u+b*v+c)/den,y=(d*u+e*v+f)/den,o=(v*w+u)*4;
+    if(!(x>=0&&y>=0&&x<sw-1&&y<sh-1)){OUT[o]=255;OUT[o+1]=255;OUT[o+2]=255;OUT[o+3]=255;continue}
+    const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,i00=(y0*sw+x0)*4,i10=i00+4,i01=i00+sw*4,i11=i01+4;
+    for(let ch=0;ch<3;ch++)OUT[o+ch]=SRC[i00+ch]*(1-fx)*(1-fy)+SRC[i10+ch]*fx*(1-fy)+SRC[i01+ch]*(1-fx)*fy+SRC[i11+ch]*fx*fy;
+    OUT[o+3]=255}}
+  og.putImageData(od,0,0);return out}
+ function enhance(cv,mode){
+  if(mode==='orig')return;
+  const w=cv.width,h=cv.height,cg=cv.getContext('2d'),im=cg.getImageData(0,0,w,h),D=im.data;
+  const Y=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++)Y[i]=0.299*D[i*4]+0.587*D[i*4+1]+0.114*D[i*4+2];
+  const B=16,gw=Math.ceil(w/B),gh=Math.ceil(h/B),G=new Float32Array(gw*gh);
+  for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){
+   let mx=0;const ex=Math.min(w,(gx+1)*B),ey=Math.min(h,(gy+1)*B);
+   for(let y=gy*B;y<ey;y++)for(let x=gx*B;x<ex;x++){const v=Y[y*w+x];if(v>mx)mx=v}
+   G[gy*gw+gx]=mx}
+  const G2=new Float32Array(gw*gh);
+  for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){
+   let s=0,cnt=0;
+   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const yy=gy+dy,xx=gx+dx;if(yy>=0&&yy<gh&&xx>=0&&xx<gw){s+=G[yy*gw+xx];cnt++}}
+   G2[gy*gw+gx]=s/cnt}
+  const sm=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+  for(let y=0;y<h;y++){
+   const fy=(y+0.5)/B-0.5,ya=Math.max(0,Math.min(gh-1,Math.floor(fy))),yb=Math.min(gh-1,ya+1),ty=Math.max(0,Math.min(1,fy-ya));
+   for(let x=0;x<w;x++){
+    const fx=(x+0.5)/B-0.5,xa=Math.max(0,Math.min(gw-1,Math.floor(fx))),xb=Math.min(gw-1,xa+1),tx=Math.max(0,Math.min(1,fx-xa));
+    const bg=Math.max(60,(G2[ya*gw+xa]*(1-tx)+G2[ya*gw+xb]*tx)*(1-ty)+(G2[yb*gw+xa]*(1-tx)+G2[yb*gw+xb]*tx)*ty);
+    const i=(y*w+x)*4,n=Math.min(1.15,Y[y*w+x]/bg);
+    if(mode==='bw'){const v=255*sm(0.58,0.88,n);D[i]=v;D[i+1]=v;D[i+2]=v}
+    else if(mode==='gray'){const v=Math.max(0,Math.min(255,255*(n-0.3)/0.65));D[i]=v;D[i+1]=v;D[i+2]=v}
+    else{const s=255/bg;for(let c=0;c<3;c++)D[i+c]=Math.max(0,Math.min(255,(D[i+c]*s-14)*1.08))}}}
+  cg.putImageData(im,0,0)}
+ function autoCrop(P){
+  const s=Math.min(1,320/Math.max(P.src.width,P.src.height)),w=Math.max(8,Math.round(P.src.width*s)),h=Math.max(8,Math.round(P.src.height*s));
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const cg=c.getContext('2d');cg.drawImage(P.src,0,0,w,h);
+  const D=cg.getImageData(0,0,w,h).data,Y=new Uint8Array(w*h),hist=new Uint32Array(256);
+  for(let i=0;i<w*h;i++){Y[i]=0.299*D[i*4]+0.587*D[i*4+1]+0.114*D[i*4+2];hist[Y[i]]++}
+  let sum=0;for(let t=0;t<256;t++)sum+=t*hist[t];
+  let sB=0,wB=0,best=-1,th=128;
+  for(let t=0;t<256;t++){
+   wB+=hist[t];if(!wB)continue;
+   const wF=w*h-wB;if(!wF)break;
+   sB+=t*hist[t];
+   const mB=sB/wB,mF=(sum-sB)/wF,vv=wB*wF*(mB-mF)*(mB-mF);
+   if(vv>best){best=vv;th=t}}
+  const rows=new Uint32Array(h),cols=new Uint32Array(w);let cnt=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(Y[y*w+x]>th){rows[y]++;cols[x]++;cnt++}
+  if(cnt<w*h*0.2)return false;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++)if(rows[y]>w*0.15){if(y<y0)y0=y;y1=y}
+  for(let x=0;x<w;x++)if(cols[x]>h*0.15){if(x<x0)x0=x;x1=x}
+  if(x1<=x0||y1<=y0)return false;
+  const m=Math.round(Math.min(w,h)*0.01);
+  x0=Math.max(0,x0-m);y0=Math.max(0,y0-m);x1=Math.min(w-1,x1+m);y1=Math.min(h-1,y1+m);
+  if((x1-x0)*(y1-y0)<w*h*0.25)return false;
+  P.q=[[x0/s,y0/s],[x1/s,y0/s],[x1/s,y1/s],[x0/s,y1/s]];return true}
+ function rotateSrc(P){
+  const s=P.src,c=document.createElement('canvas');c.width=s.height;c.height=s.width;
+  const cg=c.getContext('2d');cg.translate(c.width,0);cg.rotate(Math.PI/2);cg.drawImage(s,0,0);
+  const H=s.height,m=p=>[H-p[1],p[0]],q=P.q;
+  P.q=[m(q[3]),m(q[0]),m(q[1]),m(q[2])];P.src=c}
+ function buildOut(P){
+  const o=warp(P.src,P.q);enhance(o,P.mode);P.out=o;
+  const t=document.createElement('canvas'),k=Math.min(1,320/Math.max(o.width,o.height));
+  t.width=Math.round(o.width*k);t.height=Math.round(o.height*k);
+  t.getContext('2d').drawImage(o,0,0,t.width,t.height);P.thumb=t.toDataURL('image/jpeg',.7)}
+ function paintEdit(){
+  const P=SC.pages[SC.cur],cv=$('scEd');if(!cv)return;
+  const g=cv.getContext('2d'),s=P.s,q=P.q;
+  g.drawImage(P.src,0,0,cv.width,cv.height);
+  g.save();g.fillStyle='rgba(15,23,42,.35)';g.beginPath();g.rect(0,0,cv.width,cv.height);
+  g.moveTo(q[0][0]*s,q[0][1]*s);for(let i=3;i>=1;i--)g.lineTo(q[i][0]*s,q[i][1]*s);
+  g.closePath();g.fill('evenodd');g.restore();
+  g.strokeStyle='#f472b6';g.lineWidth=Math.max(2,cv.width/300);g.beginPath();
+  q.forEach((p,i)=>{if(i)g.lineTo(p[0]*s,p[1]*s);else g.moveTo(p[0]*s,p[1]*s)});g.closePath();g.stroke();
+  const r=Math.max(12,cv.width/45);
+  q.forEach(p=>{g.beginPath();g.arc(p[0]*s,p[1]*s,r,0,Math.PI*2);g.fillStyle='rgba(244,114,182,.85)';g.fill();g.strokeStyle='#fff';g.lineWidth=3;g.stroke()})}
+ function drawEditCanvas(){
+  const P=SC.pages[SC.cur],cv=$('scEd');if(!cv)return;
+  const s=Math.min(1,1000/P.src.width);
+  cv.width=Math.round(P.src.width*s);cv.height=Math.round(P.src.height*s);P.s=s;
+  paintEdit()}
+ function bindEdit(){
+  const cv=$('scEd');if(!cv)return;
+  let drag=-1,off=[0,0];
+  const pos=e=>{const r=cv.getBoundingClientRect(),P=SC.pages[SC.cur];return[(e.clientX-r.left)*cv.width/r.width/P.s,(e.clientY-r.top)*cv.height/r.height/P.s]};
+  cv.onpointerdown=e=>{
+   e.preventDefault();
+   const P=SC.pages[SC.cur],p=pos(e);let bi=0,bd=1e9;
+   P.q.forEach((q,i)=>{const d=dist(p,q);if(d<bd){bd=d;bi=i}});
+   drag=bi;off=[P.q[bi][0]-p[0],P.q[bi][1]-p[1]];
+   try{cv.setPointerCapture(e.pointerId)}catch(_){}};
+  cv.onpointermove=e=>{
+   if(drag<0)return;
+   const P=SC.pages[SC.cur],p=pos(e);
+   P.q[drag]=[Math.max(0,Math.min(P.src.width,p[0]+off[0])),Math.max(0,Math.min(P.src.height,p[1]+off[1]))];
+   paintEdit()};
+  cv.onpointerup=cv.onpointercancel=()=>{drag=-1}}
+ function scDrawEdit(){
+  const P=SC.pages[SC.cur];
+  const modes=[['color','สี'],['gray','เทา'],['bw','ขาวดำ'],['orig','ต้นฉบับ']].map(m=>'<button type="button" data-a="mode" data-v="'+m[0]+'" class="'+btn+' '+(P.mode===m[0]?'bg-pink-200':'bg-slate-100')+'">'+m[1]+'</button>').join('');
+  $('modal').innerHTML='<div class="card border-4 border-sky-200 p-4 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3"><h3 class="mali font-bold text-lg">✂️ ปรับกรอบหน้า '+(SC.cur+1)+'</h3><p class="text-xs text-slate-500">ลากมุมทั้งสี่ให้ตรงขอบกระดาษ</p><div class="bg-slate-100 rounded-xl p-1"><canvas id="scEd" class="touch-none block rounded-lg" style="max-width:100%;max-height:62vh;margin:0 auto"></canvas></div><div class="flex flex-wrap items-center gap-1.5 text-xs"><b>โหมด</b>'+modes+'</div><div class="flex flex-wrap gap-1.5"><button type="button" data-a="rot" class="'+btn+' bg-slate-100">⟳ หมุน 90°</button><button type="button" data-a="auto" class="'+btn+' bg-slate-100">✨ ตัดขอบอัตโนมัติ</button><button type="button" data-a="reset" class="'+btn+' bg-slate-100">↺ ทั้งภาพ</button></div><div class="flex gap-2"><button type="button" data-a="back" class="'+btn+' flex-1 bg-slate-100">'+(P.out?'ยกเลิก':'ลบหน้านี้')+'</button><button type="button" data-a="ok" class="'+btn+' flex-1 bg-emerald-500 text-white">ตกลง</button></div></div>';
+  drawEditCanvas();bindEdit()}
+ function scDraw(){
+  if(SC.view==='edit')return scDrawEdit();
+  const th=SC.pages.map((P,i)=>'<div class="bg-slate-50 rounded-xl p-2 space-y-1 text-[11px]"><div class="font-bold">หน้า '+(i+1)+'</div><img src="'+P.thumb+'" class="w-full rounded-lg border bg-white"><div class="flex flex-wrap gap-1"><button type="button" data-a="up" data-i="'+i+'" class="'+btn+' bg-slate-100">⬆️</button><button type="button" data-a="down" data-i="'+i+'" class="'+btn+' bg-slate-100">⬇️</button><button type="button" data-a="edit" data-i="'+i+'" class="'+btn+' bg-sky-100">✂️ แก้</button><button type="button" data-a="del" data-i="'+i+'" class="'+btn+' bg-rose-100">🗑️</button></div></div>').join('');
+  $('modal').innerHTML='<div class="card border-4 border-sky-200 p-4 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3"><h3 class="mali font-bold text-lg">📷 สแกนเอกสาร</h3><p class="text-xs text-slate-500">ถ่ายทีละหน้า ปรับกรอบให้ตรงขอบกระดาษ แล้วเรียงลำดับหน้าได้ก่อนส่ง</p><div class="grid grid-cols-2 gap-2">'+(th||'<div class="col-span-2 text-center text-xs text-slate-400 py-6">ยังไม่มีหน้า กดถ่ายหน้าแรกได้เลย</div>')+'</div><div class="flex flex-wrap gap-2"><button type="button" data-a="cam" class="'+btn+' bg-sky-400 text-white">📷 ถ่ายหน้า'+(SC.pages.length?'ถัดไป':'แรก')+'</button><button type="button" data-a="lib" class="'+btn+' bg-slate-100">🖼️ เลือกรูปในเครื่อง</button></div><div class="flex gap-2"><button type="button" data-a="cancel" class="'+btn+' flex-1 bg-slate-100">ยกเลิก</button><button type="button" data-a="done" class="'+btn+' flex-1 bg-emerald-500 text-white">✅ ใช้ '+SC.pages.length+' หน้า</button></div></div>'}
+ function scPick(cam){
+  if(SC.pages.length>=12)return toast('สแกนได้สูงสุด 12 หน้าต่อครั้ง');
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  if(cam)inp.setAttribute('capture','environment');
+  inp.onchange=async()=>{
+   const f=inp.files&&inp.files[0];if(!f||!SC)return;
+   toast('กำลังเปิดรูป...');
+   try{
+    const im=await loadImg(f),k=Math.min(1,1800/Math.max(im.naturalWidth,im.naturalHeight));
+    const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    SC.pages.push({src:c,q:fullQuad(c),mode:'gray',out:null,thumb:'',s:1});
+    SC.cur=SC.pages.length-1;SC.view='edit';SC.bak=null;scDrawEdit()
+   }catch(err){toast('เปิดรูปไม่สำเร็จ: '+((err&&err.message)||''))}};
+  inp.click()}
+ async function scDone(){
+  if(!SC.pages.length)return toast('ยังไม่มีหน้าที่สแกน');
+  const inp=$('fl_'+SC.id);
+  if(!inp){SC=null;closeModal();return toast('ไม่พบช่องส่งงาน ลองกดสแกนใหม่อีกครั้ง')}
+  toast('กำลังเตรียมไฟล์...');
+  try{
+   const dt=new DataTransfer();
+   Array.from(inp.files||[]).forEach(f=>dt.items.add(f));
+   const ts=Date.now(),total=SC.pages.length;
+   for(let n=0;n<total;n++){
+    const blob=await new Promise(r=>SC.pages[n].out.toBlob(r,'image/jpeg',.85));
+    dt.items.add(new File([blob],'scan-'+ts+'-'+(n+1)+'.jpg',{type:'image/jpeg'}))}
+   inp.files=dt.files;
+   SC=null;closeModal();
+   toast('เพิ่ม '+total+' หน้าแล้ว กด "ส่งงาน" เพื่อส่ง')
+  }catch(err){toast('เตรียมไฟล์ไม่สำเร็จ: '+((err&&err.message)||''))}}
+ async function scClick(e){
+  if(!SC)return;
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const a=b.dataset.a,i=+b.dataset.i;
+  if(a==='cam'||a==='lib')return scPick(a==='cam');
+  if(a==='cancel'){SC=null;closeModal();return}
+  if(a==='done')return scDone();
+  if(a==='up'||a==='down'){const j=i+(a==='up'?-1:1);if(j<0||j>=SC.pages.length)return;const t=SC.pages[i];SC.pages[i]=SC.pages[j];SC.pages[j]=t;return scDraw()}
+  if(a==='del'){SC.pages.splice(i,1);return scDraw()}
+  if(a==='edit'){const Q=SC.pages[i];SC.cur=i;SC.view='edit';SC.bak={q:Q.q.map(p=>p.slice()),mode:Q.mode,src:Q.src};return scDrawEdit()}
+  const P=SC.pages[SC.cur];if(!P)return;
+  if(a==='mode'){P.mode=b.dataset.v;return scDrawEdit()}
+  if(a==='rot'){rotateSrc(P);return scDrawEdit()}
+  if(a==='auto'){if(!autoCrop(P))toast('ตัดขอบอัตโนมัติไม่สำเร็จ ลากมุมเองได้เลย');return scDrawEdit()}
+  if(a==='reset'){P.q=fullQuad(P.src);return scDrawEdit()}
+  if(a==='back'){
+   if(!P.out)SC.pages.splice(SC.cur,1);
+   else if(SC.bak){P.q=SC.bak.q;P.mode=SC.bak.mode;P.src=SC.bak.src}
+   SC.view='list';SC.bak=null;return scDraw()}
+  if(a==='ok'){
+   toast('กำลังประมวลผล...');
+   await new Promise(r=>setTimeout(r,30));
+   try{buildOut(P)}catch(err){return toast('ประมวลผลไม่สำเร็จ: '+((err&&err.message)||''))}
+   SC.view='list';SC.bak=null;return scDraw()}}
+ window.scanOpen=function(id){
+  SC={id:id,pages:[],cur:0,view:'list',bak:null};
+  scDraw();$('modal').classList.remove('hidden')};
+ $('modal').addEventListener('click',scClick);
+ function addScanButtons(){
+  if(role!=='student')return;
+  document.querySelectorAll('#view input[type=file][id^="fl_"]').forEach(inp=>{
+   if(inp.dataset.scan)return;inp.dataset.scan='1';
+   const id=inp.id.slice(3),b=document.createElement('button');
+   b.type='button';b.className='bb w-full py-2 bg-sky-100 rounded-xl text-xs font-bold';
+   b.textContent='📷 สแกนเอกสาร (ถ่ายด้วยกล้อง)';
+   b.onclick=()=>window.scanOpen(id);
+   inp.parentNode.insertBefore(b,inp)})}
+ const _rr=window.render;
+ window.render=function(){_rr.apply(this,arguments);try{addScanButtons()}catch(e){}};
+})();
+</script>
+<script>
+(function(){
+ async function loadImg(f){
+  const url=URL.createObjectURL(f),im=new Image();
+  im.src=url;
+  try{await im.decode()}catch(e){await new Promise((ok,no)=>{if(im.complete&&im.naturalWidth)return ok();im.onload=ok;im.onerror=()=>no(new Error('อ่านรูปไม่ได้'))})}
+  URL.revokeObjectURL(url);return im}
+ const dirty=()=>Array.from(document.querySelectorAll('#modal canvas.mk')).some(c=>c.dataset.dirty==='1')||(typeof PDFS==='object'&&PDFS?Object.values(PDFS).some(l=>(l||[]).some(o=>o.mk&&o.mk.dataset.dirty==='1')):false);
+ const curSub=()=>gt?(S.subs[gt.iid]||{})[gt.sid]:null;
+ const WARN='มีรอยเขียนที่ยังไม่ได้บันทึก กดบันทึกก่อน แล้วเปิดตรวจใหม่เพื่อหมุนหรือสลับหน้า';
+ async function persist(){
+  const keep={gs:$('gs')?$('gs').value:null,gst:$('gst')?$('gst').value:null,gf:$('gf')?$('gf').value:null};
+  const iid=gt.iid,sid=gt.sid;
+  save();
+  const ok=await putSub(iid,sid);
+  openGrade(iid,sid);
+  if($('gs')&&keep.gs!==null){$('gs').value=keep.gs;$('gst').value=keep.gst;$('gf').value=keep.gf}
+  if(ok)toast('บันทึกการหมุน/ลำดับหน้าแล้ว')}
+ function moveAtt(i,dir){
+  const x=curSub();if(!x||!x.att)return;
+  const j=i+dir;
+  if(j<0||j>=x.att.length)return toast(dir<0?'อยู่หน้าแรกแล้ว':'อยู่หน้าสุดท้ายแล้ว');
+  if(dirty())return toast(WARN);
+  const t=x.att[i];x.att[i]=x.att[j];x.att[j]=t;
+  x.marks=(x.marks||[]).map(m=>m.i===i?Object.assign({},m,{i:j}):m.i===j?Object.assign({},m,{i:i}):m);
+  persist()}
+ async function rotAtt(i,deg){
+  const x=curSub(),f=x&&x.att&&x.att[i];if(!f)return;
+  if(dirty())return toast(WARN);
+  if((x.marks||[]).some(m=>m.i===i)&&!confirm('หน้านี้มีรอยเขียนเดิม การหมุนจะลบรอยเขียนของหน้านี้ ทำต่อไหม?'))return;
+  toast('กำลังหมุนรูป...');
+  try{
+   const bytes=await pdfBytes(fileId(f.url));
+   const im=await loadImg(new Blob([bytes])),w=im.naturalWidth,h=im.naturalHeight;
+   const c=document.createElement('canvas');c.width=h;c.height=w;
+   const cg=c.getContext('2d');cg.translate(c.width/2,c.height/2);cg.rotate(deg*Math.PI/180);cg.drawImage(im,-w/2,-h/2);
+   const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.9));
+   const nf=new File([blob],String(f.name||'page').replace(/\.\w+$/,'')+'-r.jpg',{type:'image/jpeg'});
+   const r=await ASSETS.upload(nf);
+   x.att[i]={name:f.name,url:r.url,ct:'image/jpeg'};
+   x.marks=(x.marks||[]).filter(m=>m.i!==i);
+   await persist()
+  }catch(e){toast('หมุนรูปไม่สำเร็จ: '+((e&&e.message)||''))}}
+ function tbHtml(i,n,img){
+  const bb='bb px-2 py-0.5 rounded-lg bg-slate-100 font-bold';
+  return '<div class="flex flex-wrap items-center gap-1.5 text-[11px]" data-tb="'+i+'"><span class="text-slate-500">หน้า '+(i+1)+'/'+n+'</span>'
+   +(n>1?'<button type="button" data-ta="up" data-i="'+i+'" class="'+bb+'">⬆️</button><button type="button" data-ta="down" data-i="'+i+'" class="'+bb+'">⬇️</button>':'')
+   +(img?'<button type="button" data-ta="rl" data-i="'+i+'" class="'+bb+'">⟲ หมุนซ้าย</button><button type="button" data-ta="rr" data-i="'+i+'" class="'+bb+'">⟳ หมุนขวา</button>':'')
+   +'</div>'}
+ function addToolbars(){
+  const x=curSub();if(!x||!x.att||!x.att.length)return;
+  const n=x.att.length;
+  document.querySelectorAll('#modal canvas.mk').forEach(c=>{
+   const i=+c.dataset.i,blk=c.parentElement&&c.parentElement.parentElement,hd=blk&&blk.firstElementChild;
+   if(hd&&!blk.querySelector('[data-tb]'))hd.insertAdjacentHTML('afterend',tbHtml(i,n,true))});
+  document.querySelectorAll('#modal .pdfbox').forEach(box=>{
+   const b=box.querySelector('button[onclick^="pdfOpen("]'),m=b&&/pdfOpen\((\d+)/.exec(b.getAttribute('onclick'));
+   if(m&&!box.querySelector('[data-tb]'))box.insertAdjacentHTML('afterbegin',tbHtml(+m[1],n,false))})}
+ $('modal').addEventListener('click',e=>{
+  const b=e.target.closest('[data-ta]');if(!b||!gt)return;
+  const i=+b.dataset.i,a=b.dataset.ta;
+  if(a==='up')moveAtt(i,-1);
+  else if(a==='down')moveAtt(i,1);
+  else if(a==='rl')rotAtt(i,-90);
+  else if(a==='rr')rotAtt(i,90)});
+ const _og=window.openGrade;
+ window.openGrade=function(){_og.apply(this,arguments);try{addToolbars()}catch(e){}};
+})();
+</script>
 </body>
 </html>
