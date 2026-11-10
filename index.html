@@ -1420,5 +1420,33 @@ function copyCsv(){
    b.parentNode.insertBefore(m,b)})};
 })();
 </script>
+<style>
+img.max-h-36,img.max-h-44,#modal .overflow-auto>img{cursor:zoom-in}
+#lbx{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:none;flex-direction:column}
+#lbx.on{display:flex}
+#lbx .bar{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:10px 14px;color:#fff;font:600 13px system-ui}
+#lbx .bar button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:12px;padding:8px 14px;font:700 13px system-ui}
+#lbx .box{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;align-items:safe center;justify-content:safe center}
+#lbx img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+#lbx.zm img{max-width:none;max-height:none;width:220%;cursor:zoom-out}
+</style>
+<div id="lbx"><div class="bar"><span id="lbn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span style="display:flex;gap:8px"><button type="button" id="lbz">🔍 ขยาย</button><button type="button" id="lbc">✕ ปิด</button></span></div><div class="box"><img id="lbi" alt=""></div></div>
+<script>
+(function(){
+ const L=document.getElementById('lbx'),I=document.getElementById('lbi'),N=document.getElementById('lbn'),Z=document.getElementById('lbz');
+ function close(){L.classList.remove('on','zm');I.removeAttribute('src');Z.textContent='🔍 ขยาย'}
+ function zoom(){const z=L.classList.toggle('zm');Z.textContent=z?'🔍 พอดีจอ':'🔍 ขยาย'}
+ document.addEventListener('click',e=>{
+  const t=e.target;
+  if(!t||t.tagName!=='IMG'||t.closest('#lbx'))return;
+  const ok=t.classList.contains('max-h-36')||t.classList.contains('max-h-44')||(t.parentElement&&t.parentElement.classList.contains('overflow-auto')&&t.closest('#modal'));
+  if(!ok||!t.src)return;
+  e.preventDefault();e.stopPropagation();
+  I.src=t.currentSrc||t.src;N.textContent=t.alt||'';L.classList.remove('zm');Z.textContent='🔍 ขยาย';L.classList.add('on')},true);
+ I.onclick=zoom;Z.onclick=zoom;document.getElementById('lbc').onclick=close;
+ L.querySelector('.box').addEventListener('click',e=>{if(e.target.classList.contains('box'))close()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&L.classList.contains('on'))close()});
+})();
+</script>
 </body>
 </html>
