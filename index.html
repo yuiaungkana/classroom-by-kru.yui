@@ -145,14 +145,15 @@ async function diag(){
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
 async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;try{const r=await net(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p),{},2);return!!r.ok}catch(e){toast('⚠️ '+errMsg(e));return false}}
 const pullNow=async()=>{for(let i=0;i<60&&pulling;i++)await new Promise(r=>setTimeout(r,200));return pull()};
+var __sv=0,__fe=0;
 async function pull(){
- if(!online()||pulling)return;pulling=true;const v0=subVer;
+ if(!online()||pulling)return;pulling=true;const v0=subVer,s0=__sv,t0=Date.now();
  try{
   const r=await net(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&stu='+encodeURIComponent(me?.id||''),{},3);
   if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}
   const d=r.data||{};
   if(!d.items){if(role==='teacher'&&KEY)save();return}
-  if(v0!==subVer||pend||inflight||(role==='teacher'&&unsaved)||activeTest)return;
+  if(v0!==subVer||s0!==__sv||t0<__fe||pend||inflight||(role==='teacher'&&unsaved)||activeTest||!$('modal').classList.contains('hidden'))return;
   if(d.rooms?.length)S.rooms=d.rooms;else if(d.cfg){const cc={...d.cfg},m=String(cc.room||'').split('/');if(m.length>1){cc.level=m[0];cc.room=m[1]}Object.assign(S.rooms[0],cc)}
   const g={items:{},students:{},bonus:{}};
   ['items','students','bonus'].forEach(n=>(d[n]||[]).forEach(x=>(g[n][x.rid||S.rooms[0].id]??=[]).push(x)));
@@ -166,7 +167,7 @@ async function pull(){
  }catch(e){$('st').textContent='⚠️ '+errMsg(e)+' • ใช้ข้อมูลที่จำไว้ในเครื่อง '+tm()}
  finally{pulling=false}}
 function save(){
- stash();lastSig=sigOf();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
+ __sv++;stash();lastSig=sigOf();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
  if(!online()){$('st').textContent='บันทึกในเครื่องแล้ว (ยังไม่ได้ตั้งค่า Apps Script) '+tm();return}
  if(role!=='teacher'||!KEY){if(role==='teacher')$('st').textContent='ℹ️ ต้องเข้า "มุมครู" (ใส่รหัสครู) จึงจะบันทึกลง Google Drive';return}
  unsaved=true;try{localStorage.setItem('lms_unsaved','1')}catch(e){}clearTimeout(pend);$('st').textContent='⏳ กำลังบันทึก...';pend=setTimeout(flush,500)}
@@ -186,7 +187,7 @@ async function flush(){
  }catch(e){
   $('st').textContent='⚠️ บันทึกไม่สำเร็จ ลองใหม่ ('+(++retry)+')';
   if(retry<5)setTimeout(()=>{if(unsaved&&!pend&&!inflight)flush()},Math.min(30000,3000*retry));
- }finally{inflight--}}
+ }finally{inflight--;__fe=Date.now()}}
 function putSub(i,d,prev){
  if(!online())return Promise.resolve(true);
  inflight++;subVer++;
@@ -312,7 +313,7 @@ function itemForm(type,id){
  else f.push(['max','คะแนนเต็ม',o.max||'10'],OP,['due','กำหนดส่ง (กรอกอัตโนมัติ แก้ไขได้)',o.due||autoDue(),'dt']);
  openForm((id?'แก้ไข':'เพิ่ม')+TY[type].n,f,async v=>{
   if(!v.title)return toast('กรอกชื่อหัวข้อ');
-  const it=o.id?o:{id:type[0]+Date.now(),type};Object.assign(it,{title:v.title,desc:v.desc,openAt:v.openAt});
+  const cur=o.id?S.items.find(i=>i.id===o.id):null;if(o.id&&!cur){toast('ไม่พบรายการนี้แล้ว (ถูกลบหรือรีเฟรช)');return true}const it=cur||{id:type[0]+Date.now(),type};Object.assign(it,{title:v.title,desc:v.desc,openAt:v.openAt});
   if(type==='material'){it.url=v.url;if(v.file){try{(it.att=it.att||[]).push(await upFile(v.file))}catch(e){toast(e.message);return}}}
   else{it.max=Math.round((parseFloat(v.max)||10)*100)/100;it.due=v.due}
   if(!o.id)S.items.push(it);save();render();toast('บันทึกแล้ว');return true})}
@@ -1381,6 +1382,7 @@ function copyCsv(){
    [['max','คะแนนเต็มใหม่ (ตอนนี้ '+it.max+')',it.max],
     ['mode','คะแนนที่ตรวจแล้ว','scale','sel',[['scale','ปรับตามสัดส่วน'],['keep','คงคะแนนเดิม (ไม่เกินเต็มใหม่)']]]],
    async v=>{
+    const it=S.items.find(i=>i.id===id);if(!it){toast('ไม่พบรายการนี้แล้ว');return true}
     const nm=Math.round((parseFloat(v.max)||0)*100)/100;
     if(nm<=0)return toast('กรอกคะแนนเต็มเป็นตัวเลขมากกว่า 0');
     const old=+it.max||10,f=nm/old,r2=n=>Math.round(n*100)/100,o=S.subs[id]||{},ch=[];
@@ -1416,14 +1418,6 @@ function copyCsv(){
    m.dataset.mx='1';m.title='แก้คะแนนเต็ม';m.textContent='🎯';
    m.onclick=()=>maxForm(id);
    b.parentNode.insertBefore(m,b)})};
-})();
-</script>
-<script>
-(function(){
- const _p=window.pull;
- window.pull=function(){
-  if(role==='teacher'&&!$('modal').classList.contains('hidden'))return Promise.resolve();
-  return _p.apply(this,arguments)};
 })();
 </script>
 </body>
