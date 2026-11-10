@@ -1418,5 +1418,13 @@ function copyCsv(){
    b.parentNode.insertBefore(m,b)})};
 })();
 </script>
+<script>
+(function(){
+ const _p=window.pull;
+ window.pull=function(){
+  if(role==='teacher'&&!$('modal').classList.contains('hidden'))return Promise.resolve();
+  return _p.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
