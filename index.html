@@ -152,21 +152,13 @@ async function pull(){
   const r=await net(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&stu='+encodeURIComponent(me?.id||''),{},3);
   if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}
   const d=r.data||{};
-if(!d.items){if(role==='teacher'&&KEY)save();return}
-const srvEmpty=!(d.items||[]).length&&!(d.students||[]).length;
-const locHas=flat('items').length||flat('students').length;
-if(srvEmpty&&locHas){
- if(role==='teacher'&&KEY)save();
- $('st').textContent='⚠️ เซิร์ฟเวอร์ส่งข้อมูลว่าง จึงไม่เขียนทับ';
- return}
-if(!d.items){if(role==='teacher'&&KEY)save();return}
-const srvEmpty=!(d.items||[]).length&&!(d.students||[]).length;
-const locHas=flat('items').length||flat('students').length;
-if(srvEmpty&&locHas){
- if(role==='teacher'&&KEY)save();
- $('st').textContent='⚠️ เซิร์ฟเวอร์ส่งข้อมูลว่าง จึงไม่เขียนทับ';
- return}
-  if(v0!==subVer||s0!==__sv||t0<__fe||pend||inflight||(role==='teacher'&&unsaved)||activeTest||!$('modal').classList.contains('hidden'))return;
+  if(!d.items){if(role==='teacher'&&KEY)save();return}
+  const srvEmpty=!(d.items||[]).length&&!(d.students||[]).length;
+  const locHas=flat('items').length||flat('students').length;
+  if(srvEmpty&&locHas){
+   if(role==='teacher'&&KEY)save();
+   $('st').textContent='⚠️ เซิร์ฟเวอร์ส่งข้อมูลว่าง จึงไม่เขียนทับ';
+   return}||s0!==__sv||t0<__fe||pend||inflight||(role==='teacher'&&unsaved)||activeTest||!$('modal').classList.contains('hidden'))return;
   if(d.rooms?.length)S.rooms=d.rooms;else if(d.cfg){const cc={...d.cfg},m=String(cc.room||'').split('/');if(m.length>1){cc.level=m[0];cc.room=m[1]}Object.assign(S.rooms[0],cc)}
   const g={items:{},students:{},bonus:{}};
   ['items','students','bonus'].forEach(n=>(d[n]||[]).forEach(x=>(g[n][x.rid||S.rooms[0].id]??=[]).push(x)));
