@@ -1536,5 +1536,67 @@ window.restore=function(){
    toast(bad?'ส่งไม่สำเร็จ '+bad+' ชุด ลองกู้ซ้ำ':'กู้คืนครบ '+list.length+' งาน')}
   return true})};
 </script>
+<script>
+/* ===== แจ้งเตือนสำหรับนักเรียน: ตรวจแล้ว / ให้แก้ไข / สื่อและงานใหม่ + กดแล้วไปยังรายการนั้น ===== */
+(function(){
+ const key=()=>'lms_sn_'+S.cur+'_'+(me&&me.id);
+ const load=()=>{try{return JSON.parse(localStorage.getItem(key())||'null')}catch(e){return null}};
+ const store=a=>{try{localStorage.setItem(key(),JSON.stringify(a))}catch(e){}};
+
+ function list(){
+  const r=[];
+  S.items.forEach(it=>{
+   if(!isOpen(it))return;
+   const x=sub(it.id,me.id);
+   if(x&&['graded','revision'].includes(x.status))
+    r.push({g:1,k:['g',it.id,x.status,x.score,(x.feedback||'').length,(x.marks||[]).length].join('|'),id:it.id,type:it.type,
+     t:(x.status==='revision'?'✏️ ครูให้แก้ไข: ':'✅ ครูตรวจแล้ว: ')+it.title});
+   r.push({g:0,k:'n|'+it.id,id:it.id,type:it.type,
+    t:(it.type==='material'?'📖 สื่อใหม่: ':'🆕 งานใหม่: ')+it.title});
+  });
+  return r.sort((a,b)=>b.g-a.g)}
+
+ function unread(){
+  let seenArr=load();const L=list();
+  if(!seenArr){
+   if(!online()||/☁️/.test($('st').textContent))store(L.map(n=>n.k));
+   seenArr=L.map(n=>n.k)}
+  return{L,seenArr,U:L.filter(n=>!seenArr.includes(n.k))}}
+
+ function paint(){
+  if(role!=='student'||!me)return;
+  const{U}=unread(),nb=$('nb'),nl=$('nl');
+  if(nb){nb.classList.toggle('hidden',!U.length);nb.textContent=U.length>99?'99+':U.length;nb.style.width='auto';nb.style.minWidth='16px';nb.style.padding='0 3px'}
+  if(nl)nl.innerHTML=U.slice(0,60).map(n=>'<button type="button" data-nk="'+esc(n.k)+'" data-id="'+esc(n.id)+'" data-ty="'+esc(n.type)+'" class="block w-full text-left p-2 bg-slate-50 hover:bg-pink-50 rounded-xl">'+esc(n.t)+'<div class="text-[9px] text-slate-400">แตะเพื่อไปดู</div></button>').join('')
+   ||'<div class="text-center text-slate-400 py-3">ไม่มีการแจ้งเตือน</div>'}
+
+ function focusCard(id){
+  const it=S.items.find(i=>i.id===id);if(!it)return;
+  const h=[...document.querySelectorAll('#view h3')].find(x=>x.textContent.trim()===String(it.title).trim());
+  const c=h&&h.closest('.card');if(!c)return;
+  c.scrollIntoView({behavior:'smooth',block:'center'});
+  c.style.transition='box-shadow .3s';c.style.boxShadow='0 0 0 4px #f472b6';
+  setTimeout(()=>{c.style.boxShadow=''},2200)}
+
+ $('nl').addEventListener('click',e=>{
+  if(role!=='student')return;
+  const b=e.target.closest('[data-nk]');if(!b)return;
+  const{seenArr}=unread();store(seenArr.concat(b.dataset.nk));
+  $('nd').classList.add('hidden');
+  const id=b.dataset.id;
+  go(b.dataset.ty);
+  setTimeout(()=>focusCard(id),80)});
+
+ /* ปุ่ม "ล้าง": นักเรียน = อ่านทั้งหมด, ครู = ทำงานเดิม */
+ const clr=$('nd').querySelector('button'),orig=clr.onclick;
+ clr.onclick=function(ev){
+  if(role==='student'&&me){const{L}=unread();store(L.map(n=>n.k));render()}
+  else if(orig)orig.call(this,ev)};
+
+ const _r=window.render;
+ window.render=function(){_r.apply(this,arguments);try{paint()}catch(e){}};
+ if(role==='student'&&me)render();
+})();
+</script>
 </body>
 </html>
