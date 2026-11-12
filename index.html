@@ -1654,5 +1654,40 @@ window.restore=function(){
   return _sg.apply(this,arguments)};
 })();
 </script>
+<script>
+(function(){
+ const _send=window.send,_badge=window.badge;
+
+ /* ป้ายสถานะฝั่งนักเรียน: ส่งแล้วให้บอกชัดว่ารอครูตรวจ */
+ window.badge=function(s,i){
+  if(role==='student'&&s&&s.status==='submitted'&&i&&i.type!=='test'){
+   return s.late
+    ?'<span class="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700 text-[10px] font-bold">ส่งแล้ว (ส่งช้า) • รอครูตรวจ</span>'
+    :'<span class="px-2 py-0.5 rounded-lg bg-sky-100 text-sky-700 text-[10px] font-bold">ส่งแล้ว • รอครูตรวจ</span>'}
+  return _badge.apply(this,arguments)};
+
+ /* หน้าต่างยืนยันหลังส่งงาน (ค้างจนกว่านักเรียนจะกดปิด) */
+ function done(title,wasRevision){
+  if(!$('modal').classList.contains('hidden'))return;
+  $('modal').innerHTML='<div class="card border-4 border-emerald-200 p-6 w-full max-w-sm text-center space-y-3">'
+   +'<div class="text-5xl">✅</div>'
+   +'<h3 class="mali font-bold text-lg">'+(wasRevision?'ส่งงานที่แก้ไขแล้ว':'ส่งงานเรียบร้อยแล้ว')+'</h3>'
+   +'<p class="text-xs text-slate-500 break-words">'+esc(title)+'</p>'
+   +'<p class="text-xs text-slate-600">'+(wasRevision?'ครูจะตรวจงานที่แก้ไขอีกครั้ง รอดูผลได้เลย':'รอครูตรวจและให้คะแนน')+'</p>'
+   +'<button type="button" id="sd-ok" class="bb w-full py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">ตกลง</button></div>';
+  $('modal').classList.remove('hidden');
+  $('sd-ok').onclick=closeModal}
+
+ window.send=async function(id){
+  const before=me?sub(id,me.id):null,
+        wasRev=before&&before.status==='revision',
+        beforeAt=before&&before.at,
+        it=S.items.find(i=>i.id===id);
+  await _send.apply(this,arguments);
+  const x=me?sub(id,me.id):null;
+  if(x&&x.status==='submitted'&&x.at!==beforeat(beforeAt))done(it?it.title:'',wasRev)};
+ function beforeat(a){return a}
+})();
+</script>
 </body>
 </html>
