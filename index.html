@@ -1598,5 +1598,58 @@ window.restore=function(){
  if(role==='student'&&me)render();
 })();
 </script>
+<style>
+#gbar{position:sticky;top:0;z-index:30;background:#fff;margin:.75rem -1.25rem 0;padding:.5rem 1.25rem;border-bottom:2px solid #fbcfe8;box-shadow:0 8px 10px -8px rgba(0,0,0,.25)}
+#gbar p{display:none}
+#modal.gfs{padding:0!important;align-items:stretch!important}
+#modal.gfs>.card{max-width:none!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;border-width:0!important;padding-top:calc(1.25rem + env(safe-area-inset-top,0px))!important}
+#modal.gfs>.card>*{max-width:1100px;margin-left:auto;margin-right:auto}
+#modal.gfs>.card>#gbar{max-width:none;margin-left:-1.25rem;margin-right:-1.25rem}
+</style>
+<script>
+(function(){
+ let FS=false,WIPE=false;
+ const bt='bb px-2.5 py-1 rounded-lg border font-bold';
+ const _og=window.openGrade,_cm=window.closeModal,_sg=window.saveGrade;
+
+ function applyFS(){
+  $('modal').classList.toggle('gfs',FS);
+  const b=$('gfs');if(b)b.textContent=FS?'🗗 ออกเต็มจอ':'⛶ เต็มจอ'}
+ window.gFull=function(){FS=!FS;applyFS()};
+ window.gFold=function(b){
+  const t=$('gtools');if(!t)return;
+  const h=t.style.display==='none';
+  t.style.display=h?'':'none';
+  b.textContent=h?'▲ ซ่อนเครื่องมือ':'▼ แสดงเครื่องมือ'};
+ window.gWipe=function(){
+  if(!confirm('ลบรอยเขียนทั้งหมดของงานนี้? (กด "บันทึก" เพื่อยืนยัน)'))return;
+  document.querySelectorAll('#modal canvas.mk,#modal canvas.pk').forEach(c=>{
+   c.getContext('2d').clearRect(0,0,c.width,c.height);c.dataset.dirty='';
+   const mo=c.parentElement.querySelector('.mo');if(mo)mo.style.display='none'});
+  WIPE=true;toast('ลบรอยเขียนทั้งหมดแล้ว กด "บันทึก" เพื่อยืนยัน')};
+
+ window.openGrade=function(){
+  _og.apply(this,arguments);
+  WIPE=false;
+  const card=$('modal').firstElementChild;if(!card)return;
+  const tools=[...card.children].find(e=>e.querySelector&&e.querySelector('.gc'));
+  const bar=document.createElement('div');bar.id='gbar';
+  bar.innerHTML='<div class="flex flex-wrap gap-1.5 text-xs">'
+   +'<button type="button" id="gfs" onclick="gFull()" class="'+bt+' bg-sky-100">⛶ เต็มจอ</button>'
+   +'<button type="button" onclick="gWipe()" class="'+bt+' bg-rose-100">🗑️ ลบทั้งหมด</button>'
+   +(tools?'<button type="button" onclick="gFold(this)" class="'+bt+' bg-slate-100">▲ ซ่อนเครื่องมือ</button>':'')
+   +'</div>';
+  card.children[0].after(bar);
+  if(tools){tools.id='gtools';tools.style.margin='6px 0 0';bar.appendChild(tools)}
+  const er=$('gm-er');if(er)er.textContent='🧽 ลบเฉพาะจุด';
+  applyFS()};
+
+ window.closeModal=function(){FS=false;$('modal').classList.remove('gfs');return _cm.apply(this,arguments)};
+
+ window.saveGrade=function(){
+  if(WIPE&&gt){const x=(S.subs[gt.iid]||{})[gt.sid];if(x)x.marks=[]}
+  return _sg.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
