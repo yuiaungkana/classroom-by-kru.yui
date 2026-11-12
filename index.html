@@ -1092,7 +1092,10 @@ function copyCsv(){
     const im=await loadImg(f),k=Math.min(1,1800/Math.max(im.naturalWidth,im.naturalHeight));
     const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    SC.pages.push({src:c,q:fullQuad(c),mode:'color',out:null,thumb:'',s:1});
+    const NP={src:c,q:fullQuad(c),mode:'color',out:null,thumb:'',s:1};
+    let ac=false;try{ac=autoCrop(NP)}catch(_){}
+    if(!ac)toast('ตัดขอบอัตโนมัติไม่สำเร็จ ลากมุมเองได้เลย');
+    SC.pages.push(NP);
     SC.cur=SC.pages.length-1;SC.view='edit';SC.bak=null;scDrawEdit()
    }catch(err){toast('เปิดรูปไม่สำเร็จ: '+((err&&err.message)||''))}};
   inp.click()}
