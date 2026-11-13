@@ -1689,5 +1689,113 @@ window.restore=function(){
  function beforeat(a){return a}
 })();
 </script>
+<script>
+(function(){
+ const AK='lms_autobk',MAX=5;
+ const ld=()=>{try{return JSON.parse(localStorage.getItem(AK)||'[]')}catch(e){return[]}};
+ const sv=a=>{while(a.length){try{localStorage.setItem(AK,JSON.stringify(a));return}catch(e){a.pop()}}};
+ const snap=()=>{stash();return JSON.stringify({rooms:S.rooms,data:S.data,submissions:S.subs})};
+ const lastGet=()=>{try{return localStorage.getItem('lms_lastbk')||''}catch(e){return''}};
+ const lastSet=()=>{try{localStorage.setItem('lms_lastbk',new Date().toLocaleString('th-TH'))}catch(e){}};
+
+ function auto(label,force){
+  if(role!=='teacher'||!AUTH)return;
+  if(!(flat('items').length||flat('students').length))return;
+  const j=snap(),a=ld();
+  if(a[0]&&a[0].j===j)return;
+  if(!force&&a[0]&&Date.now()-a[0].t<600000)return;
+  a.unshift({t:Date.now(),l:label||'อัตโนมัติ',j});sv(a.slice(0,MAX))}
+ setInterval(()=>auto(),120000);
+
+ async function applyBackup(d){
+  if(!d||typeof d!=='object')return toast('ไม่รู้จักรูปแบบไฟล์');
+  let core=null,subs=null;
+  if(d.core&&Array.isArray(d.core.rooms)){core=d.core;subs=d.subs||{}}
+  else if(Array.isArray(d.rooms)&&d.data){core=d;subs=d.submissions||d.subs||{}}
+  else if(!d.rooms&&!d.core&&Object.values(d).every(o=>o&&typeof o==='object'))subs=d;
+  else return toast('ไม่รู้จักรูปแบบไฟล์');
+  auto('ก่อนกู้คืน',true);
+  if(core){
+   const R=core.rooms,D={};
+   R.forEach(r=>{const x=(core.data||{})[r.id]||{};D[r.id]={items:x.items||[],students:x.students||[],bonus:x.bonus||[]}});
+   if(!core.data)['items','students','bonus'].forEach(n=>(core[n]||[]).forEach(x=>{(D[x.rid||R[0].id]??={items:[],students:[],bonus:[]})[n].push(x)}));
+   S.rooms=R;S.data=D;S.cur=null;repoint();
+   try{localStorage.setItem('lms_cur',S.cur)}catch(e){}
+  }
+  const list=[];
+  Object.entries(subs).forEach(([iid,o])=>Object.entries(o||{}).forEach(([sid,x])=>{
+   const cur=(S.subs[iid]||{})[sid];
+   if(cur&&+new Date(cur.at||0)>+new Date(x.at||0))return;
+   (S.subs[iid]??={})[sid]=x;list.push({iid,sid,sub:x})}));
+  if(core)save();
+  render();
+  if(!list.length)return toast('กู้คืนข้อมูลแล้ว (ไม่มีผลงานนักเรียนในไฟล์)');
+  if(online()&&KEY){
+   toast('กำลังส่ง '+list.length+' งานขึ้น Drive...');
+   inflight++;subVer++;let bad=0;
+   try{for(let i=0;i<list.length;i+=40){
+    const r=await api({action:'putSubs',list:list.slice(i,i+40)}).catch(()=>({ok:false}));
+    if(!r.ok)bad++}}
+   finally{inflight--;subVer++}
+   toast(bad?'ส่งไม่สำเร็จ '+bad+' ชุด ลองกู้ซ้ำ':'กู้คืนครบ '+list.length+' งาน')}
+  else toast('กู้คืนข้อมูลแล้ว');
+  return true}
+
+ function download(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([snap()],{type:'application/json'}));
+  a.download='classroom-lms-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();lastSet();toast('บันทึกไฟล์สำรองแล้ว')}
+
+ async function toDrive(){
+  if(!(online()&&KEY&&role==='teacher'))return toast('ต้องเข้าสู่ระบบครูและเชื่อมต่อ Drive ก่อน');
+  toast('กำลังสำรองขึ้น Drive...');
+  try{const r=await api({action:'backup'});if(r.ok){lastSet();toast('สำรองลง Drive แล้ว: '+r.name)}else toast('สำรองลง Drive ไม่สำเร็จ')}
+  catch(e){toast('สำรองลง Drive ไม่สำเร็จ')}}
+
+ const pill='bb rounded-full px-4 py-2 font-bold text-sm';
+ function open(){
+  if(role!=='teacher')return;
+  auto('อัตโนมัติ');
+  const a=ld();
+  const rows=a.map((b,i)=>'<div class="flex items-center justify-between gap-2 border-2 border-slate-200 rounded-2xl p-3 text-sm"><span class="min-w-0">'
+   +new Date(b.t).toLocaleString('th-TH')+' · '+esc(b.l)+' · '+Math.max(1,Math.round(b.j.length/1024))+' KB</span>'
+   +'<button type="button" data-bk="'+i+'" class="'+pill+' bg-amber-100 text-amber-800 shrink-0">กู้คืน</button></div>').join('')
+   ||'<div class="text-center text-slate-400 text-xs py-3">ยังไม่มีสำรองอัตโนมัติ</div>';
+  $('modal').innerHTML='<div class="card border-4 border-pink-200 p-5 w-full max-w-lg max-h-[92vh] overflow-y-auto space-y-3">'
+   +'<h3 class="mali font-bold text-lg">🛟 สำรอง / กู้คืนข้อมูล</h3>'
+   +'<p class="text-xs text-slate-500">สำรองล่าสุด: '+esc(lastGet()||'ยังไม่เคย')+'<br>ไฟล์แนบเก็บอยู่บน Google Drive ไฟล์สำรองจึงเก็บเฉพาะข้อมูลและลิงก์ไฟล์</p>'
+   +'<button type="button" id="bk-dl" class="bb w-full py-3.5 rounded-full text-white font-bold text-sm bg-[#56b6a9]">⬇️ ดาวน์โหลดไฟล์สำรอง (.json)</button>'
+   +'<hr>'
+   +'<b class="text-sm block">♻️ กู้คืนจากไฟล์</b>'
+   +'<input id="bk-file" type="file" accept=".json" class="w-full text-sm file:mr-3 file:rounded-full file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:font-bold">'
+   +'<button type="button" id="bk-rs" class="bb w-full py-3.5 rounded-full text-white font-bold text-sm bg-[#f2c14e]">กู้คืนจากไฟล์ที่เลือก</button>'
+   +'<hr>'
+   +'<b class="text-sm block">🕒 สำรองอัตโนมัติในเครื่อง</b>'+rows
+   +'<hr>'
+   +'<b class="text-sm block">☁️ สำรองบน Google Drive (อัตโนมัติวันละครั้ง)</b>'
+   +'<button type="button" id="bk-dr" class="bb w-full py-3.5 rounded-full text-white font-bold text-sm bg-[#4aa0e6]">☁️ สำรองขึ้น Drive ตอนนี้</button>'
+   +'<div class="flex justify-end"><button type="button" id="bk-x" class="'+pill+' border-2 border-slate-300 bg-white px-6">ปิด</button></div></div>';
+  $('modal').classList.remove('hidden');
+  $('bk-dl').onclick=download;
+  $('bk-dr').onclick=toDrive;
+  $('bk-x').onclick=closeModal;
+  $('bk-rs').onclick=async()=>{
+   const f=$('bk-file').files[0];if(!f)return toast('เลือกไฟล์ก่อน');
+   let d;try{d=JSON.parse((await f.text()).replace(/^\uFEFF/,''))}catch(e){return toast('อ่านไฟล์ไม่ได้')}
+   if(!confirm('กู้คืนข้อมูลจากไฟล์นี้? ข้อมูลปัจจุบันจะถูกแทนที่'))return;
+   if(await applyBackup(d))closeModal()}}
+
+ $('modal').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-bk]');if(!b)return;
+  const it=ld()[+b.dataset.bk];if(!it)return;
+  if(!confirm('กู้คืนข้อมูลของ '+new Date(it.t).toLocaleString('th-TH')+' ? ข้อมูลปัจจุบันจะถูกแทนที่'))return;
+  let d;try{d=JSON.parse(it.j)}catch(err){return toast('ข้อมูลสำรองเสียหาย')}
+  if(await applyBackup(d))closeModal()});
+
+ window.backup=open;
+ window.restore=open;
+})();
+</script>
 </body>
 </html>
