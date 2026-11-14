@@ -1897,5 +1897,38 @@ window.restore=function(){
    return true})};
 })();
 </script>
+<script>
+(function(){
+ const _sb=window.studentBox;
+ window.studentBox=function(it){
+  if(!it.offline||it.type==='test')return _sb.apply(this,arguments);
+  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
+  const s=sub(it.id,me.id);
+  const checked=s&&['graded','revision'].includes(s.status);
+  const tag=(c,t)=>'<span class="px-2 py-0.5 rounded-lg bg-'+c+'-100 text-'+c+'-700 text-[10px] font-bold">'+t+'</span>';
+  let st;
+  if(!s)st='<span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-bold">ยังไม่ส่ง</span>';
+  else if(s.status==='revision')st=tag('orange','แก้ไข')+' '+(s.late?tag('amber','ส่งช้า'):tag('sky','ตรงเวลา'));
+  else if(checked)st=tag('emerald','ครูตรวจแล้ว')+' '+(s.late?tag('amber','ส่งช้า'):tag('sky','ตรงเวลา'));
+  else st=s.late?tag('amber','ส่งช้า'):tag('sky','ตรงเวลา');
+  let h='<div class="p-3 bg-slate-50 rounded-2xl space-y-2">'
+   +'<div class="text-xs font-bold text-slate-600">📄 งานนี้ส่งนอกระบบ (ส่งกระดาษ/ส่งครูโดยตรง) ไม่ต้องอัปโหลด</div>'
+   +'<div class="flex justify-between items-center gap-2 text-xs"><b>สถานะ:</b><span class="flex gap-1.5 flex-wrap justify-end">'+st+'</span></div>';
+  if(!s)h+='<div class="text-xs text-slate-400">ครูยังไม่ได้บันทึกการส่ง</div>';
+  if(s&&s.feedback)h+='<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 '+esc(s.feedback)+'</div>';
+  if(checked)h+=markHtml(s);
+  return h+'</div>'};
+})();
+</script>
+<script>
+(function(){
+ const _bd=window.badge;
+ window.badge=function(s,i){
+  if(role==='student'&&s&&i&&i.type!=='test'&&!i.offline&&s.status==='graded'){
+   return '<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">'
+    +(s.late?'ตรวจแล้ว • ส่งช้า':'ตรวจแล้ว • ตรงเวลา')+'</span>'}
+  return _bd.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
