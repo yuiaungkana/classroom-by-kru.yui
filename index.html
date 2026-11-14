@@ -1922,16 +1922,6 @@ window.restore=function(){
 </script>
 <script>
 (function(){
- const _bd=window.badge;
- window.badge=function(s,i){
-  if(role==='student'&&s&&i&&i.type!=='test'&&!i.offline&&s.status==='graded'){
-   return '<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold">'
-    +(s.late?'ตรวจแล้ว • ส่งช้า':'ตรวจแล้ว • ตรงเวลา')+'</span>'}
-  return _bd.apply(this,arguments)};
-})();
-</script>
-<script>
-(function(){
  const _o=window.backup;
  const fmt=n=>Math.max(1,Math.round((n||0)/1024))+' KB';
  const kind=n=>/^nightly/i.test(n)?'รายคืน':'สำรองทันที';
