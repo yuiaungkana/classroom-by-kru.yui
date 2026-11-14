@@ -1898,16 +1898,20 @@ window.restore=function(){
 <script>
 (function(){
  const id=u=>{const m=String(u||'').match(/(?:\/d\/|id=)([\w-]{10,})/);return m?m[1]:''};
- const alts=f=>['https://lh3.googleusercontent.com/d/'+f,'https://drive.google.com/thumbnail?id='+f+'&sz=w1600','https://drive.google.com/uc?export=view&id='+f];
+ const alts=f=>[
+  'https://lh3.googleusercontent.com/d/'+f,
+  'https://lh3.googleusercontent.com/d/'+f+'=w1600',
+  'https://drive.google.com/thumbnail?id='+f+'&sz=w1600',
+  'https://drive.google.com/uc?export=view&id='+f];
  document.addEventListener('error',e=>{
   const t=e.target;if(!t||t.tagName!=='IMG')return;
-  const f=id(t.dataset.orig||t.src);if(!f)return;
-  t.dataset.orig=t.dataset.orig||t.src;
+  const o=t.dataset.orig||t.src,f=id(o);if(!f)return;
+  t.dataset.orig=o;
   const n=+(t.dataset.try||0),a=alts(f);
   if(n>=a.length)return;
   t.dataset.try=n+1;
-  setTimeout(()=>{t.src=a[n]},500*(n+1))},true);
+  setTimeout(()=>{t.src=a[n]},800*(n+1))},true);
 })();
-</script
+</script>
 </body>
 </html>
