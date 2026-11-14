@@ -1988,5 +1988,20 @@ window.restore=function(){
   return h.replace(/<\/span>$/,' • '+n+'/'+i.max+'</span>')};
 })();
 </script>
+<script>
+(function(){
+ const _b=window.badge,_v=window.vDash;
+ let dash=false;
+ window.vDash=function(){
+  dash=(role==='student');
+  try{return _v.apply(this,arguments)}finally{dash=false}};
+ window.badge=function(s,i){
+  if(dash&&s&&i&&i.type!=='test'){
+   const t=(c,x)=>'<span class="px-2 py-0.5 rounded-lg bg-'+c+'-100 text-'+c+'-700 text-[10px] font-bold">'+x+'</span>';
+   if(s.status==='revision')return t('orange','แก้ไข');
+   if(s.status==='submitted')return s.late?t('amber','ส่งแล้ว (ส่งช้า)'):t('sky','ส่งแล้ว (ตรงเวลา)')}
+  return _b.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
