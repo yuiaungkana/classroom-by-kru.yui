@@ -1963,5 +1963,16 @@ window.restore=function(){
   finally{b.disabled=false}});
 })();
 </script>
+<script>
+(function(){
+ const _b=window.badge;
+ window.badge=function(s,i){
+  const h=_b.apply(this,arguments);
+  if(role==='teacher'&&i&&i.offline&&s&&['submitted','revision'].includes(s.status)&&typeof s.score==='number'){
+   const n=Math.round(s.score*100)/100;
+   return h.replace(/<\/span>$/,' • '+n+'/'+i.max+'</span>')}
+  return h};
+})();
+</script>
 </body>
 </html>
