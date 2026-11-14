@@ -1839,5 +1839,63 @@ window.restore=function(){
   return(it.offline?'<div class="text-[11px] text-slate-600 bg-slate-100 rounded-xl p-2">📄 งานนี้ส่งนอกระบบ: กด "ตรวจ" เพื่อกรอกคะแนนให้นักเรียนแต่ละคน</div>':'')+_tl.apply(this,arguments)};
 })();
 </script>
+<script>
+(function(){
+ /* งานนอกระบบ: ครูกดเช็กเองว่า ตรงเวลา / ส่งช้า ใช้กติกาเดียวกับในระบบ
+    ตรงเวลา = คะแนนเริ่มต้นเต็ม, ส่งช้า = ครึ่งหนึ่ง (ครูปรับได้ตอนกด "ตรวจ") */
+ const _tl=window.teacherList;
+ const half=it=>Math.round((+it.max||10)/2*100)/100;
+ const def=(it,late)=>late?half(it):(+it.max||10);
+
+ window.teacherList=function(it){
+  if(!it.offline)return _tl.apply(this,arguments);
+  const rows=S.students.map(s=>{
+   const x=sub(it.id,s.id),on=x&&!x.late,lt=x&&x.late;
+   const b='bb px-2.5 py-1 rounded-lg font-bold ';
+   return '<div class="flex flex-wrap justify-between items-center gap-1.5 bg-slate-50 rounded-xl p-2 text-xs">'
+    +'<span>'+s.no+'. '+esc(s.name)+'</span>'
+    +'<span class="flex flex-wrap items-center justify-end gap-1.5">'
+    +badge(x,it)+(x&&x.status==='graded'&&lt?'<span class="text-[10px] text-amber-700 font-bold">⏰ ส่งช้า</span>':'')
+    +'<button type="button" title="ส่งตรงเวลา" onclick="offMark(\''+it.id+'\',\''+s.id+'\',false)" class="'+b+(on?'bg-emerald-300 ring-2 ring-emerald-500':'bg-emerald-100')+'">✅</button>'
+    +'<button type="button" title="ส่งช้า" onclick="offMark(\''+it.id+'\',\''+s.id+'\',true)" class="'+b+(lt?'bg-amber-300 ring-2 ring-amber-500':'bg-amber-100')+'">⏰</button>'
+    +(x?'<button type="button" title="ยกเลิกการเช็ก" onclick="offUnmark(\''+it.id+'\',\''+s.id+'\')" class="'+b+'bg-slate-200">↩️</button>':'')
+    +'<button type="button" onclick="openGrade(\''+it.id+'\',\''+s.id+'\')" class="'+b+'bg-purple-100">ตรวจ</button>'
+    +'</span></div>'}).join('');
+  return '<div class="border-t pt-2 space-y-1.5">'
+   +'<div class="text-[11px] text-slate-600 bg-slate-100 rounded-xl p-2">📄 งานนี้ส่งนอกระบบ: กด ✅ = ส่งตรงเวลา (ให้คะแนนเต็ม) • ⏰ = ส่งช้า (ให้ครึ่งหนึ่ง) • ↩️ = ยกเลิกการเช็ก แล้วกด "ตรวจ" เพื่อยืนยันคะแนน</div>'
+   +rows+'</div>'};
+
+ window.offMark=async function(iid,sid,late){
+  if(role!=='teacher')return;
+  const it=S.items.find(i=>i.id===iid);if(!it)return;
+  const old=sub(iid,sid),prev=old?JSON.parse(JSON.stringify(old)):null;
+  if(old&&old.late===late&&['submitted','graded','revision'].includes(old.status))return toast(late?'เช็กเป็นส่งช้าอยู่แล้ว':'เช็กเป็นตรงเวลาอยู่แล้ว');
+  const x=(S.subs[iid]??={});
+  if(old&&['graded','revision'].includes(old.status)){
+   /* ตรวจแล้ว: เปลี่ยนเฉพาะสถานะเวลา และปรับคะแนนถ้ายังเป็นค่าเริ่มต้นเดิม */
+   const wasDef=(+old.score===def(it,old.late));
+   x[sid]={...old,late,offline:true,at:new Date().toISOString()};
+   if(wasDef){x[sid].score=def(it,late);x[sid].raw=x[sid].score}
+  }else{
+   x[sid]={...(old||{}),at:new Date().toISOString(),text:(old&&old.text)||'',url:(old&&old.url)||'',att:(old&&old.att)||[],
+    status:'submitted',late,offline:true,score:def(it,late),feedback:(old&&old.feedback)||''}}
+  render();
+  const ok=await putSub(iid,sid,prev);
+  if(ok){save();toast(late?'เช็ก: ส่งช้า (คะแนนเริ่มต้น '+half(it)+')':'เช็ก: ส่งตรงเวลา (คะแนนเริ่มต้น '+it.max+')')}};
+
+ window.offUnmark=function(iid,sid){
+  if(role!=='teacher')return;
+  const st=S.students.find(s=>s.id===sid);
+  openForm('ยกเลิกการเช็กของ '+esc(st?st.name:'')+'? (คะแนนและข้อติชมของงานนี้จะถูกลบ)',[],async()=>{
+   inflight++;
+   try{
+    if(online()){const r=await api({action:'delSub',iid,sid});if(!r.ok){toast('⚠️ '+(r.error||'ไม่สำเร็จ'));return true}}
+    if(S.subs[iid])delete S.subs[iid][sid];
+    render();toast('ยกเลิกการเช็กแล้ว')
+   }catch(e){toast('⚠️ เชื่อมต่อไม่ได้ ลองใหม่')}
+   finally{inflight--}
+   return true})};
+})();
+</script>
 </body>
 </html>
