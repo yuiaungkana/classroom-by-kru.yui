@@ -1978,10 +1978,14 @@ window.restore=function(){
  const _b=window.badge;
  window.badge=function(s,i){
   const h=_b.apply(this,arguments);
-  if(role==='teacher'&&i&&i.offline&&s&&['submitted','revision'].includes(s.status)&&typeof s.score==='number'){
-   const n=Math.round(s.score*100)/100;
-   return h.replace(/<\/span>$/,' • '+n+'/'+i.max+'</span>')}
-  return h};
+  if(role!=='teacher'||!i||!s||i.type==='test'||!i.max)return h;
+  let n=null;
+  if(s.status==='submitted'){
+   n=(i.offline&&typeof s.score==='number')?s.score:(s.late?i.max/2:i.max)}
+  else if(s.status==='revision'&&typeof s.score==='number')n=s.score;
+  if(n===null)return h;
+  n=Math.round(n*100)/100;
+  return h.replace(/<\/span>$/,' • '+n+'/'+i.max+'</span>')};
 })();
 </script>
 </body>
