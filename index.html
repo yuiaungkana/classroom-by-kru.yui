@@ -1930,5 +1930,48 @@ window.restore=function(){
   return _bd.apply(this,arguments)};
 })();
 </script>
+<script>
+(function(){
+ const _o=window.backup;
+ const fmt=n=>Math.max(1,Math.round((n||0)/1024))+' KB';
+ const kind=n=>/^nightly/i.test(n)?'รายคืน':'สำรองทันที';
+ const row=f=>'<div class="flex items-center justify-between gap-2 border-2 border-slate-200 rounded-2xl p-3 text-sm">'
+  +'<span class="min-w-0">'+new Date(f.at).toLocaleString('th-TH')+' · '+kind(f.name)+' · '+fmt(f.size)+'</span>'
+  +'<button type="button" data-drv="'+esc(f.id)+'" data-n="'+esc(f.name)+'" class="bb rounded-full px-4 py-2 font-bold text-sm bg-amber-100 text-amber-800 shrink-0">กู้คืน</button></div>';
+
+ async function fill(){
+  const box=$('bk-list');if(!box)return;
+  box.innerHTML='<span class="text-xs text-slate-500">กำลังโหลดรายการ...</span>';
+  try{
+   const r=await api({action:'listBackups'});
+   if(!r||!r.ok)throw new Error((r&&r.error)||'Apps Script ยังไม่รู้จัก listBackups (ยังไม่ได้ Deploy ใหม่?)');
+   box.innerHTML=r.files.length?r.files.map(row).join(''):'<span class="text-xs text-slate-500">ยังไม่มีไฟล์สำรองบน Drive</span>'
+  }catch(e){box.innerHTML='<span class="text-xs text-rose-600">⚠️ โหลดรายการไม่สำเร็จ: '+esc(errMsg(e))+'</span>'}}
+
+ window.backup=window.restore=function(){
+  _o.apply(this,arguments);
+  const b=$('bk-dr');if(!b)return;
+  const box=document.createElement('div');
+  box.id='bk-list';box.className='space-y-2';
+  b.after(box);
+  b.addEventListener('click',()=>setTimeout(fill,3500));
+  fill()};
+
+ $('modal').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-drv]');if(!b||role!=='teacher')return;
+  if(!confirm('กู้คืนข้อมูลจากไฟล์นี้? ข้อมูลปัจจุบันจะถูกแทนที่'))return;
+  b.disabled=true;toast('กำลังดึงไฟล์...');
+  try{
+   const r=await api({action:'getBackup',id:b.dataset.drv});
+   if(!r||!r.ok)throw new Error((r&&r.error)||'ไม่สำเร็จ');
+   const dt=new DataTransfer();
+   dt.items.add(new File([r.text],b.dataset.n,{type:'application/json'}));
+   $('bk-file').files=dt.files;
+   const orig=window.confirm;window.confirm=()=>true;
+   try{$('bk-rs').click()}finally{setTimeout(()=>{window.confirm=orig},1500)}
+  }catch(err){toast('⚠️ '+errMsg(err))}
+  finally{b.disabled=false}});
+})();
+</script>
 </body>
 </html>
