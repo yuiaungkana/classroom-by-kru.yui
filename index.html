@@ -1913,5 +1913,22 @@ window.restore=function(){
   setTimeout(()=>{t.src=a[n]},800*(n+1))},true);
 })();
 </script>
+<script>
+(function(){
+ setInterval(()=>{
+  document.querySelectorAll('#view input[type=file][id^="fl_"]').forEach(t=>{
+   let b=t.nextElementSibling;
+   if(!b||!b.dataset.fl){b=document.createElement('div');b.dataset.fl='1';b.className='text-xs font-bold text-emerald-700';t.after(b)}
+   const n=t.files?t.files.length:0;
+   b.textContent=n?'📎 เลือกไว้ '+n+' ไฟล์ พร้อมส่ง':''})},700);
+ const _s=window.send;
+ window.send=async function(id){
+  const inp=document.getElementById('fl_'+id),u=document.getElementById('u_'+id),
+        old=me&&sub(id,me.id);
+  const has=(inp&&inp.files&&inp.files.length)||(old&&old.att&&old.att.length)||(u&&u.value.trim());
+  if(!has&&!confirm('ยังไม่ได้แนบรูป/ไฟล์ จะส่งเฉพาะข้อความใช่ไหม?'))return;
+  return _s.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
