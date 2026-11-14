@@ -1250,75 +1250,6 @@ function copyCsv(){
 </script>
 <script>
 (function(){
- window.matView=function(it){
-  const isImg=f=>(f.ct||'').startsWith('image/');
-  const a=(it.att||[]).map((f,i)=>
-   '<div class="flex flex-wrap items-center gap-2">'
-   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
-   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
-   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
-   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
-   +'</div>').join('');
-  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
- const _up=window.upFile;
- window.upFile=async function(f){
-  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
-  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
-  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
-  t.classList.remove('hidden');clearTimeout(t._t);
-  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
-  try{return await _up.call(this,f)}
-  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
-})();
-</script>
-<script>
-(function(){
- window.matView=function(it){
-  const isImg=f=>(f.ct||'').startsWith('image/');
-  const a=(it.att||[]).map((f,i)=>
-   '<div class="flex flex-wrap items-center gap-2">'
-   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
-   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
-   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
-   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
-   +'</div>').join('');
-  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
- const _up=window.upFile;
- window.upFile=async function(f){
-  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
-  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
-  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
-  t.classList.remove('hidden');clearTimeout(t._t);
-  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
-  try{return await _up.call(this,f)}
-  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
-})();
-</script>
-<script>
-(function(){
- window.matView=function(it){
-  const isImg=f=>(f.ct||'').startsWith('image/');
-  const a=(it.att||[]).map((f,i)=>
-   '<div class="flex flex-wrap items-center gap-2">'
-   +(isImg(f)?'<img src="'+esc(f.url)+'" alt="'+esc(f.name)+'" loading="lazy" decoding="async" class="max-h-44 rounded-xl border">':'')
-   +'<button onclick="viewFile(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">📖 ศึกษา: '+esc(f.name)+'</button>'
-   +'<button onclick="dlAtt(\''+it.id+'\','+i+')" class="bb px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold">⬇️ ดาวน์โหลด</button>'
-   +(role==='teacher'?'<button onclick="rmAtt(\''+it.id+'\','+i+')">✕</button>':'')
-   +'</div>').join('');
-  return '<div class="space-y-2">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>':'')+a+'</div>'};
- const _up=window.upFile;
- window.upFile=async function(f){
-  if(!/^image\//.test(f.type||'')&&f.size>10*1024*1024)throw{message:'ไฟล์ใหญ่เกิน 10 MB (ลดขนาดหรือแบ่งไฟล์ก่อน)'};
-  const t=$('toast'),fo=$('fo'),old=fo?fo.textContent:'',mb=Math.round((f.size||0)/1024/102.4)/10;
-  t.textContent='⏳ กำลังอัปโหลด '+(f.name||'ไฟล์')+' ('+mb+' MB) กรุณารอ...';
-  t.classList.remove('hidden');clearTimeout(t._t);
-  if(fo){fo.disabled=true;fo.textContent='กำลังอัปโหลด...'}
-  try{return await _up.call(this,f)}
-  finally{t.classList.add('hidden');if(fo){fo.disabled=false;fo.textContent=old}}};
-})();
-</script>
-<script>
-(function(){
  /* 1) ซ่อนสื่อ/แบบฝึกทักษะ/ชิ้นงานที่ยังไม่ถึงเวลาเปิด (มุมนักเรียน) */
  const hidden=i=>['material','exercise','project'].includes(i.type)&&!isOpen(i);
  const wrap=fn=>function(){
@@ -1460,45 +1391,6 @@ img.max-h-36,img.max-h-44,#modal .overflow-auto>img{cursor:zoom-in}
  L.querySelector('.box').addEventListener('click',e=>{if(e.target.classList.contains('box'))close()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&L.classList.contains('on'))close()});
 })();
-</script>
-<script>
-window.restore=function(){
- if(role!=='teacher')return;
- openForm('♻️ กู้คืนข้อมูล<div class="text-xs font-normal text-slate-500 mt-1">รับไฟล์สำรองจากเว็บ, backup-….json หรือ subs.json เก่า</div>',
- [['file','เลือกไฟล์ .json','','file','.json']],
- async v=>{
-  if(!v.file)return toast('เลือกไฟล์ก่อน');
-  let d;try{d=JSON.parse((await v.file.text()).replace(/^\uFEFF/,''))}catch(e){return toast('อ่านไฟล์ไม่ได้')}
-  if(!d||typeof d!=='object')return toast('ไม่รู้จักรูปแบบไฟล์');
-  let core=null,subs=null;
-  if(d.core&&Array.isArray(d.core.rooms)){core=d.core;subs=d.subs||{}}
-  else if(Array.isArray(d.rooms)&&d.data){core=d;subs=d.submissions||d.subs||{}}
-  else if(!d.rooms&&!d.core&&Object.values(d).every(o=>o&&typeof o==='object'))subs=d;
-  else return toast('ไม่รู้จักรูปแบบไฟล์');
-  if(core){
-   const R=core.rooms,D={};
-   R.forEach(r=>{const x=(core.data||{})[r.id]||{};D[r.id]={items:x.items||[],students:x.students||[],bonus:x.bonus||[]}});
-   if(!core.data)['items','students','bonus'].forEach(n=>(core[n]||[]).forEach(x=>{(D[x.rid||R[0].id]??={items:[],students:[],bonus:[]})[n].push(x)}));
-   S.rooms=R;S.data=D;S.cur=null;repoint();
-   try{localStorage.setItem('lms_cur',S.cur)}catch(e){}
-  }
-  const list=[];
-  Object.entries(subs).forEach(([iid,o])=>Object.entries(o||{}).forEach(([sid,x])=>{
-   const cur=(S.subs[iid]||{})[sid];
-   if(cur&&+new Date(cur.at||0)>+new Date(x.at||0))return;
-   (S.subs[iid]??={})[sid]=x;list.push({iid,sid,sub:x})}));
-  if(core)save();
-  render();
-  if(!list.length)return toast('ไม่พบผลงานในไฟล์');
-  if(online()&&KEY){
-   toast('กำลังส่ง '+list.length+' งานขึ้น Drive...');
-   inflight++;subVer++;let bad=0;
-   try{for(let i=0;i<list.length;i+=40){
-    const r=await api({action:'putSubs',list:list.slice(i,i+40)}).catch(()=>({ok:false}));
-    if(!r.ok)bad++}}
-   finally{inflight--;subVer++}
-   toast(bad?'ส่งไม่สำเร็จ '+bad+' ชุด ลองกู้ซ้ำ':'กู้คืนครบ '+list.length+' งาน')}
-  return true})};
 </script>
 <script>
 window.restore=function(){
