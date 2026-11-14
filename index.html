@@ -1797,5 +1797,47 @@ window.restore=function(){
  window.restore=open;
 })();
 </script>
+<script>
+(function(){
+ /* 1) ฟอร์มสร้าง/แก้ไข: เพิ่มตัวเลือก "วิธีส่งงาน" (สื่อการเรียนและแบบทดสอบไม่เกี่ยว) */
+ const _if=window.itemForm;
+ window.itemForm=function(type,id){
+  if(type==='material')return _if.apply(this,arguments);
+  const _of=window.openForm;
+  window.openForm=function(title,fields,cb,oc){
+   const o=S.items.find(i=>i.id===id)||{};
+   fields.push(['offline','วิธีส่งงาน',o.offline?'1':'0','sel',[['0','ส่งในระบบ'],['1','ไม่ส่งในระบบ (ส่งกระดาษ/ส่งครูโดยตรง)']]]);
+   return _of(title,fields,async v=>{
+    const r=await cb(v);
+    if(r){
+     const it=id?S.items.find(i=>i.id===id):S.items[S.items.length-1];
+     if(it){it.offline=v.offline==='1';save();render()}}
+    return r},oc)};
+  try{return _if.apply(this,arguments)}finally{window.openForm=_of}};
+
+ /* 2) ฝั่งนักเรียน: งานนอกระบบจะไม่มีช่องส่งงาน */
+ const _sb=window.studentBox;
+ window.studentBox=function(it){
+  if(!it.offline||it.type==='test')return _sb.apply(this,arguments);
+  if(!me)return'<div class="text-xs text-rose-500 font-bold">โปรดเข้าสู่ระบบนักเรียนก่อน</div>';
+  const s=sub(it.id,me.id);
+  return'<div class="p-3 bg-slate-50 rounded-2xl space-y-2">'
+   +'<div class="text-xs font-bold text-slate-600">📄 งานนี้ส่งนอกระบบ (ส่งกระดาษ/ส่งครูโดยตรง) ไม่ต้องอัปโหลด</div>'
+   +(s&&['graded','revision'].includes(s.status)?'<div class="flex justify-between text-xs"><b>สถานะ:</b>'+badge(s,it)+'</div>'
+     +'<div class="text-xs font-bold">คะแนน '+(+s.score||0)+'/'+it.max+'</div>'
+     +(s.feedback?'<div class="text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-2">💬 '+esc(s.feedback)+'</div>':'')
+     +markHtml(s):'<div class="text-xs text-slate-400">รอครูบันทึกคะแนน</div>')
+   +'</div>'};
+
+ /* 3) ป้ายสถานะ + ป้ายบอกครู */
+ const _bd=window.badge;
+ window.badge=function(s,i){
+  if(i&&i.offline&&!s)return'<span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-bold">นอกระบบ</span>';
+  return _bd.apply(this,arguments)};
+ const _tl=window.teacherList;
+ window.teacherList=function(it){
+  return(it.offline?'<div class="text-[11px] text-slate-600 bg-slate-100 rounded-xl p-2">📄 งานนี้ส่งนอกระบบ: กด "ตรวจ" เพื่อกรอกคะแนนให้นักเรียนแต่ละคน</div>':'')+_tl.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
