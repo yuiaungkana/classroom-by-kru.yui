@@ -1930,5 +1930,20 @@ window.restore=function(){
   return _s.apply(this,arguments)};
 })();
 </script>
+<script>
+(function(){
+ let until=0;
+ const _r=window.render;
+ window.render=function(){
+  if(role==='student'&&Date.now()<until)return;
+  return _r.apply(this,arguments)};
+ document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t&&t.tagName==='INPUT'&&t.type==='file')until=Date.now()+90000},true);
+ document.addEventListener('change',e=>{
+  if(e.target&&e.target.type==='file')until=0},true);
+ document.addEventListener('cancel',()=>{until=0},true);
+})();
+</script>
 </body>
 </html>
