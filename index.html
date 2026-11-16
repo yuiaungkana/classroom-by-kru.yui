@@ -1957,5 +1957,33 @@ window.restore=function(){
  }catch(e){}
 })();
 </script>
+<script>
+(function(){
+ /* ชั้นที่ 1: ครูไม่รับข้อมูลที่ดึงมา ถ้านักเรียนหายเกินครึ่ง */
+ const _n=window.net;
+ window.net=async function(url,opt,tries){
+  const r=await _n.apply(this,arguments);
+  try{
+   if(role==='teacher'&&KEY&&String(url).includes('action=get')&&r&&r.ok&&r.data&&Array.isArray(r.data.items)&&r.data.items.length){
+    const sv=(r.data.students||[]).length,loc=flat('students').length;
+    if(loc>0&&sv<loc*0.5)return{ok:false,error:'ข้อมูลจากเซิร์ฟเวอร์ไม่ครบ ('+sv+' คน) จึงไม่เขียนทับ'};
+   }
+  }catch(e){}
+  return r};
+
+ /* ชั้นที่ 2: ถ้าเซิร์ฟเวอร์ปฏิเสธเพราะตัวป้องกัน ให้ปลดสถานะค้าง แล้วดึงข้อมูลจริงมาแทน */
+ const _a=window.apiRetry;
+ window.apiRetry=async function(b){
+  const r=await _a.apply(this,arguments);
+  try{
+   if(b&&b.action==='saveCore'&&r&&!r.ok&&/ป้องกันข้อมูลหาย/.test(String(r.error||''))){
+    unsaved=false;clearTimeout(pend);pend=null;
+    try{localStorage.removeItem('lms_unsaved')}catch(e){}
+    setTimeout(()=>{try{toast('เซิร์ฟเวอร์ไม่รับข้อมูลชุดนี้ กำลังดึงข้อมูลล่าสุดมาแทน');pull()}catch(e){}},2000);
+   }
+  }catch(e){}
+  return r};
+})();
+</script>
 </body>
 </html>
