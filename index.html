@@ -1945,5 +1945,17 @@ window.restore=function(){
  document.addEventListener('cancel',()=>{until=0},true);
 })();
 </script>
+<script>
+(function(){
+ try{
+  if(unsaved&&flat('students').length===0){
+   unsaved=false;
+   clearTimeout(pend);pend=null;
+   localStorage.removeItem('lms_unsaved');
+   setTimeout(()=>{try{pull()}catch(e){}},1500);
+  }
+ }catch(e){}
+})();
+</script>
 </body>
 </html>
