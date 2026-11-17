@@ -2020,5 +2020,31 @@ window.restore=function(){
   return r};
 })();
 </script>
+<script>
+(function(){
+ window.moveTask=function(id,dir){
+  if(role!=='teacher')return;
+  const T=tasks(),i=T.findIndex(x=>x.id===id),j=i+dir;
+  if(i<0)return;
+  if(j<0||j>=T.length)return toast(dir<0?'อยู่ซ้ายสุดแล้ว':'อยู่ขวาสุดแล้ว');
+  const a=S.items.indexOf(T[i]),b=S.items.indexOf(T[j]);
+  [S.items[a],S.items[b]]=[S.items[b],S.items[a]];
+  save();render()};
+
+ const _r=window.render;
+ window.render=function(){
+  const r=_r.apply(this,arguments);
+  if(role==='teacher'&&tab==='dashboard'){
+   const T=tasks(),ths=document.querySelectorAll('#view table thead th');
+   T.forEach((t,i)=>{
+    const th=ths[i+2];if(!th)return;
+    th.insertAdjacentHTML('beforeend',
+     '<div class="flex justify-center gap-1 mt-1">'
+     +'<button type="button" onclick="moveTask(\''+t.id+'\',-1)" class="bb px-1.5 rounded-lg bg-white border" title="เลื่อนไปซ้าย">◀</button>'
+     +'<button type="button" onclick="moveTask(\''+t.id+'\',1)" class="bb px-1.5 rounded-lg bg-white border" title="เลื่อนไปขวา">▶</button></div>')});
+  }
+  return r};
+})();
+</script>
 </body>
 </html>
