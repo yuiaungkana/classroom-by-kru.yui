@@ -96,7 +96,7 @@ const tm=()=>new Date().toLocaleTimeString('th-TH');
 
 setInterval(()=>{if(role==='student'&&!busy()&&!activeTest&&$('modal').classList.contains('hidden'))render()},30000);
 setInterval(()=>{if(role!=='teacher'||pend||inflight)return;stash();if(sigOf()!==lastSig)save()},10000);
-function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hidden'),2500)}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hidden'),4000)}
 function notify(t){S.notifs.unshift({t,time:new Date().toLocaleTimeString('th-TH')})}
 function setRole(r){role=r;if(r==='student'&&!me){openForm('🎓 เข้าสู่ระบบนักเรียน',[['code','รหัสประจำตัว นร.',''],['pw','รหัสผ่านห้องเรียน (ถ้ามี)','']],async v=>{await pull();const f=S.students.find(x=>x.code===v.code);if(!f)return toast('ไม่พบรหัสนี้ในรายชื่อ');if(!(await pwOk(v.pw)))return toast('รหัสผ่านห้องไม่ถูกต้อง');me=f;render();return true},()=>{role=AUTH?'teacher':'student';render()});}
  if(['students','grades','room','bonus'].includes(tab)&&r==='student')tab='dashboard';render()}
@@ -1457,7 +1457,7 @@ window.restore=function(){
     r.push({g:1,k:['g',it.id,x.status,x.score,(x.feedback||'').length,(x.marks||[]).length].join('|'),id:it.id,type:it.type,
      t:(x.status==='revision'?'✏️ ครูให้แก้ไข: ':'✅ ครูตรวจแล้ว: ')+it.title});
    r.push({g:0,k:'n|'+it.id,id:it.id,type:it.type,
-    t:(it.type==='material'?'📖 สื่อใหม่: ':'🆕 งานใหม่: ')+it.title});
+    t:({material:'📖 สื่อใหม่: ',exercise:'✏️ แบบฝึกทักษะใหม่: ',test:'📝 แบบทดสอบใหม่: ',project:'🧩 ชิ้นงานใหม่: '}[it.type]||'🆕 งานใหม่: ')+it.title});
   });
   return r.sort((a,b)=>b.g-a.g)}
 
@@ -1468,9 +1468,17 @@ window.restore=function(){
    seenArr=L.map(n=>n.k)}
   return{L,seenArr,U:L.filter(n=>!seenArr.includes(n.k))}}
 
+  const ann=new Set();let firstP=true;
  function paint(){
   if(role!=='student'||!me)return;
   const{U}=unread(),nb=$('nb'),nl=$('nl');
+  if(firstP){
+   U.forEach(n=>ann.add(n.k));firstP=false;
+   if(U.length)toast('🔔 คุณมีการแจ้งเตือนใหม่ '+U.length+' รายการ');
+  }else{
+   const nw=U.filter(n=>!ann.has(n.k));
+   if(nw.length){nw.forEach(n=>ann.add(n.k));toast('🔔 '+nw[0].t+(nw.length>1?' และอีก '+(nw.length-1)+' รายการ':''))}
+  }
   if(nb){nb.classList.toggle('hidden',!U.length);nb.textContent=U.length>99?'99+':U.length;nb.style.width='auto';nb.style.minWidth='16px';nb.style.padding='0 3px'}
   if(nl)nl.innerHTML=U.slice(0,60).map(n=>'<button type="button" data-nk="'+esc(n.k)+'" data-id="'+esc(n.id)+'" data-ty="'+esc(n.type)+'" class="block w-full text-left p-2 bg-slate-50 hover:bg-pink-50 rounded-xl">'+esc(n.t)+'<div class="text-[9px] text-slate-400">แตะเพื่อไปดู</div></button>').join('')
    ||'<div class="text-center text-slate-400 py-3">ไม่มีการแจ้งเตือน</div>'}
