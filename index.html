@@ -1995,5 +1995,22 @@ window.restore=function(){
   return r};
 })();
 </script>
+<script>
+(function(){
+ const _r=window.render;
+ let lastTab=null,lastRoom=null;
+ window.render=function(){
+  const v=$('view'),same=(tab===lastTab&&S.cur===lastRoom);
+  const sx=same?[...v.querySelectorAll('.overflow-x-auto')].map(e=>e.scrollLeft):[];
+  const sy=window.scrollY;
+  const r=_r.apply(this,arguments);
+  lastTab=tab;lastRoom=S.cur;
+  if(same){
+   v.querySelectorAll('.overflow-x-auto').forEach((e,i)=>{if(sx[i])e.scrollLeft=sx[i]});
+   if(Math.abs(window.scrollY-sy)>2)window.scrollTo(0,sy);
+  }
+  return r};
+})();
+</script>
 </body>
 </html>
