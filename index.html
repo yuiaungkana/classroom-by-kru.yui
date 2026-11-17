@@ -86,7 +86,7 @@ function clearDraft(id){delete DR['t_'+id];delete DR['u_'+id];saveDR()}
 document.addEventListener('input',e=>{const id=(e.target&&e.target.id)||'';if(/^[tu]_/.test(id)){DR[id]=e.target.value;saveDR()}});
 const qt=q=>q.type||'mc',pts=(q,it)=>q.pts??Math.round(it.max/it.questions.length*10)/10;
 const ok=(q,a)=>qt(q)==='mc'?a===q.ans:qt(q)==='fill'&&String(q.ans).split('|').some(x=>x.trim().toLowerCase()===a.toLowerCase());
-const notifs=()=>{const r=[];Object.entries(S.subs).forEach(([i,o])=>Object.entries(o).forEach(([d,x])=>{const t=Date.parse(x.at);if(t>seen&&['submitted','cheated'].includes(x.status)){const it=S.items.find(k=>k.id===i),st=S.students.find(k=>k.id===d);r.push({t:(x.status==='cheated'?'🚨 ถูกตัดสิทธิ์: ':'ส่งงาน: ')+(st?.name||d)+' – '+(it?.title||''),time:new Date(t).toLocaleTimeString('th-TH'),k:t})}}));return r.sort((a,b)=>b.k-a.k).slice(0,30)};
+const notifs=()=>{const r=[];Object.entries(S.subs).forEach(([i,o])=>Object.entries(o).forEach(([d,x])=>{const t=Date.parse(x.at);if(t>seen&&['submitted','cheated'].includes(x.status)&&!x.offline){const it=S.items.find(k=>k.id===i),st=S.students.find(k=>k.id===d);r.push({t:(x.status==='cheated'?'🚨 ถูกตัดสิทธิ์: ':'ส่งงาน: ')+(st?.name||d)+' – '+(it?.title||''),time:new Date(t).toLocaleTimeString('th-TH'),k:t})}}));return r.sort((a,b)=>b.k-a.k).slice(0,30)};
 const TY={material:{n:'สื่อการเรียน',e:'📖',c:'sky'},exercise:{n:'แบบฝึกทักษะ',e:'✏️',c:'pink'},test:{n:'แบบทดสอบ',e:'📝',c:'purple'},project:{n:'ชิ้นงาน/โครงงาน',e:'🧩',c:'emerald'}};
 const tasks=()=>S.items.filter(i=>i.type!=='material');
 const isOpen=it=>!it.openAt||new Date()>=new Date(it.openAt);
@@ -881,7 +881,7 @@ function copyCsv(){
   const rows=[];
   Object.entries(S.subs||{}).forEach(([i,o])=>Object.entries(o||{}).forEach(([d,x])=>{
    const t=Date.parse(x.at);
-   if(!(t>seen)||!['submitted','cheated'].includes(x.status))return;
+   if(!(t>seen)||!['submitted','cheated'].includes(x.status)||x.offline||(items[i]&&items[i].offline))return;
    rows.push({i:i,d:d,t:t,x:x,it:items[i],st:studs[d]})}));
   rows.sort((a,b)=>b.t-a.t);
   const nb=$('nb');if(nb){nb.classList.toggle('hidden',!rows.length);nb.textContent=rows.length>99?'99+':String(rows.length);nb.style.width='auto';nb.style.minWidth='16px';nb.style.padding='0 3px'}
