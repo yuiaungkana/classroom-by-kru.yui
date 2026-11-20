@@ -2046,5 +2046,33 @@ window.restore=function(){
   return r};
 })();
 </script>
+<script>
+(function(){
+ const _s=window.saveTE,r2=n=>Math.round(n*100)/100;
+ const auto=(t,a)=>{let s=0;(t.questions||[]).forEach((q,i)=>{if(qt(q)!=='essay'&&ok(q,String(a[i]??'')))s+=pts(q,t)});return r2(s)};
+ window.saveTE=async function(){
+  syncTE();
+  const o0=TE.id?S.items.find(x=>x.id===TE.id):null;
+  const oldT=o0?JSON.parse(JSON.stringify(o0)):null;
+  _s.apply(this,arguments);
+  if(!oldT||!$('modal').classList.contains('hidden'))return;
+  const it=S.items.find(x=>x.id===oldT.id);if(!it)return;
+  const o=S.subs[it.id]||{},ch=[];
+  Object.keys(o).forEach(sid=>{
+   const x=o[sid];
+   if(!Array.isArray(x.answers)||!['submitted','graded','revision'].includes(x.status))return;
+   const ns=Math.max(0,Math.min(it.max,r2((+x.score||0)-auto(oldT,x.answers)+auto(it,x.answers))));
+   if(ns!==x.score){x.score=ns;if(typeof x.raw==='number')x.raw=ns;ch.push(sid)}});
+  if(!ch.length)return;
+  save();render();
+  let good=true;
+  if(online()){
+   inflight++;subVer++;
+   try{const r=await api({action:'putSubs',list:ch.map(sid=>({iid:it.id,sid,sub:o[sid]}))});if(!r.ok){good=false;toast('⚠️ '+(r.error||'ซิงก์ไม่สำเร็จ'))}}
+   catch(e){good=false;toast('⚠️ '+errMsg(e))}
+   finally{inflight--;subVer++}}
+  if(good)toast('ตรวจคะแนนใหม่ตามเฉลยแล้ว '+ch.length+' คน')};
+})();
+</script>
 </body>
 </html>
