@@ -2221,5 +2221,38 @@ window.restore=function(){
   return h};
 })();
 </script>
+<script>
+(function(){
+ /* 1) กดเริ่มสอบแล้ว ห้าม render/ซิงก์ทับจนกว่าข้อสอบจะเปิดเสร็จ */
+ let starting=false;
+ const _st=window.startTest;
+ window.startTest=async function(id){
+  if(starting)return;
+  starting=true;
+  const btns=document.querySelectorAll('#view button[onclick^="startTest("]');
+  btns.forEach(b=>{b.disabled=true;b.textContent='⏳ กำลังเปิดข้อสอบ...'});
+  try{return await _st.apply(this,arguments)}
+  finally{starting=false}};
+
+ const _r=window.render;
+ window.render=function(){
+  if(starting)return;
+  return _r.apply(this,arguments)};
+
+ /* 2) ระหว่างกำลังสอบหรือกำลังเริ่มสอบ ห้าม pull ลบ/ทับสถานะ */
+ const _n=window.net;
+ window.net=async function(url,opt,tries){
+  if((starting||activeTest)&&role==='student'&&String(url).includes('action=get')){
+   return{ok:false,error:'กำลังสอบ'}}
+  return _n.apply(this,arguments)};
+
+ /* 3) ข้อความ "ออกกลางคัน" ไม่แสดงถ้าข้อสอบข้อนั้นกำลังเปิดอยู่ */
+ const _sb=window.studentBox;
+ window.studentBox=function(it){
+  if(it.type==='test'&&(starting||activeTest===it.id)){
+   return '<div class="p-3 bg-slate-50 rounded-2xl text-xs font-bold text-purple-700">📝 กำลังทำข้อสอบ...</div>'}
+  return _sb.apply(this,arguments)};
+})();
+</script>
 </body>
 </html>
