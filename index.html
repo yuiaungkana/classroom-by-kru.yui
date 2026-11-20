@@ -2074,5 +2074,152 @@ window.restore=function(){
   if(good)toast('ตรวจคะแนนใหม่ตามเฉลยแล้ว '+ch.length+' คน')};
 })();
 </script>
+<script>
+(function(){
+ const QK='lms_q',SK='lms_syn';
+ const jl=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||d)}catch(e){return JSON.parse(d)}};
+ const js=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+ const qld=()=>jl(QK,'[]'),sld=()=>jl(SK,'{}');
+ const markSyn=(i,d)=>{const s=sld();s[i+'|'+d]=Date.now();js(SK,s)};
+ const DK=id=>'lms_ex_'+S.cur+'_'+(me&&me.id)+'_'+id;
+ const rdD=id=>jl(DK(id),'null'),wrD=(id,d)=>js(DK(id),d),clrD=id=>{try{localStorage.removeItem(DK(id))}catch(e){}};
+ const canResume=id=>{const d=rdD(id),s=me&&sub(id,me.id);return !!(s&&s.status==='started'&&d&&!d.hid&&d.end>Date.now())};
+
+ /* ===== คิวส่งผลสอบ: เก็บในเครื่อง ส่งซ้ำอัตโนมัติเมื่อมีเน็ต ===== */
+ let qb=false;
+ async function flushQ(){
+  if(qb||!online())return;qb=true;
+  try{
+   for(const e of qld()){
+    let r=null;
+    inflight++;subVer++;
+    try{r=await api({action:'putSub',iid:e.iid,sid:e.sid,sub:e.sub})}catch(err){r=null}
+    finally{inflight--;subVer++}
+    if(!r)break;
+    js(QK,qld().filter(x=>!(x.iid===e.iid&&x.sid===e.sid)));
+    if(r.ok){
+     markSyn(e.iid,e.sid);
+     const cur=me&&(S.subs[e.iid]||{})[e.sid];
+     if(r.sub&&cur&&cur.at===e.sub.at)S.subs[e.iid][e.sid]=r.sub;
+     toast('☁️ ส่งผลสอบขึ้นระบบแล้ว');
+    }else toast('⚠️ '+(r.error||'ส่งผลสอบไม่สำเร็จ'));
+    if(!activeTest&&!busy()&&$('modal').classList.contains('hidden'))render();
+   }
+  }finally{qb=false}}
+ function queueSub(iid,sid){
+  const x=(S.subs[iid]||{})[sid];if(!x)return;
+  js(QK,qld().filter(e=>!(e.iid===iid&&e.sid===sid)).concat([{iid,sid,sub:x}]));
+  flushQ()}
+ setInterval(flushQ,8000);
+ addEventListener('online',flushQ);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)flushQ()});
+
+ /* ===== จำว่ารายการไหนซิงก์แล้ว ===== */
+ const _ps=window.putSub;
+ window.putSub=function(i,d,prev){
+  return Promise.resolve(_ps.apply(this,arguments)).then(ok=>{if(ok&&role==='student'&&me&&d===me.id)markSyn(i,d);return ok})};
+
+ /* ===== ครูกด "สอบใหม่" (ลบที่เซิร์ฟเวอร์) → เครื่องนักเรียนลบรายการเดิมทิ้งด้วย ===== */
+ const _n=window.net;
+ window.net=async function(url,opt,tries){
+  const t0=Date.now(),r=await _n.apply(this,arguments);
+  try{
+   if(role==='student'&&me&&String(url).includes('action=get')&&r&&r.ok&&r.data&&r.data.items){
+    const ss=r.data.subs||{},syn=sld(),q=qld();let ch=false;
+    Object.keys(S.subs).forEach(iid=>{
+     const x=S.subs[iid]&&S.subs[iid][me.id];if(!x)return;
+     const k=iid+'|'+me.id,onSrv=ss[iid]&&ss[iid][me.id];
+     if(onSrv){if(!syn[k]){syn[k]=Date.now();ch=true}}
+     else if(syn[k]&&syn[k]<t0-1000&&activeTest!==iid&&!q.some(e=>e.iid===iid&&e.sid===me.id)){
+      delete S.subs[iid][me.id];delete syn[k];ch=true;
+      try{localStorage.removeItem('lms_ex_'+S.cur+'_'+me.id+'_'+iid)}catch(e){}}});
+    if(ch){
+     js(SK,syn);
+     js(K,{rooms:S.rooms,data:S.data,subs:S.subs});
+     setTimeout(()=>{if(!activeTest&&!busy()&&$('modal').classList.contains('hidden'))render()},0)}}
+  }catch(e){}
+  return r};
+
+ /* ===== เริ่มสอบ: ไม่ต้องรอเน็ต / เวลานับจากเวลาสิ้นสุดจริง / ทำต่อได้ ===== */
+ let AN=null,HV=null;
+ window.startTest=async function(id){
+  const it=S.items.find(i=>i.id===id);
+  if(!it||!it.questions?.length)return toast('แบบทดสอบนี้ยังไม่มีข้อสอบ');
+  const cur=sub(id,me.id),resume=!!(cur&&cur.status==='started'&&canResume(id));
+  let dr=null,okStart=true;
+  if(resume){dr=rdD(id);activeTest=id}
+  else{
+   if(cur){toast('คุณส่งแบบทดสอบนี้แล้ว ไม่สามารถทำซ้ำได้');render();return}
+   toast('กำลังตรวจสอบสถานะ...');
+   await Promise.race([pullNow().catch(()=>{}),new Promise(r=>setTimeout(r,6000))]);
+   if(sub(id,me.id)){toast('คุณส่งแบบทดสอบนี้แล้ว ไม่สามารถทำซ้ำได้');render();return}
+   if(!isOpen(it))return toast('ยังไม่ถึงเวลาเปิด');
+   if(it.due&&new Date()>new Date(it.due))return toast('หมดเวลารับแบบทดสอบแล้ว');
+   (S.subs[id]??={})[me.id]={status:'started',at:new Date().toISOString()};
+   dr={end:Date.now()+(it.time||15)*60000,ans:{}};wrD(id,dr);
+   activeTest=id;
+   toast('กำลังเริ่มสอบ...');
+   okStart=await Promise.race([putSub(id,me.id),new Promise(r=>setTimeout(()=>r(false),6000))]);
+  }
+  const ic='w-full border-2 border-slate-200 rounded-xl p-2 text-xs',A=dr.ans||{};
+  $('modal').innerHTML=`<div class="card border-4 border-purple-200 p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3"><div class="flex justify-between items-center gap-2"><h3 class="mali font-bold">${esc(it.title)}</h3><span class="text-right"><span id="tm" class="bg-yellow-100 rounded-xl px-3 py-1 text-xs font-bold"></span><div id="ol" class="text-[10px] text-rose-600 font-bold"></div></span></div><div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs font-bold text-amber-800">⚠️ ห้ามสลับแท็บ — ระบบจะตัดสิทธิ์ทันที<br>📴 ถ้าเน็ตหลุด ทำต่อได้ ระบบบันทึกคำตอบในเครื่องและส่งให้เมื่อมีเน็ต</div>${it.questions.map((q,i)=>`<div class="text-xs space-y-1"><p class="font-bold">ข้อ ${i+1}: ${esc(q.q)} </p>${qt(q)==='essay'?`<textarea id="a${i}" rows="3" class="${ic}">${esc(A[i]||'')}</textarea>`:qt(q)==='fill'?`<input id="a${i}" class="${ic}" placeholder="คำตอบ" value="${esc(A[i]||'')}">`:(q.opts||[]).map(o=>`<label class="block"><input type="radio" name="q${i}" value="${esc(o)}" ${A[i]===o?'checked':''}> ${esc(o)}</label>`).join('')}</div>`).join('')}<button onclick="finishTest()" class="bb w-full py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">ส่งคำตอบ</button></div>`;
+  $('modal').classList.remove('hidden');
+  if(!okStart)toast('📴 ออฟไลน์: ทำข้อสอบต่อได้ ระบบจะส่งให้เมื่อมีเน็ต');
+  AN=()=>{if(!activeTest)return;const t=S.items.find(i=>i.id===activeTest),d=rdD(activeTest)||{end:dr.end};
+   d.ans={};t.questions.forEach((q,i)=>{d.ans[i]=qt(q)==='mc'?(document.querySelector(`input[name=q${i}]:checked`)?.value||''):($('a'+i)?$('a'+i).value:'')});wrD(activeTest,d)};
+  $('modal').addEventListener('input',AN);$('modal').addEventListener('change',AN);
+  HV=()=>{if(!activeTest)return;const d=rdD(activeTest);if(!d)return;
+   if(document.hidden)d.hid=Date.now();else if(Date.now()-(d.hid||0)<2500)delete d.hid;wrD(activeTest,d)};
+  document.addEventListener('visibilitychange',HV);
+  const tick=()=>{const left=Math.ceil((dr.end-Date.now())/1000),L=Math.max(left,0),t=$('tm'),o=$('ol');
+   if(t)t.textContent='เหลือ '+Math.floor(L/60)+':'+String(L%60).padStart(2,'0');
+   if(o)o.textContent=navigator.onLine===false?'📴 ออฟไลน์':'';
+   if(left<=0)finishTest()};
+  tick();clearInterval(timer);timer=setInterval(tick,1000);
+  document.addEventListener('visibilitychange',cheat)};
+
+ const _et=window.endTest;
+ window.endTest=function(){
+  try{$('modal').removeEventListener('input',AN);$('modal').removeEventListener('change',AN);document.removeEventListener('visibilitychange',HV)}catch(e){}
+  return _et.apply(this,arguments)};
+
+ /* ===== ส่งคำตอบ: เก็บในเครื่องก่อนเสมอ แล้วส่งผ่านคิว ไม่ลบงานเมื่อเน็ตหลุด ===== */
+ window.finishTest=async function(){
+  if(!activeTest)return;
+  const id=activeTest,it=S.items.find(i=>i.id===id);let sc=0,es=false;
+  const answers=it.questions.map((q,i)=>{
+   const a=qt(q)==='mc'?(document.querySelector(`input[name=q${i}]:checked`)?.value||''):($('a'+i)?$('a'+i).value.trim():'');
+   if(qt(q)==='essay')es=true;else if(ok(q,a))sc+=pts(q,it);return a});
+  (S.subs[id]??={})[me.id]={status:(es||online())?'submitted':'graded',score:Math.round(sc*10)/10,answers,at:new Date().toISOString(),feedback:''};
+  endTest();clrD(id);save();render();
+  toast(navigator.onLine===false?'📴 บันทึกคำตอบในเครื่องแล้ว จะส่งให้เมื่อมีเน็ต':'กำลังส่งแบบทดสอบ...');
+  queueSub(id,me.id)};
+
+ /* ===== ตัดสิทธิ์: บันทึกในเครื่อง + เข้าคิวส่ง ===== */
+ window.cheat=function(){
+  if(!activeTest)return;
+  if(document.hidden){hideT=Date.now();return}
+  const away=hideT?Date.now()-hideT:0;hideT=0;
+  if(away<2500)return;
+  const it=S.items.find(i=>i.id===activeTest);
+  (S.subs[it.id]??={})[me.id]={status:'cheated',score:0,at:new Date().toISOString()};
+  notify(`🚨 ${me.name} ถูกตัดสิทธิ์สอบ "${it.title}" (สลับหน้าจอ)`);
+  endTest();clrD(it.id);save();render();
+  toast('🚨 ตรวจพบการสลับหน้าจอ ถูกตัดสิทธิ์');
+  queueSub(it.id,me.id)};
+
+ /* ===== การ์ดนักเรียน: ปุ่มทำต่อ + แจ้งว่ารอส่ง ===== */
+ const _sb=window.studentBox;
+ window.studentBox=function(it){
+  const h=_sb.apply(this,arguments);
+  if(it.type!=='test'||!me)return h;
+  const s=sub(it.id,me.id);
+  if(s&&s.status==='started'&&activeTest!==it.id&&canResume(it.id))
+   return '<div class="p-3 bg-slate-50 rounded-2xl space-y-2"><div class="text-xs font-bold text-orange-600">⚠️ การสอบถูกขัดจังหวะ (เน็ตหลุดหรือหน้าเว็บรีเฟรช) ทำต่อได้ เวลายังเดินต่อ</div><button onclick="startTest(\''+it.id+'\')" class="bb w-full py-2 bg-purple-400 text-white rounded-xl text-xs font-bold">▶️ ทำข้อสอบต่อ</button></div>';
+  if(s&&qld().some(e=>e.iid===it.id&&e.sid===me.id))
+   return h.replace(/<\/div>$/,'<div class="text-[11px] font-bold text-sky-700">📴 บันทึกในเครื่องแล้ว รอส่งขึ้นระบบอัตโนมัติเมื่อมีอินเทอร์เน็ต อย่าล้างข้อมูลเบราว์เซอร์</div></div>');
+  return h};
+})();
+</script>
 </body>
 </html>
