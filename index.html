@@ -409,7 +409,7 @@ function restore(){
 /* test editor */
 let TE=null;const sl='w-full border-2 border-slate-200 rounded-xl p-2 text-xs';
 function openTest(id){const o=S.items.find(i=>i.id===id);TE=o?JSON.parse(JSON.stringify(o)):{type:'test',title:'',desc:'',max:10,time:15,questions:[{type:'mc',q:'',opts:[],ans:'',pts:1}]};drawTE()}
-function syncTE(){if(!$('te_t'))return;TE.title=$('te_t').value;TE.desc=$('te_d').value;TE.time=parseInt($('te_m').value)||15;TE.openAt=$('te_o').value;TE.due=$('te_c').value;TE.questions.forEach((q,i)=>{q.type=$('qt'+i).value;q.q=$('qq'+i).value;q.pts=parseFloat($('qp'+i).value)||1;q.opts=$('qo'+i)?(()=>{const v=$('qo'+i).value;return v.split(v.includes('|')?'|':',').map(x=>x.trim()).filter(Boolean)})():[];q.ans=$('qa'+i)?$('qa'+i).value.trim():''})}
+function syncTE(){if(!$('te_t'))return;TE.title=$('te_t').value;TE.desc=$('te_d').value;TE.time=parseInt($('te_m').value)||15;TE.openAt=$('te_o').value;TE.due=$('te_c').value;TE.questions.forEach((q,i)=>{q.type=$('qt'+i).value;q.q=$('qq'+i).value;q.pts=parseFloat($('qp'+i).value)||1;q.opts=$('qo'+i)?$('qo'+i).value.split(',').map(x=>x.trim()).filter(Boolean):[];q.ans=$('qa'+i)?$('qa'+i).value.trim():''})}
 /* ===== นำเข้าข้อสอบจากไฟล์ ===== */
 const LET='กขคงจ',LAT='abcde';
 function parseQ(text){
