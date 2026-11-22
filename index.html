@@ -45,8 +45,10 @@ input,textarea,select{outline:none}input:focus,textarea:focus,select:focus{borde
 
 <script>
 /* ===== ตั้งค่า Google Apps Script ===== */
-const GAS_URL='https://script.google.com/macros/s/AKfycbzjOSl5KEQiHWrJcdjrClxuoJc53vX-moIwaPvpLfHoUl2FiB85MmztubHvNZ6i-12D5A/exec';
-const DRIVE_FOLDER='https://drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
+const GAS_FALLBACK_URL='https:\/\/script.google.com/macros/s/AKfycbzjOSl5KEQiHWrJcdjrClxuoJc53vX-moIwaPvpLfHoUl2FiB85MmztubHvNZ6i-12D5A/exec';
+// Apps Script HtmlService uses google.script.run; GitHub Pages uses this endpoint.
+const GAS_URL=GAS_FALLBACK_URL;
+const DRIVE_FOLDER='https:\/\/drive.google.com/drive/folders/1Mz3mVDziGgozlM4J7PX0fkYzsU_obfTI';
 
 const $=id=>document.getElementById(id);
 window.addEventListener('error',e=>{const t=document.getElementById('st');if(t)t.textContent='⚠️ ข้อผิดพลาดในหน้าเว็บ: '+(e.message||'ไม่ทราบสาเหตุ')});
@@ -64,21 +66,66 @@ let S={
 let role='teacher',me=null,tab='dashboard',timer=null,activeTest=null;
 try{const d=JSON.parse(localStorage.getItem(K)||'null');if(d&&(d.items||d.rooms))S={...S,...d}}catch(e){}
 let hashed=false;
-if(!S.rooms){const c={term:'1',year:'2569',room:'ม.4/1',scode:'',sname:'คอมพิวเตอร์',pw:'',...(S.cfg||{})},m=String(c.room).split('/');S.rooms=[{id:'r1',...c,level:m.length>1?m[0]:'ม.4',room:m.length>1?m[1]:c.room}];S.data={r1:{items:S.items,students:S.students}}}
-S.data=S.data||{};S.cur=null;S.subs=S.subs||{};S.notifs=S.notifs||[];
-function stash(){if(S.cur)S.data[S.cur]={items:S.items,students:S.students,bonus:S.bonus}}
-function repoint(){if(!S.rooms.some(r=>r.id===S.cur))S.cur=S.rooms[0].id;const d=S.data[S.cur]||(S.data[S.cur]={items:[],students:[]});d.bonus=d.bonus||[];S.items=d.items;S.students=d.students;S.bonus=d.bonus;S.cfg=S.rooms.find(r=>r.id===S.cur)}
+// ปรับโครงสร้างแคชเก่าให้ปลอดภัยก่อนใช้งาน รวมถึงกรณี rooms เป็น []
+if(!Array.isArray(S.rooms))S.rooms=[];
+if(!S.data||typeof S.data!=='object'||Array.isArray(S.data))S.data={};
+if(!S.subs||typeof S.subs!=='object'||Array.isArray(S.subs))S.subs={};
+if(!Array.isArray(S.notifs))S.notifs=[];
+if(!Array.isArray(S.items))S.items=[];
+if(!Array.isArray(S.students))S.students=[];
+if(S.rooms.length===0){
+ const ids=Object.keys(S.data);
+ if(ids.length===0)ids.push('r1');
+ S.rooms=ids.map((id,index)=>{
+  const c={term:'1',year:'2569',room:'ม.4/'+(index+1),scode:'',sname:'คอมพิวเตอร์',pw:'',...(S.cfg||{})};
+  const m=String(c.room||('ม.4/'+(index+1))).split('/');
+  return{id:id,...c,level:c.level||(m.length>1?m[0]:'ม.4'),room:m.length>1?m[1]:String(c.room||(index+1))};
+ });
+}
+S.rooms=S.rooms.filter(r=>r&&r.id!=null&&String(r.id)!=='');
+if(S.rooms.length===0)S.rooms=[{id:'r1',term:'1',year:'2569',level:'ม.4',room:'1',scode:'',sname:'คอมพิวเตอร์',pw:''}];
+S.rooms.forEach((r,index)=>{
+ const d=S.data[r.id]&&typeof S.data[r.id]==='object'?S.data[r.id]:{};
+ S.data[r.id]={
+  items:Array.isArray(d.items)?d.items:(index===0?S.items:[]),
+  students:Array.isArray(d.students)?d.students:(index===0?S.students:[]),
+  bonus:Array.isArray(d.bonus)?d.bonus:[]
+ };
+});
+S.cur=null;
+function stash(){if(S.cur)S.data[S.cur]={items:S.items,students:S.students,bonus:S.bonus||[]}}
+function repoint(){
+ if(!S.rooms.some(r=>String(r.id)===String(S.cur)))S.cur=S.rooms[0].id;
+ const d=S.data[S.cur]||(S.data[S.cur]={items:[],students:[],bonus:[]});
+ d.items=Array.isArray(d.items)?d.items:[];d.students=Array.isArray(d.students)?d.students:[];d.bonus=Array.isArray(d.bonus)?d.bonus:[];
+ S.items=d.items;S.students=d.students;S.bonus=d.bonus;
+ S.cfg=S.rooms.find(r=>String(r.id)===String(S.cur))||S.rooms[0];
+}
 function useRoom(id){stash();S.cur=id;try{localStorage.setItem('lms_cur',id)}catch(e){}repoint()}
-const hashRoom=()=>{const h=(location.hash||'').slice(1);return S.rooms.some(r=>r.id===h)?h:null};
+const hashRoom=()=>{const h=(location.hash||'').slice(1);return S.rooms.some(r=>String(r.id)===String(h))?h:null};
 const flat=n=>Object.entries(S.data).flatMap(([rid,d])=>(d[n]||[]).map(x=>({...x,rid})));
 const roomLink=()=>location.href.split('#')[0]+'#'+S.cur;
-{let c=null;try{c=localStorage.getItem('lms_cur')}catch(e){}S.cur=hashRoom()||(S.rooms.some(r=>r.id===c)?c:S.rooms[0].id);hashed=!!hashRoom();repoint()}
+{let c=null;try{c=localStorage.getItem('lms_cur')}catch(e){}const h=hashRoom();S.cur=h||(S.rooms.some(r=>String(r.id)===String(c))?c:S.rooms[0].id);hashed=!!h;repoint()}
 let seen=0;try{seen=+localStorage.getItem('lms_seen')||0}catch(e){}
 const sigOf=()=>JSON.stringify([S.rooms,S.data]);
 let lastSig=sigOf();
-let KEY='',pend=null,inflight=0,unsaved=false,pulling=false,AUTH=false,retry=0,saving=false,subVer=0;
-try{KEY=localStorage.getItem('lms_key')||'';unsaved=localStorage.getItem('lms_unsaved')==='1'}catch(e){}
-const online=()=>GAS_URL&&!GAS_URL.startsWith('PASTE');
+let KEY='',STUDENT_SESSION='',CLIENT_ID='',pend=null,inflight=0,unsaved=false,pulling=false,AUTH=false,retry=0,saving=false,subVer=0;
+try{
+  // รหัสครูเก็บใน sessionStorage เท่านั้น ไม่เก็บค้างใน localStorage
+  KEY=sessionStorage.getItem('lms_key')||'';
+  localStorage.removeItem('lms_key');
+  const savedStudent=JSON.parse(sessionStorage.getItem('lms_stu')||'null');
+  STUDENT_SESSION=savedStudent?.token||'';
+  CLIENT_ID=localStorage.getItem('lms_client')||'';
+  unsaved=localStorage.getItem('lms_unsaved')==='1';
+}catch(e){}
+if(!CLIENT_ID){
+  CLIENT_ID=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2);
+  try{localStorage.setItem('lms_client',CLIENT_ID)}catch(e){}
+}
+const inHtmlService=()=>!!(window.google&&google.script&&google.script.run);
+const online=()=>!!GAS_URL&&!GAS_URL.startsWith('PASTE');
+window.online=online;
 const busy=()=>(/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'')&&$('view').contains(document.activeElement))||[...document.querySelectorAll('#view input[type=file]')].some(i=>i.files&&i.files.length);
 const DR=(()=>{try{return JSON.parse(sessionStorage.getItem('lms_dr')||'{}')}catch(e){return{}}})();
 const saveDR=()=>{try{sessionStorage.setItem('lms_dr',JSON.stringify(DR))}catch(e){}};
@@ -98,8 +145,12 @@ setInterval(()=>{if(role==='student'&&!busy()&&!activeTest&&$('modal').classList
 setInterval(()=>{if(role!=='teacher'||pend||inflight)return;stash();if(sigOf()!==lastSig)save()},10000);
 function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hidden'),4000)}
 function notify(t){S.notifs.unshift({t,time:new Date().toLocaleTimeString('th-TH')})}
-function setRole(r){role=r;if(r==='student'&&!me){openForm('🎓 เข้าสู่ระบบนักเรียน',[['code','รหัสประจำตัว นร.',''],['pw','รหัสผ่านห้องเรียน (ถ้ามี)','']],async v=>{await pull();const f=S.students.find(x=>x.code===v.code);if(!f)return toast('ไม่พบรหัสนี้ในรายชื่อ');if(!(await pwOk(v.pw)))return toast('รหัสผ่านห้องไม่ถูกต้อง');me=f;render();return true},()=>{role=AUTH?'teacher':'student';render()});}
- if(['students','grades','room','bonus'].includes(tab)&&r==='student')tab='dashboard';render()}
+function setRole(r){
+ if(r==='teacher'&&!AUTH){toast('กรุณาเข้าสู่ระบบครูก่อน');return}
+ role=r;
+ if(['students','grades','room','bonus'].includes(tab)&&r==='student')tab='dashboard';
+ render();
+}
 function go(t){tab=t;render()}
 
  function jsonp(url,ms){return new Promise((res,rej)=>{
@@ -131,51 +182,178 @@ function errMsg(e){const m=(e&&e.message)||String(e||'');
  if(m==='BADJSON')return'Apps Script ตอบกลับผิดรูปแบบ ตรวจ Executions ใน Apps Script';
  if(/abort/i.test(m))return'เซิร์ฟเวอร์ตอบช้าเกินไป';
  return'ติดต่อเซิร์ฟเวอร์ไม่ได้ ('+m+')'}
-/* POST ไม่ retry เพื่อกันบันทึกซ้ำ (เช่น เริ่มสอบซ้ำ) */
-async function api(b){return net(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})},1)}
-async function apiRetry(b){return net(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})},3)}
+/*
+  API แบบแยกสภาพแวดล้อม
+  - HtmlService: ใช้ google.script.run เพื่อไม่ติด CORS/redirect ของ Web App
+  - GitHub Pages: ใช้ POST ไปยัง GAS_URL เหมือนระบบเดิม
+*/
+function apiPayload(b){
+ const hasKey=Object.prototype.hasOwnProperty.call(b,'key');
+ return {
+   ...b,
+   key:hasKey?b.key:KEY,
+   session:b.session||STUDENT_SESSION,
+   sid:b.sid||(me?.id||''),
+   rid:b.rid||(S.cur||''),
+   clientId:CLIENT_ID
+ };
+}
+function gasCall(payload,maxAttempts){
+ return new Promise((resolve,reject)=>{
+  let attempt=0;
+  function run(){
+   const runner=google.script.run
+    .withSuccessHandler(resolve)
+    .withFailureHandler(error=>{
+      attempt++;
+      if(attempt<maxAttempts){setTimeout(run,800*attempt)}else{reject(error)}
+    });
+   runner.apiFromHtml(payload);
+  }
+  run();
+ });
+}
+async function api(b){
+ const payload=apiPayload(b||{});
+ if(inHtmlService())return gasCall(payload,1);
+ return net(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)},1);
+}
+async function apiRetry(b){
+ const payload=apiPayload(b||{});
+ if(inHtmlService())return gasCall(payload,3);
+ return net(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)},3);
+}
 async function diag(){
  toast('กำลังตรวจการเชื่อมต่อ...');
  let msg;
- try{const r=await net(GAS_URL+'?action=ping',{},1);
-  msg=r.ok?'✅ เชื่อมต่อ Apps Script ได้ (v'+esc(r.v||'?')+')'+(r.folder?'':'<br>⚠️ แต่เข้าโฟลเดอร์ Drive ไม่ได้: เปิด Apps Script แล้ว Run ฟังก์ชันใดก็ได้ 1 ครั้งเพื่ออนุญาตสิทธิ์ จากนั้น Deploy ใหม่'):'⚠️ '+esc(r.error||'ไม่ทราบสาเหตุ')
- }catch(e){msg='⚠️ '+esc(errMsg(e))}
+ try{
+  // Code.gs v11: HtmlService ใช้ RPC ping ส่วน GitHub Pages ใช้ GET JSONP (doPost v11 ไม่มี action=ping)
+  const r=inHtmlService()?await api({action:'ping'}):await net(GAS_URL+'?action=ping',{},1);
+  const folderOK=Object.prototype.hasOwnProperty.call(r||{},'folder')?r.folder:r&&r.folder_;
+  msg=r&&r.ok?'✅ เชื่อมต่อ Apps Script ได้ (v'+esc(r.v||'?')+')'+(folderOK?'':'<br>⚠️ แต่เข้าโฟลเดอร์ Drive ไม่ได้: เปิด Apps Script แล้วเลือก setupSystem กด Run เพื่ออนุญาตสิทธิ์'):'⚠️ '+esc((r&&r.error)||'ไม่ทราบสาเหตุ');
+ }catch(e){msg='⚠️ '+esc(errMsg(e));}
  openForm('ผลการตรวจ<div class="text-xs font-normal mt-2">'+msg+'</div>',[],()=>true);
- pull()}
+ pull();
+}
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
-async function pwOk(p){if(!online())return!S.cfg.pw||p===S.cfg.pw;try{const r=await net(GAS_URL+'?action=pw&rid='+encodeURIComponent(S.cur)+'&p='+encodeURIComponent(p),{},2);return!!r.ok}catch(e){toast('⚠️ '+errMsg(e));return false}}
 const pullNow=async()=>{for(let i=0;i<60&&pulling;i++)await new Promise(r=>setTimeout(r,200));return pull()};
 var __sv=0,__fe=0;
 async function pull(){
- if(!online()||pulling)return;pulling=true;const v0=subVer,s0=__sv,t0=Date.now();
+ if(!online()||pulling)return;
+ pulling=true;
+ const v0=subVer,s0=__sv,t0=Date.now();
  try{
-  const r=await net(GAS_URL+'?action=get&key='+encodeURIComponent(KEY)+'&stu='+encodeURIComponent(me?.id||''),{},3);
-  if(!r.ok){$('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+(r.error||'ไม่ทราบสาเหตุ');return}
+  const r=await api({action:'get'});
+  if(!r||!r.ok){
+   const msg=String((r&&r.error)||'ไม่ทราบสาเหตุ');
+   $('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+msg;
+   if(role==='student'&&me&&/Session นักเรียนหมดอายุ|Session ไม่ถูกต้อง/.test(msg)){
+    me=null;STUDENT_SESSION='';
+    try{sessionStorage.removeItem('lms_stu')}catch(e){}
+    render();
+   }
+   return;
+  }
   const d=r.data||{};
-  if(!d.items){if(role==='teacher'&&KEY)save();return}
-  const srvEmpty=!(d.items||[]).length&&!(d.students||[]).length;
-  const locHas=flat('items').length||flat('students').length;
-  if(srvEmpty&&locHas){
-   if(role==='teacher'&&KEY)save();
-   $('st').textContent='⚠️ เซิร์ฟเวอร์ส่งข้อมูลว่าง จึงไม่เขียนทับ';
-   return}
+
+  // ก่อนเข้าสู่ระบบ เซิร์ฟเวอร์ส่งเฉพาะรายชื่อห้อง ห้ามนำ arrays ว่างไปทับข้อมูลที่แคชไว้
+  if(!AUTH&&!me){
+   if(Array.isArray(d.rooms)&&d.rooms.length){
+    S.rooms=d.rooms;
+    const h=hashRoom();
+    if(h)S.cur=h;
+    if(!S.rooms.some(x=>String(x.id)===String(S.cur)))S.cur=S.rooms[0].id;
+    repoint();
+    if(!busy()&&$('modal').classList.contains('hidden'))render();
+   }
+   $('st').textContent='☁️ เชื่อมต่อแล้ว กรุณาเข้าสู่ระบบ';
+   return;
+  }
+
+  if(!Array.isArray(d.items)){
+   $('st').textContent='⚠️ รูปแบบข้อมูลจากเซิร์ฟเวอร์ไม่ถูกต้อง จึงไม่เปลี่ยนข้อมูลในเครื่อง';
+   return;
+  }
+
+  const srvEmpty=!(d.rooms||[]).length&&!(d.items||[]).length&&!(d.students||[]).length;
+  const locItems=flat('items').length,locStudents=flat('students').length;
+  if(srvEmpty&&(locItems||locStudents)){
+   $('st').textContent='⚠️ เซิร์ฟเวอร์ส่งข้อมูลว่าง จึงไม่เขียนทับข้อมูลเดิม';
+   return;
+  }
+
+  let serverBaseline=null;
+  try{serverBaseline=JSON.parse(localStorage.getItem('lms_server_counts')||'null')}catch(e){}
+  if(role==='teacher'&&AUTH&&serverBaseline){
+   const serverItems=(d.items||[]).length,serverStudents=(d.students||[]).length;
+   const dropped=(serverBaseline.items>=5&&serverItems<serverBaseline.items*.5)?'รายการงาน/แบบทดสอบ':
+    (serverBaseline.students>=5&&serverStudents<serverBaseline.students*.5)?'รายชื่อนักเรียน':null;
+   if(dropped){$('st').textContent='⚠️ จำนวน'+dropped+'บนเซิร์ฟเวอร์ลดลงมากจากครั้งก่อน จึงหยุดการดึงข้อมูลเพื่อป้องกันข้อมูลหาย';return;}
+  }
+
   if(v0!==subVer||s0!==__sv||t0<__fe||pend||inflight||(role==='teacher'&&unsaved)||activeTest||!$('modal').classList.contains('hidden'))return;
-  if(d.rooms?.length)S.rooms=d.rooms;else if(d.cfg){const cc={...d.cfg},m=String(cc.room||'').split('/');if(m.length>1){cc.level=m[0];cc.room=m[1]}Object.assign(S.rooms[0],cc)}
+
+  if(Array.isArray(d.rooms)&&d.rooms.length)S.rooms=d.rooms;
+  const defaultRid=(S.rooms[0]&&S.rooms[0].id)||S.cur||'r1';
   const g={items:{},students:{},bonus:{}};
-  ['items','students','bonus'].forEach(n=>(d[n]||[]).forEach(x=>(g[n][x.rid||S.rooms[0].id]??=[]).push(x)));
-  new Set([...Object.keys(S.data),...Object.keys(g.items),...Object.keys(g.students),...Object.keys(g.bonus)]).forEach(rid=>S.data[rid]={items:g.items[rid]||[],students:g.students[rid]||[],bonus:g.bonus[rid]||[]});
-  const ns=d.subs||{};
-Object.entries(S.subs).forEach(([i,o])=>Object.entries(o).forEach(([s,x])=>{
- const y=(ns[i]||{})[s];
- if(!y||Date.parse(x.at||0)>Date.parse(y.at||0))(ns[i]??={})[s]=x}));
-S.subs=ns;
-  const h=hashRoom();if(h&&!hashed){hashed=true;S.cur=h}
-  repoint();lastSig=sigOf();
-  try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
+  ['items','students','bonus'].forEach(n=>(d[n]||[]).forEach(x=>{
+   const rid=String(x.rid||defaultRid);
+   (g[n][rid]??=[]).push(x);
+  }));
+
+  if(role==='student'&&me){
+   // หน้านักเรียนเก็บไว้เฉพาะห้องและข้อมูลของนักเรียนที่เข้าสู่ระบบเท่านั้น
+   const rid=String(me.rid||S.cur||defaultRid);
+   const ownStudent=(d.students||[]).find(x=>String(x.id)===String(me.id))||me;
+   S.data={};
+   S.data[rid]={items:g.items[rid]||[],students:[ownStudent],bonus:[]};
+   const ns=d.subs||{};
+   Object.entries(S.subs||{}).forEach(([iid,byStudent])=>{
+    const old=byStudent&&byStudent[me.id];
+    const current=(ns[iid]||{})[me.id];
+    if(old&&(!current||Date.parse(old.at||0)>Date.parse(current.at||0))){(ns[iid]??={})[me.id]=old;}
+   });
+   Object.keys(ns).forEach(iid=>{
+    const keep=(ns[iid]||{})[me.id];
+    ns[iid]=keep?{[me.id]:keep}:{};
+   });
+   S.subs=ns;
+   S.cur=rid;
+  }else{
+   const nextData={};
+   (S.rooms||[]).forEach(room=>{
+    const rid=String(room.id);
+    nextData[rid]={items:g.items[rid]||[],students:g.students[rid]||[],bonus:g.bonus[rid]||[]};
+   });
+   Object.keys(g.items).concat(Object.keys(g.students),Object.keys(g.bonus)).forEach(rid=>{
+    if(!nextData[rid])nextData[rid]={items:g.items[rid]||[],students:g.students[rid]||[],bonus:g.bonus[rid]||[]};
+   });
+   S.data=nextData;
+   const ns=d.subs||{};
+   Object.entries(S.subs||{}).forEach(([iid,byStudent])=>Object.entries(byStudent||{}).forEach(([sid,x])=>{
+    const current=(ns[iid]||{})[sid];
+    if(!current||Date.parse(x.at||0)>Date.parse(current.at||0))(ns[iid]??={})[sid]=x;
+   }));
+   S.subs=ns;
+   const h=hashRoom();
+   if(h)S.cur=h;
+   if(!S.rooms.some(x=>String(x.id)===String(S.cur))&&S.rooms.length)S.cur=S.rooms[0].id;
+  }
+
+  repoint();
+  lastSig=sigOf();
+  try{
+   localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}));
+   if(role==='teacher'&&AUTH){
+    localStorage.setItem('lms_server_counts',JSON.stringify({items:(d.items||[]).length,students:(d.students||[]).length,at:Date.now()}));
+   }
+  }catch(e){}
   if(!busy()&&$('modal').classList.contains('hidden'))render();
   $('st').textContent='☁️ เชื่อมต่อ Google Drive แล้ว '+tm();
- }catch(e){$('st').textContent='⚠️ '+errMsg(e)+' • ใช้ข้อมูลที่จำไว้ในเครื่อง '+tm()}
- finally{pulling=false}}
+ }catch(e){
+  $('st').textContent='⚠️ '+errMsg(e)+' • ใช้ข้อมูลที่จำไว้ในเครื่อง '+tm();
+ }finally{pulling=false;}
+}
 function save(){
  __sv++;stash();lastSig=sigOf();try{localStorage.setItem(K,JSON.stringify({rooms:S.rooms,data:S.data,subs:S.subs}))}catch(e){}
  if(!online()){$('st').textContent='บันทึกในเครื่องแล้ว (ยังไม่ได้ตั้งค่า Apps Script) '+tm();return}
@@ -214,7 +392,7 @@ function putSub(i,d,prev){
   if(role==='student'&&!busy()&&!activeTest)render();
   return false;
  }).finally(()=>{inflight--;subVer++})}
-addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsaved)){stash();try{navigator.sendBeacon(GAS_URL,JSON.stringify({action:'saveCore',key:KEY,core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}}))}catch(e){}}});
+addEventListener('pagehide',()=>{if(role==='teacher'&&KEY&&online()&&(pend||unsaved)){stash();try{navigator.sendBeacon(GAS_URL,JSON.stringify({action:'saveCore',key:KEY,clientId:CLIENT_ID,core:{rooms:S.rooms,items:flat('items'),students:flat('students'),bonus:flat('bonus')}}))}catch(e){}}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&role==='teacher'&&pend){clearTimeout(pend);flush()}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!activeTest&&!(role==='teacher'&&(pend||inflight||unsaved)))pullNow()});
 
@@ -333,7 +511,7 @@ function matView(it){
  return`<div class="space-y-2">${it.url?`<a href="${esc(it.url)}" target="_blank" rel="noopener" class="inline-block bb px-3 py-1.5 bg-sky-100 rounded-xl text-xs font-bold">👁️ เปิดเนื้อหา</a>`:''}${a}</div>`}
 function viewFile(id,i){const f=S.items.find(x=>x.id===id).att[i],ct=f.ct||'',img=ct.startsWith('image/'),vid=ct.startsWith('video/'),pdf=ct==='application/pdf'||(f.url||'').includes('/preview');
  $('modal').innerHTML=`<div class="card border-4 border-sky-200 p-3 w-full max-w-3xl h-[90vh] flex flex-col gap-2"><div class="flex justify-between items-center gap-2"><b class="text-xs truncate">${esc(f.name)}</b><span class="flex gap-2 shrink-0"><button onclick="dlAtt('${id}',${i})" class="bb px-3 py-1 bg-slate-100 rounded-lg text-xs font-bold">⬇️ ดาวน์โหลด</button><button onclick="closeModal()" class="bb px-3 py-1 bg-pink-100 rounded-lg text-xs font-bold">ปิด</button></span></div><div class="flex-1 overflow-auto bg-slate-50 rounded-xl">${img?`<img src="${esc(f.url)}" alt="${esc(f.name)}" class="max-w-full mx-auto">`:vid?`<video src="${esc(f.url)}" controls class="w-full"></video>`:pdf?`<iframe src="${esc(f.url)}" class="w-full h-full"></iframe>`:'<div class="p-4 text-xs">ไฟล์ชนิดนี้ดูในหน้านี้ไม่ได้ กดดาวน์โหลดเพื่อเปิดอ่าน</div>'}</div></div>`;$('modal').classList.remove('hidden')}
-function dl(u,n){const m=u.match(/(?:id=|\/d\/)([\w-]{10,})/);window.open(m?'https://drive.google.com/uc?export=download&id='+m[1]:u,'_blank')}
+function dl(u,n){const m=u.match(/(?:id=|\/d\/)([\w-]{10,})/);window.open(m?'https:\/\/drive.google.com/uc?export=download&id='+m[1]:u,'_blank')}
 const dlAtt=(id,i)=>{const f=S.items.find(x=>x.id===id).att[i];dl(f.url,f.name)};
 function rmAtt(id,i){S.items.find(x=>x.id===id).att.splice(i,1);save();render()}
 function vBonus(){if(role!=='teacher')return'';
@@ -362,7 +540,7 @@ function roomForm(id){if(role!=='teacher')return;const o=S.rooms.find(r=>r.id===
 function addRoom(){roomForm()}
 function editRoom(id){roomForm(id||S.cur)}
 function delRoom(id){if(role!=='teacher')return;if(S.rooms.length<2)return toast('ต้องมีอย่างน้อย 1 ห้องเรียน');openForm('ลบห้องเรียนนี้ พร้อมรายชื่อและงานทั้งหมด?',[],()=>{S.rooms=S.rooms.filter(r=>r.id!==id);delete S.data[id];if(S.cur===id)S.cur=null;if(!S.cur)useRoom(S.rooms[0].id);save();render();return true})}
-function switchRoom(id){useRoom(id);if(role==='student'){me=null;setRole('student')}else render()}
+function switchRoom(id){useRoom(id);if(role==='student'){me=null;STUDENT_SESSION='';try{sessionStorage.removeItem('lms_stu')}catch(e){}setRole('student')}else render()}
 function copyLink(){(navigator.clipboard?navigator.clipboard.writeText(roomLink()):Promise.reject()).then(()=>toast('คัดลอกลิงก์แล้ว'),()=>toast('คัดลอกไม่สำเร็จ'))}
 function importStudents(){openForm('📥 นำเข้ารายชื่อ',[['txt','วาง: ระดับชั้น ห้อง เลขที่ รหัส ชื่อ-สกุล (บรรทัดละคน คั่นด้วย Tab หรือ ,) หรือแบบสั้น: เลขที่ รหัส ชื่อ-สกุล','','area'],['file','หรือเลือกไฟล์ CSV/TXT','','file','.csv,.txt']],async v=>{
  let t=((v.txt||'')+'\n'+(v.file?await v.file.text():'')).replace(/\uFEFF/g,''),n=0;
@@ -438,7 +616,7 @@ function parseCsvRows(t){const rows=[];let r=[],c='',qo=false;t=String(t).replac
 function parseCsvQ(t){
  const rows=parseCsvRows(t);if(rows.length&&/^(คำถาม|question|โจทย์)/i.test(rows[0][0].trim()))rows.shift();
  return rows.map(r=>{const q=(r[0]||'').trim(),ans=r.length>2?(r[r.length-1]||'').trim():'',opts=r.slice(1,-1).map(x=>x.trim()).filter(Boolean);return q?mkQ(q,opts,ans):null}).filter(Boolean)}
-function loadMammoth(){return window.mammoth?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('โหลดตัวอ่านไฟล์ Word ไม่ได้ (ตรวจอินเทอร์เน็ต)'));document.head.appendChild(sc)})}
+function loadMammoth(){return window.mammoth?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https:\/\/cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('โหลดตัวอ่านไฟล์ Word ไม่ได้ (ตรวจอินเทอร์เน็ต)'));document.head.appendChild(sc)})}
 async function teImport(inp){
  const f=inp.files&&inp.files[0];if(!f)return;syncTE();
  try{
@@ -526,7 +704,7 @@ function paintTools(){
  document.querySelectorAll('#modal .gz').forEach(b=>b.style.background=+b.dataset.s===PEN.s?'#fbcfe8':'#fff');
  [['pen','gm-pen'],['sig','gm-sig']].forEach(([m,id])=>{const b=$(id);if(b)b.style.background=PEN.m===m?'#fbcfe8':'#fff'});
  const s=$('gsig');if(s)s.innerHTML=SIG.url?`<img src="${SIG.url}" class="h-7 bg-white border rounded"><button type="button" onclick="sigDel()">🗑️</button>`:'<span class="text-slate-400">ยังไม่มีลายเซ็น</span>'}
-function sigUpload(){const i=document.createElement('input');i.type='file';i.accept='image/*';
+function sigUpload(){const i=document.createElement('input');i.type='file';i.accept='image/'+'*';
  i.onchange=async()=>{const f=i.files[0];if(!f)return;
   try{SIG.url=await prepSig(f);try{localStorage.setItem('lms_sig',SIG.url)}catch(e){toast('เก็บลายเซ็นในเครื่องไม่ได้ ใช้ได้เฉพาะรอบนี้')}sigImg();PEN.m='sig';paintTools();toast('ตั้งลายเซ็นแล้ว แตะบนรูปเพื่อวาง')}
   catch(e){toast('อ่านรูปลายเซ็นไม่สำเร็จ')}};i.click()}
@@ -567,12 +745,15 @@ function gAtt(x){
   return`<div class="space-y-1"><div class="text-[11px] font-bold">🖍️ ${esc(f.name)} <button type="button" onclick="mkClear(${i})" class="bg-slate-100 rounded-lg px-2 py-0.5">ล้างรอยเขียน</button></div><div class="relative"><img src="${esc(f.url)}" class="w-full rounded-xl border block">${m?`<img src="${esc(m.url)}" class="mo absolute inset-0 w-full h-full pointer-events-none">`:''}<canvas class="mk absolute inset-0 w-full h-full touch-none" data-i="${i}"></canvas></div></div>`}).join('')}
 async function loadPdfjs(){
  if(window.pdfjsLib)return;
- await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=ok;s.onerror=()=>no(new Error('โหลดตัวอ่าน PDF ไม่ได้'));document.head.appendChild(s)});
- pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
+ await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=ok;s.onerror=()=>no(new Error('โหลดตัวอ่าน PDF ไม่ได้'));document.head.appendChild(s)});
+ pdfjsLib.GlobalWorkerOptions.workerSrc='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 async function pdfBytes(fid){
- const r=await fetch(GAS_URL+'?action=file&fid='+encodeURIComponent(fid)+'&key='+encodeURIComponent(KEY));
- const j=await r.json();if(!j.ok)throw new Error(j.error||'ดึงไฟล์ไม่ได้');
- const b=atob(j.b64),u=new Uint8Array(b.length);for(let k=0;k<b.length;k++)u[k]=b.charCodeAt(k);return u}
+ const j=await api({action:'file',fid:fid});
+ if(!j||!j.ok)throw new Error((j&&j.error)||'ดึงไฟล์ไม่ได้');
+ const b=atob(j.b64),u=new Uint8Array(b.length);
+ for(let k=0;k<b.length;k++)u[k]=b.charCodeAt(k);
+ return u;
+}
 function mkDraw(c){
  const g=c.getContext('2d');g.lineCap='round';g.lineJoin='round';
  const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
@@ -704,25 +885,30 @@ function copyCsv(){
   <button id="g-go" class="bb w-full py-2.5 bg-pink-400 text-white rounded-2xl text-xs font-bold">เข้าสู่ระบบ</button>
   <p class="text-[10px] text-slate-400 text-center">นักเรียน: รหัสประจำตัว + รหัสผ่านห้องเรียน</p></div>`;
   $('g-go').onclick=login;
-  ov.querySelectorAll('input').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')login()})}
+  ov.querySelectorAll('input').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')login()});
+ }
  async function login(){
   if(busyLogin)return;busyLogin=true;$('g-go').textContent='กำลังตรวจสอบ...';
   try{
    const u=$('g-u').value.trim(),p=$('g-p').value.trim();
    if(!u)return drawGate('กรอกชื่อผู้ใช้หรือรหัสประจำตัว');
    if(TEACHER_USERS.includes(u.toLowerCase())){
-    if(!online())return drawGate('ยังไม่ได้ตั้งค่า GAS_URL');
-    const x=await net(GAS_URL+'?action=auth&key='+encodeURIComponent(p),{},2).catch(e=>({err:e}));
+    if(!online())return drawGate('ยังไม่ได้ตั้งค่า URL ของ Apps Script');
+    const x=await api({action:'auth',key:p}).catch(e=>({err:e}));
     if(x.err)return drawGate('⚠️ '+errMsg(x.err));
-    if(!x.ok)return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    KEY=p;try{localStorage.setItem('lms_key',KEY)}catch(e){}
+    if(!x.ok)return drawGate('❌ '+(x.error||'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'));
+    KEY=p;STUDENT_SESSION='';
+    try{sessionStorage.setItem('lms_key',KEY);sessionStorage.removeItem('lms_stu');localStorage.removeItem('lms_key')}catch(e){}
     AUTH=true;me=null;_sr('teacher');pull();
    }else{
-    await pull();
-    const x=await net(GAS_URL+'?action=login&rid='+encodeURIComponent(S.cur)+'&cd='+encodeURIComponent(u)+'&p='+encodeURIComponent(p),{},2).catch(e=>({err:e}));
+    await pullNow();
+    // ใช้รหัสห้องจากลิงก์เฉพาะห้อง (#roomId) ไม่ให้ผู้เรียนเลือกห้องเอง
+    const x=await api({action:'studentLogin',rid:S.cur,cd:u,p:p}).catch(e=>({err:e}));
     if(x.err)return drawGate('⚠️ '+errMsg(x.err));
-    if(!x.ok)return drawGate('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    me=x.student;role='student';try{sessionStorage.setItem('lms_stu',JSON.stringify({rid:S.cur,me:x.student}))}catch(e){}await pullNow();
+    if(!x.ok)return drawGate('❌ '+(x.error||'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'));
+    me=x.student;STUDENT_SESSION=x.session;role='student';
+    try{sessionStorage.setItem('lms_stu',JSON.stringify({rid:S.cur,me:x.student,token:x.session}))}catch(e){}
+    await pullNow();
    }
    closeModal();render();
   }finally{busyLogin=false}}
@@ -745,7 +931,8 @@ function copyCsv(){
  async function logout(){
   clearTimeout(pend);
   if(AUTH&&unsaved){try{await flush()}catch(e){}}
-  AUTH=false;KEY='';try{localStorage.removeItem('lms_key');sessionStorage.removeItem('lms_stu');sessionStorage.removeItem('lms_dr')}catch(e){}
+  AUTH=false;KEY='';STUDENT_SESSION='';
+  try{sessionStorage.removeItem('lms_key');sessionStorage.removeItem('lms_stu');sessionStorage.removeItem('lms_dr');localStorage.removeItem('lms_key')}catch(e){}
   Object.keys(DR).forEach(k=>delete DR[k]);
   role='student';me=null;tab='dashboard';closeModal();ov.innerHTML='';render()}
  window.logout=logout;
@@ -755,9 +942,9 @@ function copyCsv(){
  (async()=>{
   if(KEY&&online()){
    drawGate('กำลังตรวจสอบสิทธิ์...');
-   const x=await net(GAS_URL+'?action=auth&key='+encodeURIComponent(KEY),{},2).catch(()=>null);
+   const x=await api({action:'auth',key:KEY}).catch(()=>null);
    if(x&&x.ok){AUTH=true;_sr('teacher');render();if(unsaved)setTimeout(flush,1200)}
-   else{if(x){KEY='';unsaved=false;try{localStorage.removeItem('lms_key');localStorage.removeItem('lms_unsaved')}catch(e){}}drawGate()}
+   else{if(x){KEY='';unsaved=false;try{sessionStorage.removeItem('lms_key');localStorage.removeItem('lms_key');localStorage.removeItem('lms_unsaved')}catch(e){}}drawGate()}
   }
   try{
    const ss=JSON.parse(sessionStorage.getItem('lms_stu')||'null');
@@ -765,7 +952,7 @@ function copyCsv(){
     await pull();
     if(!hashRoom()&&ss.rid&&S.rooms.some(r=>r.id===ss.rid))useRoom(ss.rid);
     const f=ss.me;
-    if(f&&S.cur===ss.rid){me=f;role='student';await pullNow();render()}
+    if(f&&ss.token&&S.cur===ss.rid){me=f;STUDENT_SESSION=ss.token;role='student';await pullNow();render()}
    }
   }catch(e){}
   if(!me)pull();
@@ -1093,7 +1280,7 @@ function copyCsv(){
   $('modal').innerHTML='<div class="card border-4 border-sky-200 p-4 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3"><h3 class="mali font-bold text-lg">📷 สแกนเอกสาร</h3><p class="text-xs text-slate-500">ถ่ายทีละหน้า ปรับกรอบให้ตรงขอบกระดาษ แล้วเรียงลำดับหน้าได้ก่อนส่ง</p><div class="grid grid-cols-2 gap-2">'+(th||'<div class="col-span-2 text-center text-xs text-slate-400 py-6">ยังไม่มีหน้า กดถ่ายหน้าแรกได้เลย</div>')+'</div><div class="flex flex-wrap gap-2"><button type="button" data-a="cam" class="'+btn+' bg-sky-400 text-white">📷 ถ่ายหน้า'+(SC.pages.length?'ถัดไป':'แรก')+'</button><button type="button" data-a="lib" class="'+btn+' bg-slate-100">🖼️ เลือกรูปในเครื่อง</button></div><div class="flex gap-2"><button type="button" data-a="cancel" class="'+btn+' flex-1 bg-slate-100">ยกเลิก</button><button type="button" data-a="done" class="'+btn+' flex-1 bg-emerald-500 text-white">✅ ใช้ '+SC.pages.length+' หน้า</button></div></div>'}
  function scPick(cam){
   if(SC.pages.length>=12)return toast('สแกนได้สูงสุด 12 หน้าต่อครั้ง');
-  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/'+'*';
   if(cam)inp.setAttribute('capture','environment');
   inp.onchange=async()=>{
    const f=inp.files&&inp.files[0];if(!f||!SC)return;
@@ -1917,10 +2104,10 @@ window.restore=function(){
 (function(){
  const id=u=>{const m=String(u||'').match(/(?:\/d\/|id=)([\w-]{10,})/);return m?m[1]:''};
  const alts=f=>[
-  'https://lh3.googleusercontent.com/d/'+f,
-  'https://lh3.googleusercontent.com/d/'+f+'=w1600',
-  'https://drive.google.com/thumbnail?id='+f+'&sz=w1600',
-  'https://drive.google.com/uc?export=view&id='+f];
+  'https:\/\/lh3.googleusercontent.com/d/'+f,
+  'https:\/\/lh3.googleusercontent.com/d/'+f+'=w1600',
+  'https:\/\/drive.google.com/thumbnail?id='+f+'&sz=w1600',
+  'https:\/\/drive.google.com/uc?export=view&id='+f];
  document.addEventListener('error',e=>{
   const t=e.target;if(!t||t.tagName!=='IMG')return;
   const o=t.dataset.orig||t.src,f=id(o);if(!f)return;
@@ -1978,11 +2165,11 @@ window.restore=function(){
 <script>
 (function(){
  /* ชั้นที่ 1: ครูไม่รับข้อมูลที่ดึงมา ถ้านักเรียนหายเกินครึ่ง */
- const _n=window.net;
- window.net=async function(url,opt,tries){
-  const r=await _n.apply(this,arguments);
+ const _api=window.api;
+ window.api=async function(b){
+  const r=await _api.apply(this,arguments);
   try{
-   if(role==='teacher'&&KEY&&String(url).includes('action=get')&&r&&r.ok&&r.data&&Array.isArray(r.data.items)&&r.data.items.length){
+   if(role==='teacher'&&AUTH&&b&&b.action==='get'&&r&&r.ok&&r.data&&Array.isArray(r.data.items)&&r.data.items.length){
     const sv=(r.data.students||[]).length,loc=flat('students').length;
     if(loc>0&&sv<loc*0.5)return{ok:false,error:'ข้อมูลจากเซิร์ฟเวอร์ไม่ครบ ('+sv+' คน) จึงไม่เขียนทับ'};
    }
@@ -2120,11 +2307,11 @@ window.restore=function(){
   return Promise.resolve(_ps.apply(this,arguments)).then(ok=>{if(ok&&role==='student'&&me&&d===me.id)markSyn(i,d);return ok})};
 
  /* ===== ครูกด "สอบใหม่" (ลบที่เซิร์ฟเวอร์) → เครื่องนักเรียนลบรายการเดิมทิ้งด้วย ===== */
- const _n=window.net;
- window.net=async function(url,opt,tries){
-  const t0=Date.now(),r=await _n.apply(this,arguments);
+ const _api=window.api;
+ window.api=async function(b){
+  const t0=Date.now(),r=await _api.apply(this,arguments);
   try{
-   if(role==='student'&&me&&String(url).includes('action=get')&&r&&r.ok&&r.data&&r.data.items){
+   if(role==='student'&&me&&b&&b.action==='get'&&r&&r.ok&&r.data&&r.data.items){
     const ss=r.data.subs||{},syn=sld(),q=qld();let ch=false;
     Object.keys(S.subs).forEach(iid=>{
      const x=S.subs[iid]&&S.subs[iid][me.id];if(!x)return;
@@ -2240,11 +2427,11 @@ window.restore=function(){
   return _r.apply(this,arguments)};
 
  /* 2) ระหว่างกำลังสอบหรือกำลังเริ่มสอบ ห้าม pull ลบ/ทับสถานะ */
- const _n=window.net;
- window.net=async function(url,opt,tries){
-  if((starting||activeTest)&&role==='student'&&String(url).includes('action=get')){
+ const _api=window.api;
+ window.api=async function(b){
+  if((starting||activeTest)&&role==='student'&&b&&b.action==='get'){
    return{ok:false,error:'กำลังสอบ'}}
-  return _n.apply(this,arguments)};
+  return _api.apply(this,arguments)};
 
  /* 3) ข้อความ "ออกกลางคัน" ไม่แสดงถ้าข้อสอบข้อนั้นกำลังเปิดอยู่ */
  const _sb=window.studentBox;
