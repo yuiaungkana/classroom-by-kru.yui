@@ -956,7 +956,17 @@ function copyCsv(){
    }
   }catch(e){}
   if(!me)pull();
-  setInterval(()=>{if(document.hidden)return;if(role==='teacher'&&(pend||inflight||unsaved))return;pull()},4500);
+// ซิงก์ข้อมูลอัตโนมัติทุก 30 วินาที
+// หยุดซิงก์เมื่อซ่อนหน้าเว็บ หรือมีงานบันทึกค้างอยู่
+setInterval(()=>{
+  if(document.hidden)return;
+  if(pulling)return;
+  if(role==='teacher'&&(pend||inflight||unsaved))return;
+  if(activeTest)return;
+
+  pull();
+
+},30000);
  })();
 })();
 </script>
