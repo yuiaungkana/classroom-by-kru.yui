@@ -1211,11 +1211,17 @@ setInterval(()=>{
     const i=(y*w+x)*4,n=Math.min(1.15,Y[y*w+x]/bg);
     if(mode==='bw'){const v=255*sm(0.58,0.88,n);D[i]=v;D[i+1]=v;D[i+2]=v}
     else if(mode==='gray'){const v=Math.max(0,Math.min(255,255*(n-0.3)/0.65));D[i]=v;D[i+1]=v;D[i+2]=v}
-    else{const s=255/bg;for(let c=0;c<3;c++)D[i+c]=Math.max(0,Math.min(255,(D[i+c]*s-14)*1.08))}}}
+    else{
+     const s=Math.min(1.35,255/bg);
+     let r=(D[i]*s-12)*1.08,g=(D[i+1]*s-12)*1.08,b=(D[i+2]*s-12)*1.08;
+     const lum=0.299*r+0.587*g+0.114*b;
+     D[i]=Math.max(0,Math.min(255,lum+(r-lum)*1.12));
+     D[i+1]=Math.max(0,Math.min(255,lum+(g-lum)*1.12));
+     D[i+2]=Math.max(0,Math.min(255,lum+(b-lum)*1.12))}}}
   cg.putImageData(im,0,0)}
  function sharpen(cv){
   const w=cv.width,h=cv.height,g=cv.getContext('2d'),im=g.getImageData(0,0,w,h),
-   O=new Uint8ClampedArray(im.data),D=im.data,k=0.55;
+   O=new Uint8ClampedArray(im.data),D=im.data,k=0.65;
   for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
    const i=(y*w+x)*4;
    for(let c=0;c<3;c++)D[i+c]=O[i+c]*(1+4*k)-k*(O[i-4+c]+O[i+4+c]+O[i-w*4+c]+O[i+w*4+c])}
@@ -1295,7 +1301,7 @@ setInterval(()=>{
  function scDraw(){
   if(SC.view==='edit')return scDrawEdit();
   const th=SC.pages.map((P,i)=>'<div class="bg-slate-50 rounded-xl p-2 space-y-1 text-[11px]"><div class="font-bold">หน้า '+(i+1)+'</div><img src="'+P.thumb+'" class="w-full rounded-lg border bg-white"><div class="flex flex-wrap gap-1"><button type="button" data-a="up" data-i="'+i+'" class="'+btn+' bg-slate-100">⬆️</button><button type="button" data-a="down" data-i="'+i+'" class="'+btn+' bg-slate-100">⬇️</button><button type="button" data-a="edit" data-i="'+i+'" class="'+btn+' bg-sky-100">✂️ แก้</button><button type="button" data-a="del" data-i="'+i+'" class="'+btn+' bg-rose-100">🗑️</button></div></div>').join('');
-  $('modal').innerHTML='<div class="card border-4 border-sky-200 p-4 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3"><h3 class="mali font-bold text-lg">📷 สแกนเอกสาร</h3><p class="text-xs text-slate-500">ถ่ายทีละหน้า ปรับกรอบให้ตรงขอบกระดาษ แล้วเรียงลำดับหน้าได้ก่อนส่ง</p><div class="grid grid-cols-2 gap-2">'+(th||'<div class="col-span-2 text-center text-xs text-slate-400 py-6">ยังไม่มีหน้า กดถ่ายหน้าแรกได้เลย</div>')+'</div><div class="flex flex-wrap gap-2"><button type="button" data-a="cam" class="'+btn+' bg-sky-400 text-white">📷 ถ่ายหน้า'+(SC.pages.length?'ถัดไป':'แรก')+'</button><button type="button" data-a="lib" class="'+btn+' bg-slate-100">🖼️ เลือกรูปในเครื่อง</button></div><div class="flex gap-2"><button type="button" data-a="cancel" class="'+btn+' flex-1 bg-slate-100">ยกเลิก</button><button type="button" data-a="done" class="'+btn+' flex-1 bg-emerald-500 text-white">✅ ใช้ '+SC.pages.length+' หน้า</button></div></div>'}
+  $('modal').innerHTML='<div class="card border-4 border-sky-200 p-4 w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-3"><h3 class="mali font-bold text-lg">📷 สแกนเอกสาร</h3><p class="text-xs text-slate-500">ถ่ายทีละหน้า ระบบตัดขอบและปรับภาพสีให้อัตโนมัติ ตรวจดูและเรียงลำดับหน้าก่อนส่ง<div class="text-[11px] text-slate-500 bg-sky-50 rounded-xl p-2">เคล็ดลับ: วางกระดาษบนพื้นสีเข้ม ให้เห็นมุมกระดาษครบทั้ง 4 มุม และถ่ายในที่สว่าง</div></p><div class="grid grid-cols-2 gap-2">'+(th||'<div class="col-span-2 text-center text-xs text-slate-400 py-6">ยังไม่มีหน้า กดถ่ายหน้าแรกได้เลย</div>')+'</div><div class="flex flex-wrap gap-2"><button type="button" data-a="cam" class="'+btn+' bg-sky-400 text-white">📷 ถ่ายหน้า'+(SC.pages.length?'ถัดไป':'แรก')+'</button><button type="button" data-a="lib" class="'+btn+' bg-slate-100">🖼️ เลือกรูปในเครื่อง</button></div><div class="flex gap-2"><button type="button" data-a="cancel" class="'+btn+' flex-1 bg-slate-100">ยกเลิก</button><button type="button" data-a="done" class="'+btn+' flex-1 bg-emerald-500 text-white">✅ ใช้ '+SC.pages.length+' หน้า</button></div></div>'}
  function scPick(cam){
   if(SC.pages.length>=12)return toast('สแกนได้สูงสุด 12 หน้าต่อครั้ง');
   const inp=document.createElement('input');inp.type='file';inp.accept='image/'+'*';
@@ -1309,9 +1315,24 @@ setInterval(()=>{
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);
     const NP={src:c,q:fullQuad(c),mode:'color',out:null,thumb:'',s:1};
     let ac=false;try{ac=autoCrop(NP)}catch(_){}
-    if(!ac)toast('ตัดขอบอัตโนมัติไม่สำเร็จ ลากมุมเองได้เลย');
     SC.pages.push(NP);
-    SC.cur=SC.pages.length-1;SC.view='edit';SC.bak=null;scDrawEdit()
+    SC.cur=SC.pages.length-1;SC.bak=null;
+    if(ac){
+     try{
+      buildOut(NP);
+      SC.view='list';
+      toast('ตัดขอบกระดาษและปรับภาพสีอัตโนมัติแล้ว');
+      scDraw();
+     }catch(err){
+      SC.view='edit';
+      toast('ปรับภาพอัตโนมัติไม่สำเร็จ สามารถตรวจกรอบได้');
+      scDrawEdit();
+     }
+    }else{
+     SC.view='edit';
+     toast('ยังตรวจจับขอบกระดาษไม่ชัดเจน กรุณาตรวจกรอบครั้งนี้');
+     scDrawEdit();
+    }
    }catch(err){toast('เปิดรูปไม่สำเร็จ: '+((err&&err.message)||''))}};
   inp.click()}
  async function scDone(){
@@ -1324,7 +1345,7 @@ setInterval(()=>{
    Array.from(inp.files||[]).forEach(f=>dt.items.add(f));
    const ts=Date.now(),total=SC.pages.length;
    for(let n=0;n<total;n++){
-    const blob=await new Promise(r=>SC.pages[n].out.toBlob(r,'image/jpeg',.85));
+    const blob=await new Promise(r=>SC.pages[n].out.toBlob(r,'image/jpeg',.92));
     dt.items.add(new File([blob],'scan-'+ts+'-'+(n+1)+'.jpg',{type:'image/jpeg'}))}
    inp.files=dt.files;
    SC=null;closeModal();
