@@ -238,15 +238,18 @@ async function diag(){
 const ASSETS={async upload(f){if(!online())throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (GAS_URL)');const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});const x=await api({action:'upload',name:f.name,mime:f.type||'application/octet-stream',b64});if(!x.ok)throw new Error(x.error);return{id:x.id,url:x.url,contentType:f.type}}};
 const pullNow=async()=>{for(let i=0;i<60&&pulling;i++)await new Promise(r=>setTimeout(r,200));return pull()};
 var __sv=0,__fe=0;
+let pullFailCount=0, nextPullAt=0;
 async function pull(){
- if(!online()||pulling)return;
+ if(!online()||pulling||Date.now()<nextPullAt)return;
  pulling=true;
  const v0=subVer,s0=__sv,t0=Date.now();
  try{
   const r=await api({action:'get'});
   if(!r||!r.ok){
    const msg=String((r&&r.error)||'ไม่ทราบสาเหตุ');
-   $('st').textContent='⚠️ Apps Script ตอบกลับผิดพลาด: '+msg;
+   pullFailCount++;
+   nextPullAt=Date.now()+Math.min(5*60*1000,15000*Math.pow(2,Math.min(pullFailCount-1,5)));
+   $('st').textContent='เชื่อมต่อ Apps Script ไม่สำเร็จ: '+msg+' ระบบจะลองใหม่อัตโนมัติ';
    if(role==='student'&&me&&/Session นักเรียนหมดอายุ|Session ไม่ถูกต้อง/.test(msg)){
     me=null;STUDENT_SESSION='';
     try{sessionStorage.removeItem('lms_stu')}catch(e){}
@@ -254,6 +257,8 @@ async function pull(){
    }
    return;
   }
+  pullFailCount=0;
+  nextPullAt=0;
   const d=r.data||{};
 
   // ก่อนเข้าสู่ระบบ เซิร์ฟเวอร์ส่งเฉพาะรายชื่อห้อง ห้ามนำ arrays ว่างไปทับข้อมูลที่แคชไว้
@@ -351,7 +356,9 @@ async function pull(){
   if(!busy()&&$('modal').classList.contains('hidden'))render();
   $('st').textContent='☁️ เชื่อมต่อ Google Drive แล้ว '+tm();
  }catch(e){
-  $('st').textContent='⚠️ '+errMsg(e)+' • ใช้ข้อมูลที่จำไว้ในเครื่อง '+tm();
+  pullFailCount++;
+  nextPullAt=Date.now()+Math.min(5*60*1000,15000*Math.pow(2,Math.min(pullFailCount-1,5)));
+  $('st').textContent='เชื่อมต่อไม่สำเร็จ ระบบยังใช้ข้อมูลที่บันทึกไว้ในเครื่อง และจะลองใหม่อัตโนมัติ '+tm();
  }finally{pulling=false;}
 }
 function save(){
@@ -956,17 +963,18 @@ function copyCsv(){
    }
   }catch(e){}
   if(!me)pull();
-// ซิงก์ข้อมูลอัตโนมัติทุก 30 วินาที
-// หยุดซิงก์เมื่อซ่อนหน้าเว็บ หรือมีงานบันทึกค้างอยู่
+// ซิงก์ข้อมูลอัตโนมัติทุก 2 นาที เพื่อลดการเรียก Apps Script ถี่เกินไป
+// หยุดซิงก์เมื่อซ่อนหน้าเว็บ มีงานบันทึกค้างอยู่ หรืออยู่ในช่วงพักหลังเชื่อมต่อล้มเหลว
 setInterval(()=>{
   if(document.hidden)return;
+  if(Date.now()<nextPullAt)return;
   if(pulling)return;
   if(role==='teacher'&&(pend||inflight||unsaved))return;
   if(activeTest)return;
 
   pull();
 
-},30000);
+},120000);
  })();
 })();
 </script>
